@@ -1,0 +1,13 @@
+{
+  // the ml venv lives a level below the workspace root, so VS Code doesn't
+  // auto-discover it — point the Python extension at it explicitly
+  "python.defaultInterpreterPath": "${workspaceFolder}/ml/.venv/bin/python",
+
+  // learning mode: nothing completes automatically in this workspace.
+  // Ctrl+Space still summons suggestions manually when you actually want docs.
+  "editor.quickSuggestions": { "other": "off", "comments": "off", "strings": "off" },
+  "editor.suggestOnTriggerCharacters": false,
+  "editor.inlineSuggest.enabled": false,
+  "editor.acceptSuggestionOnEnter": "off",
+  "editor.parameterHints.enabled": false
+}

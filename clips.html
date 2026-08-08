@@ -1,0 +1,28 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Rally — animation clips</title>
+<style>
+  body { margin:0; background:#0a1524; color:#dbe6f3; font:14px/1.5 system-ui, sans-serif; padding:26px 30px 60px; }
+  h1 { font-size:19px; margin:0 0 4px; letter-spacing:.02em; }
+  p.sub { margin:0 0 26px; color:#7f95b3; font-size:13px; }
+  .grid { display:flex; flex-wrap:wrap; gap:26px; }
+  figure { margin:0; }
+  img { display:block; background:#12243c; border-radius:3px; image-rendering:auto; }
+  figcaption { margin-top:7px; font-size:12.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:#cfe0f5; }
+  figcaption span { display:block; font-weight:400; text-transform:none; letter-spacing:0; color:#7f95b3; font-size:12px; margin-top:2px; }
+</style>
+<h1>Rally — stroke animations, slowed down</h1>
+<p class="sub">Every frame is the real renderer driven through the real swing, sampled at 16 phases and played
+   back at about 1/8 speed. Each loop runs forward then back, so the take-back and the finish are both readable.</p>
+<div class="grid">
+  <figure><img src="clip-forehand.gif" width="314" height="366">
+    <figcaption>Forehand<span>Alcaraz · right-handed</span></figcaption></figure>
+  <figure><img src="clip-backhand2h.gif" width="314" height="366">
+    <figcaption>Backhand, two-handed<span>both hands on the grip</span></figcaption></figure>
+  <figure><img src="clip-backhand1h.gif" width="314" height="366">
+    <figcaption>Backhand, one-handed<span>Federer · free arm thrown back</span></figcaption></figure>
+  <figure><img src="clip-slice.gif" width="314" height="366">
+    <figcaption>Slice<span>high take-back, knifes down and through</span></figcaption></figure>
+  <figure><img src="clip-drop.gif" width="314" height="366">
+    <figcaption>Dropshot<span>short take-back, almost no follow-through</span></figcaption></figure>
+</div>

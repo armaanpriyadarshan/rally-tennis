@@ -1,0 +1,7 @@
+# Current stack: neural-net fundamentals (micrograd / Zero to Hero).
+# Add RL deps (gymnasium, torch, ...) yourself when the ladder gets there.
+numpy
+matplotlib
+jupyterlab
+ipykernel
+graphviz
