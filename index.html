@@ -319,7 +319,6 @@
     <div class="card">
       <!-- HOME -->
       <div id="view-home">
-        <h1>Rally</h1>
         <div class="arena">
           <button class="carrow" id="arenaPrev">‹</button>
           <div class="arenaMid">
@@ -433,6 +432,10 @@
 // undefined, which quietly turned every shoulder coordinate into NaN -- canvas discards
 // a path that starts at NaN, so the card figures were drawn with no arms at all.
 const SHOULDER_HW = 0.205;
+// Neutral light: no tint at all. Up here for exactly the same reason -- the menu cards
+// and the cast-shadow pass draw a figure with the lighting switched off, and the menu's
+// first draw happens long before the LIGHTING section further down has been evaluated.
+const NO_TINT = { r: 1, g: 1, b: 1, lum: 1 };
 // The style of the player currently being drawn. `oneHandBh` is threaded through six
 // functions as a bare boolean; rather than widen all of those signatures for a second
 // per-player variant, the whole style is parked here for the duration of one figure.
@@ -503,32 +506,28 @@ const VENUES = {
          cap:14979,
          back:7.2, side:5.5, backH:1.60, sideH:1.15, mph:true, umpKit:'#f2f2ec', umpCap:'#20402c',
          wall:'#12402c', wallLo:'#0d3222', rail:'#1d4a38', seat:'#1c4a37', tread:'#143a2b', roof:'#0a1f18',
-         signCol:'#f0f4ef', paint:null, net:'#14392a', tape:'#f4f7f2', post:'#c9c08a', board:'#0b2b1d',
-         crowd:['#f0e4cf','#e2c3a2','#a87f5c','#dcd2c2','#c3d3e6','#e8dcd0'] },
+         signCol:'#f0f4ef', paint:null, net:'#14392a', tape:'#f4f7f2', post:'#c9c08a', board:'#0b2b1d' },
   rg:  { arena:'PHILIPPE-CHATRIER', sign:'ROLAND-GARROS', band:'ROLAND-GARROS', towel:{ a:'#c2632f', b:'#f0e6d2' },
          kit:{ bag:'#1f4f8a', cool:'#2f7d52' },
          sb:{ bg:'#12503a', bg2:'#0e4531', box:'#c2632f', srv:'#f2d16b' },
          cap:15225,
          back:8.0, side:6.0, backH:1.55, sideH:1.10, mph:false, umpKit:'#22405c', umpCap:'#16324a',
          wall:'#1d5741', wallLo:'#164634', rail:'#2c7355', seat:'#20563e', tread:'#17452f', roof:'#0f2f22',
-         signCol:'#f4f7f2', paint:null, net:'#15382b', tape:'#f4f7f2', post:'#1a4936', board:'#10362a',
-         crowd:['#efe0c8','#d9b48e','#9c7350','#cfd8e2','#e6c9b4','#b9c8d6'] },
+         signCol:'#f4f7f2', paint:null, net:'#15382b', tape:'#f4f7f2', post:'#1a4936', board:'#10362a' },
   ao:  { arena:'ROD LAVER ARENA', sign:'AUSTRALIAN OPEN', band:'MELBOURNE', towel:{ a:'#12539c', b:'#8fd0f0' },
          kit:{ bag:'#1d4f9c', cool:'#1a5fa8' },
          sb:{ bg:'#141519', bg2:'#101115', box:'#1470c8', srv:'#4ec3f7' },
          cap:14820,
          back:8.0, side:6.0, backH:1.35, sideH:1.00, mph:false, umpKit:'#1c1c22', umpCap:'#101014',
          wall:'#121215', wallLo:'#0b0b0d', rail:'#2a2a2e', seat:'#3f7a52', tread:'#356744', roof:'#0d0d10',
-         signCol:'#ffffff', paint:'MELBOURNE', net:'#14161b', tape:'#f4f7fb', post:'#101216', board:'#16181d',
-         crowd:['#f2e5d2','#dcb896','#a07a58','#cddaea','#e8d3c2','#bcc9dc'] },
+         signCol:'#ffffff', paint:'MELBOURNE', net:'#14161b', tape:'#f4f7fb', post:'#101216', board:'#16181d' },
   us:  { arena:'ARTHUR ASHE STADIUM', sign:'US OPEN', band:'US OPEN', towel:{ a:'#14337a', b:'#e8eef7' },
          kit:{ bag:'#8a2740', cool:'#2f7d52' },
          sb:{ bg:'#10305e', bg2:'#0c2750', box:'#1d63b8', srv:'#ffd633' },
          cap:23771,
          back:8.6, side:6.4, backH:1.30, sideH:1.00, mph:true, umpKit:'#1a2c50', umpCap:'#101f3c',
          wall:'#173c72', wallLo:'#102b55', rail:'#2b5da3', seat:'#2c5490', tread:'#23477a', roof:'#0c2547',
-         signCol:'#ffffff', paint:null, net:'#13294a', tape:'#f4f7fb', post:'#16305a', board:'#0d2246',
-         crowd:['#f0e2cd','#d8b18a','#96704f','#c9d6e8','#e4cdbb','#b3c3d8'] },
+         signCol:'#ffffff', paint:null, net:'#13294a', tape:'#f4f7fb', post:'#16305a', board:'#0d2246' },
 };
 function venueKey() { const T = TOURNAMENTS[curTour] || TOURNAMENTS[0]; return VENUES[T.key] ? T.key : 'us'; }
 function venue() { return VENUES[venueKey()]; }
@@ -674,7 +673,6 @@ const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 const lerp = (a, b, t) => a + (b - a) * t;
 const gauss = () => (Math.random() + Math.random() + Math.random()) * 2 - 3;   // ~N(0,1), bounded ±3
 
-// ---- Crowd (generated once; tiered stands behind the baselines and down the sides) ----
 
 // ---- Networking / app state ----
 let peer = null, conn = null, isHost = false, myIndex = 0;
@@ -1553,8 +1551,7 @@ function ballBehindNet() {
   return C.y + ((p.y || 0) - C.y) * fr < netHeightAt(xAt);
 }
 function render() {
-  drawBackdrop();                                   // stands, run-off, court and lines: one cached blit
-  drawSunShade(venue());                            // the shadow moves, so it is drawn live over the cache
+  drawBackdrop();                                   // stands, run-off, court, lines, net shadow and furniture: one cached blit
   drawWallBoards();                                 // the live courtside scoreboard and speed display
   drawBallShadow();
   const pz0 = viewZ(gs.players[0].z), pz1 = viewZ(gs.players[1].z);
@@ -1572,37 +1569,75 @@ function render() {
 
 // ============================================================
 //  LIGHTING
-//  One sun vector per venue drives everything: which part of the court the
-//  stand leaves in shade, where every shadow falls and how long it is, and
-//  how much light anything standing in that shade receives. The shaded
-//  region is a real shadow volume -- the roof aperture is cast along the sun
-//  vector onto the ground plane, and whatever the patch misses is in shade.
-//  Values come from where the shadows actually fall in the reference frames:
-//  Centre Court cut in half by the roof, Chatrier flat and overcast, Ashe
-//  side-lit late afternoon, Rod Laver under floodlight with no sun at all.
+//  Two lights, and EVERYTHING on court is lit by both of them: a directional SUN
+//  and a wrap-around SKY. A point receives sky + sun x how much sun actually
+//  reaches it, so shade is never black -- it loses the sun and cools toward the
+//  colour of the sky, which is what shade really looks like. Cloud moves energy
+//  OUT of the sun and INTO the sky rather than switching a light off, so an
+//  overcast passage FLATTENS the scene instead of darkening it.
+//
+//  That split is what fixed the old model. It ran one scalar brightness that
+//  every source of gloom multiplied into: shade, cloud and a low sun all stacked,
+//  so a cloudy late-session point had the ball, the players and the court all
+//  sliding toward the same murk and you could lose the ball against the surface.
+//  Here the lit end of the ramp is PINNED at full brightness and the shaded end
+//  has a floor, so the contrast between them moves but the exposure never does.
+//
+//  Where the sun reaches is one half-plane. The upwind roof edge is cast down the
+//  sun vector -- a roof of height h throws its shadow h/tan(elevation) across the
+//  ground -- and everything short of that line sits in the stand's shade. The
+//  line sweeps as the sun swings and drops, exactly as it does on the show
+//  courts, and it is bounded to the COURT's own footprint: the old one was free
+//  to slide tens of metres off court, which is how a session used to end with
+//  every surface uniformly in the dark and the shadow line nowhere to be seen.
+//
+//  Reference, one per venue: Centre Court cut across the diagonal by the roof
+//  through a late afternoon; Chatrier flat and shadowless under Paris cloud;
+//  Ashe side-lit with long shadows down the court; Rod Laver closed and
+//  floodlit, where there is no sun at all, the court sits in a pool of light and
+//  the bowl falls away dark around it.
 // ============================================================
 function sunVec(azDeg, elDeg) {          // unit vector pointing from the sun INTO the scene
   const a = azDeg * Math.PI / 180, e = elDeg * Math.PI / 180;
   return { x: Math.cos(e) * Math.sin(a), y: -Math.sin(e), z: Math.cos(e) * Math.cos(a) };
 }
+// Per venue: where the sun sits and what cuts it off, how much cloud the place
+// gets, and the two light COLOURS. `sky` is what a shaded object is lit by -- blue
+// up there, so shade comes out cool -- and `sun` is the warm direct beam. `haze`
+// is the colour the far end of the arena washes toward with distance.
+// Azimuth is measured so that the sun sits BEHIND THE FAR END and shines back down the
+// court, which is the arrangement every one of these places is televised in: shadows
+// fall sideways and toward the camera, where you can see them. With the sun behind the
+// camera instead -- which is where the old table put it -- every shadow in the frame
+// lands directly behind the thing casting it and none of them are visible at all,
+// which is most of why the scene read as unlit however dark the shading was.
 const LIGHT = {
-  wim: { az: 56, el: 55, sun: sunVec(56, 55), roofH: 24, apX: 15.5, apZ: 13.5,
-         shade: 'rgba(26,42,58,0.34)', warm: 'rgba(255,244,214,0.075)', soft: 1.0, shadowA: 0.30 },
-  rg:  { az: 14, el: 68, sun: sunVec(14, 68), roofH: 26, apX: 26, apZ: 26,          // overcast: the aperture clears the court
-         shade: 'rgba(34,26,32,0.16)', warm: 'rgba(255,240,222,0.04)', soft: 2.2, shadowA: 0.16 },
-  ao:  { az: 0, el: 90, sun: sunVec(0, 90), roofH: 26, apX: 40, apZ: 40, night: true,   // floodlit, no sun
-         shade: 'rgba(12,20,38,0.10)', warm: 'rgba(214,232,255,0.045)', soft: 1.6, shadowA: 0.20 },
-  us:  { az: -62, el: 44, sun: sunVec(-62, 44), roofH: 23, apX: 17, apZ: 22,
-         shade: 'rgba(20,32,54,0.26)', warm: 'rgba(255,246,220,0.06)', soft: 1.2, shadowA: 0.26 },
+  wim: { az: 152, el: 46, roofH: 24, apX: 15.0, apZ: 15.0, cloud0: 0.22, cloudAmp: 0.22,
+         sky: '#a9c6e8', sun: '#fff4d2', haze: '#8fa9c4', shadowA: 0.44, soft: 3.6 },
+  rg:  { az: 196, el: 58, roofH: 26, apX: 18.0, apZ: 20.0, cloud0: 0.70, cloudAmp: 0.20,
+         sky: '#c4cbd3', sun: '#fff1de', haze: '#a7b0bb', shadowA: 0.32, soft: 5.4 },
+  ao:  { az: 180, el: 84, roofH: 26, apX: 40, apZ: 40, night: true, cloud0: 0, cloudAmp: 0,
+         sky: '#d8e7f7', sun: '#ffffff', haze: '#0f1826', shadowA: 0.34, soft: 2.4 },
+  us:  { az: 214, el: 38, roofH: 23, apX: 13.5, apZ: 19.0, cloud0: 0.16, cloudAmp: 0.22,
+         sky: '#aec8e8', sun: '#ffe8bb', haze: '#8799b6', shadowA: 0.44, soft: 3.2 },
 };
 // ---- Conditions: the sun moves and the weather turns while you play ----
 // A match is drawn under a live sky rather than a fixed one. The sun tracks across
-// its arc over the course of a match, and cloud drifts in and out on its own slow
-// cycle, thinning the shadows and cooling the light as it passes. Both are derived
-// from one clock so the whole scene stays consistent frame to frame.
+// its arc over the session and cloud drifts in and out on its own slow cycle. Both
+// come off one clock so the whole scene stays consistent frame to frame -- and both
+// run much slower than they used to (DAY_LEN was 420 s, a whole sky in seven
+// minutes), because the thing that read as "jarring" was never the range, it was
+// the rate: the light was visibly moving while you were watching the ball.
 let skyClock = 0;                        // seconds of match time, advanced from the frame loop
-const DAY_LEN = 420;                     // a full sweep of the sun across the sky, in seconds
+const DAY_LEN = 1500;                    // a full sweep of the sun across the sky, in seconds
 function advanceSky(dt) { skyClock += dt; }
+const hexRGB = hex => { const n = parseInt(hex.slice(1), 16); return { r:(n>>16)&255, g:(n>>8)&255, b:n&255 }; };
+const relLum = c => 0.30*c.r + 0.59*c.g + 0.11*c.b;
+// A light's colour at unit brightness, so its HUE and its STRENGTH stay independent:
+// making the sky bluer must not also make the shade darker.
+function unitLight(hex) { const c = hexRGB(hex), l = relLum(c) || 1; return { r:c.r/l, g:c.g/l, b:c.b/l }; }
+const _unitMemo = {};
+function unitLightM(hex) { return _unitMemo[hex] || (_unitMemo[hex] = unitLight(hex)); }
 let _cond = null, _condKey = '';
 function conditions() {
   const ck = venueKey() + '|' + skyClock;
@@ -1612,70 +1647,157 @@ function conditions() {
 }
 function conditionsFor() {
   const base = LIGHT[venueKey()] || LIGHT.us;
-  if (base.night) return { ...base, cloud: 0, dim: 1, warmth: 1 };
-  const t = skyClock / DAY_LEN;                                   // 0 -> 1 across the session
-  // the sun swings through roughly 55 deg of azimuth and drops as the match wears on
-  const az = base.az + (t - 0.5) * 55;
-  const el = clamp(base.el - Math.abs(t - 0.35) * 26, 12, 84);
-  // cloud drifts on two out-of-phase cycles so it never feels like a loop
-  const cloud = clamp(0.5 + 0.5 * Math.sin(skyClock / 47) * Math.sin(skyClock / 113 + 1.2), 0, 1);
-  const dim = 1 - cloud * 0.62;                                   // overcast softens the shadow
-  const warmth = 1 - cloud * 0.75 + Math.max(0, t - 0.6) * 0.5;   // and cools it, until it warms again low in the sky
-  return { ...base, sun: sunVec(az, el), cloud, dim, warmth };
+  const t = clamp(skyClock / DAY_LEN, 0, 1);                      // 0 -> 1 across the session
+  // Cloud drifts on two slow out-of-phase cycles about the VENUE'S OWN average, so it
+  // never loops and never swings far enough to change the exposure. Paris sits under
+  // cloud most of the time; Melbourne is indoors and has none.
+  const drift = Math.sin(skyClock / 97) * Math.sin(skyClock / 181 + 1.2);
+  const cloud = base.night ? 0 : clamp(base.cloud0 + drift * base.cloudAmp, 0, 0.97);
+  // the sun swings across and drops as the session wears on
+  const az = base.az + (t - 0.5) * 40;
+  const el = base.night ? base.el : Math.max(16, base.el - t * 18);
+  // sunFrac: what fraction of the light is DIRECT. 1 is a clear sky, 0 is flat overcast.
+  // Under a closed roof it is not zero -- floodlights still throw a shadow, just a
+  // short, faint, nearly vertical one.
+  const sunFrac = base.night ? 0.20 : clamp((1 - cloud) ** 1.4, 0, 1);
+  // How dark shade is next to sun. Real open shade on a clear day is far darker than
+  // this; at broadcast exposure, and with a ball to keep track of, two thirds is as
+  // far down as it can usefully go -- and under overcast it goes to 1, i.e. no shadow
+  // at all rather than a dim one.
+  const shadeLum = 1 - 0.46 * sunFrac;
+  // The sky's HUE is what tips shade cool, but a surface in shade is still mostly its
+  // own colour: taken at full strength the blue swamped everything, grass came out
+  // teal and the court paint came out lilac. Pulled most of the way back to neutral,
+  // it does what shade really does -- takes the warmth out without repainting it.
+  const sk = unitLightM(base.sky);
+  const skyU = { r: lerp(1, sk.r, 0.52), g: lerp(1, sk.g, 0.52), b: lerp(1, sk.b, 0.52) };
+  const sunU = unitLightM(base.sun);
+  // The lit end keeps its warmth only as far as the sun is actually out: with the sun
+  // behind cloud the light IS the sky, and lit and shaded converge on the same colour.
+  const wf = 0.25 + 0.75 * sunFrac;
+  // ...and a low sun late in the session runs warmer still.
+  const ev = base.night ? 0 : clamp((t - 0.45) / 0.55, 0, 1) * sunFrac;
+  // Direct sun does not just fail to be shade -- it is BRIGHTER than the surface's own
+  // colour, and a sunlit court that only ever reaches its unlit paint value never looks
+  // like it is in the sun. The lift is small, and the whole ramp still has a hard floor.
+  const lift = 1 + 0.10 * sunFrac;
+  const litU = { r: lerp(skyU.r, sunU.r, wf) * (1 + 0.10*ev) * lift,
+                 g: lerp(skyU.g, sunU.g, wf) * lift,
+                 b: lerp(skyU.b, sunU.b, wf) * (1 - 0.15*ev) * lift };
+  const amb = { r: skyU.r*shadeLum, g: skyU.g*shadeLum, b: skyU.b*shadeLum };
+  const dir = { r: litU.r - amb.r, g: litU.g - amb.g, b: litU.b - amb.b };
+  return { ...base, sun: sunVec(az, el), t, cloud, sunFrac, shadeLum, litLum: lift, amb, dir };
 }
 function light() { return conditions(); }
-// Where the sunlit patch lands: the roof opening cast down the sun vector.
-let _lrect = null, _lrectKey = '';
-function litRect() {
+// THE SHADE LINE. One half-plane: light travels along (ux, uz) across the ground, and
+// everything short of `c` on that axis is in the roof's shadow. Bounded to the arena
+// so the court is never entirely lit away and never entirely swallowed.
+let _shl = null, _shlKey = '';
+function shadeLine() {
   const ck = venueKey() + '|' + skyClock;
-  if (_lrectKey === ck && _lrect) return _lrect;
-  const L2 = light(), S = L2.sun, k = L2.roofH / -S.y;
-  const ox = S.x * k, oz = S.z * k;
-  _lrect = { x0: -L2.apX + ox, x1: L2.apX + ox, z0: -L2.apZ + oz, z1: L2.apZ + oz };
-  _lrectKey = ck;
-  return _lrect;
+  if (_shlKey === ck && _shl) return _shl;
+  const C = conditions(), S = C.sun;
+  const hl = Math.hypot(S.x, S.z) || 1e-6;
+  const ux = S.x / hl, uz = S.z / hl;               // the way the light travels across the ground
+  const tanEl = Math.max(0.09, -S.y / hl);          // tan(elevation); floored so a low sun stays finite
+  const apR = Math.abs(ux) * C.apX + Math.abs(uz) * C.apZ;   // aperture half-width along that axis
+  const mid = uz * HALF_L;                          // where the court's own centre sits on it
+  // THE COURT's half-extent along the same axis -- not the arena's. This is the bound
+  // that matters, and getting it wrong is what let a session drift into a state with
+  // no light in it at all: the line only has to travel a little past the far corner of
+  // a 24 m court to leave the whole playing surface in shade, at which point there is
+  // no shadow anywhere, nothing casts, and the frame goes flat and grey. The line is
+  // held so it always has court on both sides of it by the back half of a session, and
+  // can only ever slide off the NEAR end, which leaves everything in sun.
+  const half = Math.abs(ux) * HALF_W + Math.abs(uz) * HALF_L;
+  const c = clamp(mid - apR + C.roofH / tanEl, mid - half * 1.45, mid + half * 0.35);
+  _shl = { ux, uz, c, soft: C.soft };
+  _shlKey = ck;
+  return _shl;
 }
-// How much light reaches a point on the court: 1 in the open, less in the stand's
-// shade, with a soft metre-wide edge rather than a hard line.
+// How much sun reaches a point on the ground: 1 in the open, 0 deep in the stand's
+// shade, with a soft several-metre penumbra rather than a hard line -- which is what a
+// roof edge tens of metres up actually casts.
 function litAt(x, z) {
-  const r = litRect();
-  const d = Math.min(x - r.x0, r.x1 - x, z - r.z0, r.z1 - z);
-  return clamp(0.5 + d / SOFT_M, 0, 1);      // the same wide penumbra the ground uses
+  const C = conditions();
+  // Under a closed roof there is no shade line at all: the rig hangs directly over the
+  // court and the light falls away toward an empty bowl. The court is a bright pool and
+  // everything past the run-off goes dark, which is the whole look of Rod Laver at
+  // night -- and it drops straight into the same `litAt` the sun uses, so the players,
+  // the ball and the furniture read the floodlights exactly the way they read the sun.
+  if (C.night) {
+    const d = Math.max(Math.abs(x) / HALF_W, Math.abs(z - HALF_L) / HALF_L);
+    return clamp(1.15 - Math.max(0, d - 0.80) * 1.05, 0, 1);
+  }
+  const S = shadeLine();
+  return clamp(0.5 + (S.ux*x + S.uz*z - S.c) / S.soft, 0, 1);
 }
 // Cast a point down the sun vector onto the ground.
 function sunShadowOf(x, y, z) {
   const S = light().sun, t = y / -S.y;
   return { x: x + S.x * t, z: z + S.z * t };
 }
-// The stand's shadow across the court. An even-odd cut-out gave it a razor edge and
-// read as a geometric wedge; real roof shade has a wide penumbra, so this ramps the
-// darkening along the sun's own direction across several metres. Soft, and it still
-// comes from the sun vector rather than being painted on.
-const SOFT_M = 5.5;                      // metres the shadow edge takes to fade
-function drawSunShade(V) {
-  const L2 = light(), r = litRect(), S = L2.sun;
-  const X = HALF_W + V.side, zN = -V.back, zF = L + V.back;
-  const quadPts = [{x:-X,z:zN},{x:X,z:zN},{x:X,z:zF},{x:-X,z:zF}].map(q => W2S({x:q.x,y:0,z:q.z}));
-  if (quadPts.some(q => !q)) return;
-  // the horizontal direction light travels, and the court-centre distance to the edge
-  const hx = S.x, hz = S.z, hl = Math.hypot(hx, hz) || 1;
-  const ux = hx / hl, uz = hz / hl;
-  // pick the lit-rect edge the light crosses and place the ramp across it
-  const ex = ux > 0 ? r.x0 : r.x1, ez = uz > 0 ? r.z0 : r.z1;
-  const cx0 = ux * ex + uz * ez;                       // edge position along the light axis
-  const a = W2S({ x: ux * (cx0 - SOFT_M / 2) , y:0, z: uz * (cx0 - SOFT_M / 2) });
-  const b = W2S({ x: ux * (cx0 + SOFT_M / 2), y:0, z: uz * (cx0 + SOFT_M / 2) });
-  if (!a || !b) return;
-  const g = ctx.createLinearGradient(a.sx, a.sy, b.sx, b.sy);
-  g.addColorStop(0, L2.shade);
-  g.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.save();
-  ctx.globalAlpha = L2.dim;
-  ctx.beginPath(); ctx.moveTo(quadPts[0].sx, quadPts[0].sy);
-  for (let i = 1; i < 4; i++) ctx.lineTo(quadPts[i].sx, quadPts[i].sy);
-  ctx.closePath();
-  ctx.fillStyle = g; ctx.fill();
-  ctx.restore();
+// The light reaching a point, as a plain RGB multiplier plus its brightness. `f` is
+// how much sun gets there; everything painted on court runs through this one call, so
+// the ground, the furniture, the players and the ball can never disagree about the
+// light they are standing in.
+function litRGB(f) {
+  const C = conditions();
+  return { r: C.amb.r + C.dir.r*f, g: C.amb.g + C.dir.g*f, b: C.amb.b + C.dir.b*f,
+           lum: C.shadeLum + (C.litLum - C.shadeLum)*f };
+}
+// Two screen points a soft-edge apart across the shade line, in the direction the
+// light travels. Any ground paint that has to carry the shadow across it -- the
+// surface itself, the lines, a cast shadow that must fade out where there is no sun
+// to cast it -- ramps between these two.
+function shadeAxis() {
+  const S = shadeLine(), h = S.soft / 2;
+  const a = W2S({ x: S.ux * (S.c - h), y: 0, z: S.uz * (S.c - h) });
+  const b = W2S({ x: S.ux * (S.c + h), y: 0, z: S.uz * (S.c + h) });
+  if (!a || !b || (Math.abs(a.sx - b.sx) < 0.5 && Math.abs(a.sy - b.sy) < 0.5)) return null;
+  return { a, b };
+}
+// A ground fill that carries the light across it: the SAME colour, shaded at one end
+// and sunlit at the other, with the shadow line and its penumbra in between. This is
+// what replaced the old wash -- a flat grey quad laid over the whole enclosure, which
+// darkened the surface without ever making it look lit.
+function groundPaint(hex) {
+  const C = conditions();
+  // Floodlight: a pool centred on the court, falling away into the bowl. Same two
+  // colours as the sun's ramp, wrapped round a circle instead of laid along an axis.
+  if (C.night) {
+    const c0 = W2S({ x:0, y:0, z:HALF_L });
+    const edge = W2S({ x:HALF_W, y:0, z:0 });
+    if (!c0 || !edge) return tint(hex, litRGB(1));
+    const R = Math.max(40, Math.hypot(edge.sx - c0.sx, edge.sy - c0.sy) * 2.3);
+    const g = ctx.createRadialGradient(c0.sx, c0.sy, R * 0.30, c0.sx, c0.sy, R);
+    g.addColorStop(0, tint(hex, litRGB(1)));
+    g.addColorStop(0.62, tint(hex, litRGB(0.55)));
+    g.addColorStop(1, tint(hex, litRGB(0)));
+    return g;
+  }
+  if (C.sunFrac < 0.04) return tint(hex, litRGB(1));      // flat light: one colour, no line
+  const ax = shadeAxis();
+  if (!ax) return tint(hex, litRGB(1));
+  const g = ctx.createLinearGradient(ax.a.sx, ax.a.sy, ax.b.sx, ax.b.sy);
+  g.addColorStop(0, tint(hex, litRGB(0)));
+  g.addColorStop(1, tint(hex, litRGB(1)));
+  return g;
+}
+// The same ramp for a CAST SHADOW: solid where the sun is, gone where the ground is
+// already in shade. A shadow drawn at full strength inside the stand's own shade is
+// the giveaway that the two systems were never talking to each other.
+function shadowPaint(rgbPrefix, a) {
+  const C = conditions();
+  const lit = rgbPrefix + a.toFixed(3) + ')';
+  if (C.night) return lit;                                // floodlight: no shade line to fade into
+  if (C.sunFrac < 0.04) return rgbPrefix + (a * 0.35).toFixed(3) + ')';
+  const ax = shadeAxis();
+  if (!ax) return lit;
+  const g = ctx.createLinearGradient(ax.a.sx, ax.a.sy, ax.b.sx, ax.b.sy);
+  g.addColorStop(0, rgbPrefix + (a * 0.22).toFixed(3) + ')');
+  g.addColorStop(1, lit);
+  return g;
 }
 // ============================================================
 //  THE ARENA
@@ -1684,10 +1806,20 @@ function drawSunShade(V) {
 //  net, the players and the ball are actually redrawn.
 // ============================================================
 let bgCanvas = null, bgKey = '';
+// How often the cached arena is rebuilt to catch up with the sky, in seconds of match
+// time. The sun crosses its whole arc in DAY_LEN, so this is about a tenth of a degree
+// of azimuth per rebuild, and a few centimetres of travel on a shade line whose
+// penumbra is metres wide -- far below anything the eye can pick out as a step. A
+// rebuild measures under 8 ms, so once every five seconds never shows as a hitch.
+const SKY_STEP = 5;
 function drawBackdrop() {
-  // The sun and cloud move, so the cached layer is keyed on a quantised sky state
-  // too: it rebuilds a few times a minute rather than every frame.
-  const key = curTour + '|' + viewSelf + '|' + W + '|' + H;
+  // The cached layer is keyed on a QUANTISED SKY STATE as well as the venue. It was
+  // not, whatever the old comment claimed, and that single omission is most of what
+  // made the lighting feel wrong: the ground, the stands and every courtside shadow
+  // were frozen at whatever light the layer happened to be built under, while the
+  // shade line, the players and the ball carried on moving without them. Shadows
+  // under the chairs pointed one way and shadows under the players another.
+  const key = curTour + '|' + viewSelf + '|' + W + '|' + H + '|' + Math.round(skyClock / SKY_STEP);
   if (key !== bgKey || !bgCanvas) { bgKey = key; renderBackdrop(); }
   // Blit at device resolution with the DPR transform off: drawing it into W x H
   // logical units makes the canvas resample a 2x source on every single frame.
@@ -1702,34 +1834,112 @@ function renderBackdrop() {
   bg.setTransform(DPR, 0, 0, DPR, 0, 0);
   const saved = ctx; ctx = bg;              // the projection helpers all paint through `ctx`
   const T = TOURNAMENTS[curTour] || TOURNAMENTS[0], key = VENUES[T.key] ? T.key : 'us', V = VENUES[key];
-  ctx.fillStyle = V.roof; ctx.fillRect(0, 0, W, H);   // anything left unpainted reads as the dark far side of the bowl
+  const C = conditions();
+  ctx.fillStyle = mixHex(V.roof, C.haze, 0.22); ctx.fillRect(0, 0, W, H);   // anything left unpainted reads as the dark far side of the bowl
   drawBowl(V, key);
   drawRunOff(T, V);
   drawCourtLines();
+  drawNetShadow();                          // the net's own shadow lies ON the court, under everything
   drawBenches(V); drawUmpChair(V);          // courtside furniture rides in the cached layer
+  drawAtmosphere(V);                        // haze with distance, then the lens falloff
   ctx = saved;
 }
-// deterministic noise, so the crowd doesn't reshuffle itself every time the layer is rebuilt
-function seeded(n) { let s = (n * 2654435761) >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
+// A little aerial perspective, and a little lens. The far side of a bowl this size is
+// forty metres off, and washing it toward the sky's own colour is most of what makes
+// the arena read as deep rather than as flat bands of paint. The vignette is the
+// camera: a broadcast frame falls off at the corners, and it quietly holds the eye on
+// the court. Both ride in the cached layer, so neither costs anything per frame.
+function drawAtmosphere(V) {
+  const C = conditions();
+  const far = W2S({ x: 0, y: 0, z: L + V.back });
+  const hy = far ? far.sy : H * 0.18;
+  const deep = Math.max(hy + H * 0.30, H * 0.34);
+  const g = ctx.createLinearGradient(0, Math.min(0, hy - H * 0.20), 0, deep);
+  const hz = hexRGB(C.haze), pre = 'rgba(' + hz.r + ',' + hz.g + ',' + hz.b + ',';
+  g.addColorStop(0, pre + (C.night ? 0.40 : 0.16) + ')');
+  g.addColorStop(1, pre + '0)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, deep);
+  const R = Math.hypot(W, H) * 0.62;
+  const vg = ctx.createRadialGradient(W * 0.5, H * 0.46, R * 0.42, W * 0.5, H * 0.46, R);
+  vg.addColorStop(0, 'rgba(6,10,18,0)');
+  vg.addColorStop(1, 'rgba(6,10,18,' + (C.night ? 0.46 : 0.26) + ')');
+  ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+}
+// The net's own shadow. On any sunlit court this is the most conspicuous shadow in the
+// frame -- a dark band lying right across the middle of it -- and without it the whole
+// scene read as unlit however carefully everything else was shaded. The mesh is mostly
+// air, so its shadow is a thin wash; the solid white tape along the top is what casts
+// the real line, and the posts throw two short bars off the ends.
+function drawNetShadow() {
+  const C = conditions();
+  const a = C.shadowA * C.sunFrac;
+  if (a < 0.02) return;
+  const N = 16, postX = NET_POST_X, z = HALF_L, band = 0.075;
+  const foot = [], top = [], tape = [];
+  for (let i = 0; i <= N; i++) {
+    const x = -postX + 2*postX*i/N, h = netHeightAt(x);
+    const gT = sunShadowOf(x, h, z), gB = sunShadowOf(x, h - band, z);
+    const p0 = W2S({ x, y:0, z }), p1 = W2S({ x:gT.x, y:0, z:gT.z }), p2 = W2S({ x:gB.x, y:0, z:gB.z });
+    if (!p0 || !p1 || !p2) return;
+    foot.push(p0); top.push(p1); tape.push(p2);
+  }
+  const strip = (lo, hi, alpha) => {
+    ctx.beginPath(); ctx.moveTo(lo[0].sx, lo[0].sy);
+    for (let i = 1; i <= N; i++) ctx.lineTo(lo[i].sx, lo[i].sy);
+    for (let i = N; i >= 0; i--) ctx.lineTo(hi[i].sx, hi[i].sy);
+    ctx.closePath();
+    ctx.fillStyle = shadowPaint('rgba(14,20,32,', alpha);
+    ctx.fill();
+  };
+  strip(foot, top, a * 0.40);                    // the mesh: a wash, not a wall
+  strip(tape, top, a * 0.95);                    // the tape: the line everyone actually sees
+  ctx.lineCap = 'butt';
+  for (const px of [-postX, postX]) {
+    const g = sunShadowOf(px, 1.07, z);
+    const p0 = W2S({ x:px, y:0, z }), p1 = W2S({ x:g.x, y:0, z:g.z });
+    if (!p0 || !p1) continue;
+    ctx.strokeStyle = shadowPaint('rgba(14,20,32,', a * 0.9);
+    ctx.lineWidth = Math.max(1.5, p0.scale * 0.11);
+    ctx.beginPath(); ctx.moveTo(p0.sx, p0.sy); ctx.lineTo(p1.sx, p1.sy); ctx.stroke();
+  }
+  ctx.lineCap = 'round';
+}
 // Everything that stands on the court -- players, ball, chairs, the umpire's chair --
 // is lit by the SAME model as the ground: how much sun reaches that spot, softened by
 // cloud, and tinted warm or cool with the hour. Without this the court changed through
 // the session while the objects on it sat there unaffected, which is what looked odd.
-function litTint(x, z) {
-  const L2 = light();
-  return { lum: 0.62 + 0.38 * litAt(x, z) * (0.55 + 0.45 * L2.dim), warm: L2.warmth };
-}
-function tint(hex, lum, warm) {
+function litTint(x, z) { return litRGB(litAt(x, z)); }
+// Multiply a colour by a light. Three channels, not one brightness with a warmth
+// fudge bolted on: the sun and the sky have genuinely different colours, so a figure
+// stepping out of the shade has to warm up as well as brighten.
+function tint(hex, T) {
   if (typeof hex !== 'string' || hex[0] !== '#') return hex;
+  if (!T || (T.r === 1 && T.g === 1 && T.b === 1)) return hex;
   const n = parseInt(hex.slice(1), 16);
-  const c = v => Math.max(0, Math.min(255, Math.round(v)));
-  const w = (warm == null ? 1 : warm) - 1;
-  return 'rgb(' + c(((n >> 16) & 255) * lum * (1 + 0.10*w)) + ','
-                + c(((n >> 8) & 255) * lum) + ','
-                + c((n & 255) * lum * (1 - 0.13*w)) + ')';
+  const c = v => v < 0 ? 0 : v > 255 ? 255 : Math.round(v);
+  return 'rgb(' + c(((n >> 16) & 255) * T.r) + ','
+                + c(((n >> 8) & 255) * T.g) + ','
+                + c((n & 255) * T.b) + ')';
 }
 // Tint a colour for an object sitting at a world point.
-function litCol(hex, x, z) { const t = litTint(x, z); return tint(hex, t.lum, t.warm); }
+function litCol(hex, x, z) { return tint(hex, litTint(x, z)); }
+// The same, with the surface's OWN brightness folded in: the lit face and the shaded
+// flank of one object, both standing in the same light. Everything courtside used to
+// be built out of fixed shade() factors off the venue colour, so the umpire's chair
+// and both benches sat at exactly the same brightness whatever the sky was doing while
+// the court around them changed -- which is precisely the thing that read as "the
+// shadows don't apply to anything but the player".
+function litShade(hex, x, z, k) {
+  const T = litTint(x, z);
+  return tint(hex, { r: T.r*k, g: T.g*k, b: T.b*k });
+}
+// Mix two hex colours. Used for aerial haze -- the far side of a bowl this big is a
+// long way off, and washing it toward the sky's own colour is most of what makes the
+// arena read as deep rather than as flat bands of paint.
+function mixHex(a, b, t) {
+  const A = hexRGB(a), B = hexRGB(b), c = v => Math.max(0, Math.min(255, Math.round(v)));
+  return 'rgb(' + c(A.r + (B.r-A.r)*t) + ',' + c(A.g + (B.g-A.g)*t) + ',' + c(A.b + (B.b-A.b)*t) + ')';
+}
 function shade(hex, f) {
   const n = parseInt(hex.slice(1), 16);
   const c = v => Math.max(0, Math.min(255, Math.round(v * f)));
@@ -1754,17 +1964,42 @@ function quad(pts, fill) {
 function drawBowl(V, key) {
   const rows = bowlRows(key);
   for (let side = 0; side < 3; side++) {
+    const lam = sideLambert(side);
     // highest rows sit furthest away, so they go down first and the near rows paint over them
     for (let r = rows - 1; r >= 0; r--) {
       const lo = bowlEdge(V, r, side), hi = bowlEdge(V, r + 1, side);
-      const depth = 1 - Math.min(0.34, r / rows * 0.34);            // the back of the bowl falls into shadow
-      const seats = quad([{ x:lo.a.x, y:lo.y, z:lo.a.z }, { x:lo.b.x, y:lo.y, z:lo.b.z },
-                          { x:hi.b.x, y:hi.y, z:hi.b.z }, { x:hi.a.x, y:hi.y, z:hi.a.z }],
-                         shade(r & 1 ? V.seat : V.tread, depth));
-      if (!seats) continue;
+      // How far back into the bowl this row sits. A deck under a roof this deep is in
+      // its own shade toward the top, and the further back it is the more air there is
+      // between it and the camera, so it loses both light and contrast with r.
+      const f = r / rows;
+      const own = litAt((lo.a.x + lo.b.x) / 2, (lo.a.z + lo.b.z) / 2);
+      quad([{ x:lo.a.x, y:lo.y, z:lo.a.z }, { x:lo.b.x, y:lo.y, z:lo.b.z },
+            { x:hi.b.x, y:hi.y, z:hi.b.z }, { x:hi.a.x, y:hi.y, z:hi.a.z }],
+           litSurface(r & 1 ? V.seat : V.tread, own * lam * (1 - f * 0.80),
+                      1 - Math.min(0.30, f * 0.30), 0.03 + f * 0.17));
     }
   }
   drawFrontWall(V);
+}
+// How square a side of the bowl stands to the sun. A seating deck is mostly riser --
+// a vertical face pointing in at the court -- with tread between, so what it catches
+// is part face-on and part straight down. Without this both sidelines came out at
+// exactly the same brightness whatever the sun was doing, and the stands read as
+// wallpaper rather than as a structure with light falling on it.
+const SIDE_NRM = [{ x:0, z:-1 }, { x:1, z:0 }, { x:-1, z:0 }];   // back, left, right: all face inward
+function sideLambert(side) {
+  const S = conditions().sun, n = SIDE_NRM[side];
+  return clamp(0.30 + 0.70 * (0.60 * Math.max(0, -(S.x*n.x + S.z*n.z)) + 0.40 * Math.max(0, -S.y)), 0, 1);
+}
+// One surface, lit: the base colour through the light reaching it, knocked back by k
+// for its own depth in the bowl, then washed toward the haze colour by hazeT for how
+// far away it is. Done numerically in one pass so nothing has to round-trip through a
+// colour string it can no longer do arithmetic on.
+function litSurface(hex, f, k, hazeT) {
+  const T = litRGB(clamp(f, 0, 1)), c = hexRGB(hex), H = hexRGB(conditions().haze);
+  const q = v => v < 0 ? 0 : v > 255 ? 255 : Math.round(v);
+  const mix = (v, h) => v + (h - v) * hazeT;
+  return 'rgb(' + q(mix(c.r*T.r*k, H.r)) + ',' + q(mix(c.g*T.g*k, H.g)) + ',' + q(mix(c.b*T.b*k, H.b)) + ')';
 }
 // The courtside wall. Behind the baseline it is a tall board carrying repeated
 // venue panels, a scoreboard and a speed display; down the sides it is a low plain
@@ -1772,21 +2007,31 @@ function drawBowl(V, key) {
 function drawFrontWall(V) {
   for (let side = 0; side < 3; side++) {
     const e = bowlEdge(V, 0, side), h = wallH(V, side);
+    // These three faces stand at right angles to each other around the court, so the
+    // sun has to pick one out and leave another in its own shade. Painting the two
+    // sidelines identically -- which is what happened before -- flattened the single
+    // strongest depth cue in the frame.
+    const lam = sideLambert(side) * (0.42 + 0.58 * litAt((e.a.x + e.b.x) / 2, (e.a.z + e.b.z) / 2));
+    const brt = side === 0 ? 1.45 : 1.0;
     quad([{ x:e.a.x, y:0, z:e.a.z }, { x:e.b.x, y:0, z:e.b.z },
-          { x:e.b.x, y:h, z:e.b.z }, { x:e.a.x, y:h, z:e.a.z }], side === 0 ? shade(V.wall, 1.45) : V.wall);
+          { x:e.b.x, y:h, z:e.b.z }, { x:e.a.x, y:h, z:e.a.z }], litSurface(V.wall, lam, brt, 0.06));
     if (side === 0) {                                  // the back wall runs a darker lower band, as they all do
       quad([{ x:e.a.x, y:0, z:e.a.z }, { x:e.b.x, y:0, z:e.b.z },
-            { x:e.b.x, y:h * 0.42, z:e.b.z }, { x:e.a.x, y:h * 0.42, z:e.a.z }], V.wallLo);
+            { x:e.b.x, y:h * 0.42, z:e.b.z }, { x:e.a.x, y:h * 0.42, z:e.a.z }], litSurface(V.wallLo, lam, 1, 0.06));
       const n = 7;                                     // board seams across the sponsor panels
-      ctx.strokeStyle = shade(V.wall, 1.4); ctx.lineWidth = 1;
+      ctx.strokeStyle = litSurface(V.wall, lam, 1.4, 0.06); ctx.lineWidth = 1;
       for (let i = 1; i < n; i++) {
         const x = e.a.x + (e.b.x - e.a.x) * i / n;
         const p0 = W2S({ x, y:h * 0.42, z:e.a.z }), p1 = W2S({ x, y:h, z:e.a.z });
         if (p0 && p1) { ctx.beginPath(); ctx.moveTo(p0.sx, p0.sy); ctx.lineTo(p1.sx, p1.sy); ctx.stroke(); }
       }
     }
+    // The rail catches the sky square on, so it stays the brightest edge in the bowl
+    // whichever way the wall under it is facing -- which is exactly what reads as a
+    // lit rim along the top of the boards.
     quad([{ x:e.a.x, y:h, z:e.a.z }, { x:e.b.x, y:h, z:e.b.z },
-          { x:e.b.x, y:h + 0.10, z:e.b.z }, { x:e.a.x, y:h + 0.10, z:e.a.z }], V.rail);
+          { x:e.b.x, y:h + 0.10, z:e.b.z }, { x:e.a.x, y:h + 0.10, z:e.a.z }],
+         litSurface(V.rail, Math.max(lam, 0.72), 1.12, 0.06));
   }
 }
 // The physical courtside boards: a scoreboard in one corner of the back wall, a
@@ -1881,7 +2126,11 @@ const CHAIR_X = HALF_W + 2.7, BENCH_Z = 3.4;
 function bar(x0, y0, z0, x1, y1, z1, w, col) {
   const a = W2S({ x:x0, y:y0, z:z0 }), b = W2S({ x:x1, y:y1, z:z1 });
   if (!a || !b) return;
-  ctx.strokeStyle = litCol(col, (x0 + x1) / 2, (z0 + z1) / 2);   // furniture is lit like the ground it stands on ctx.lineCap = 'round'; ctx.lineWidth = Math.max(1.2, a.scale * w);
+  ctx.strokeStyle = litCol(col, (x0 + x1) / 2, (z0 + z1) / 2);   // furniture is lit like the ground it stands on
+  // ...and these two lines were inside that comment. With no width of its own every
+  // bar in the umpire's chair and both benches inherited whatever stroke ran last,
+  // which is why the frames came out at wildly inconsistent thicknesses.
+  ctx.lineCap = 'round'; ctx.lineWidth = Math.max(1.2, a.scale * w);
   ctx.beginPath(); ctx.moveTo(a.sx, a.sy); ctx.lineTo(b.sx, b.sy); ctx.stroke();
 }
 // A soft ground shadow for anything standing courtside, cast down the SAME sun vector
@@ -1890,7 +2139,11 @@ function bar(x0, y0, z0, x1, y1, z1, w, col) {
 function objShadow(x, z, rx, rz, h) {
   const L2 = light(), gp = sunShadowOf(x, h * 0.5, z);
   const p2 = W2S({ x: gp.x, y: 0, z: gp.z }); if (!p2) return;
-  const a = clamp(L2.shadowA * L2.dim * litAt(gp.x, gp.z) * 0.85, 0.03, 0.24);
+  // Two terms, and the second is why anything standing on this court is anchored to it
+  // at all: the sun's own cast shadow, which dies away under cloud or in the stand's
+  // shade, PLUS a small contact darkening that never goes away. An object with nothing
+  // under it floats, whatever the weather is doing.
+  const a = clamp(L2.shadowA * L2.sunFrac * litAt(gp.x, gp.z) * 0.9 + 0.045, 0.045, 0.30);
   const RX = Math.max(2, p2.scale * rx), RZ = Math.max(1.2, p2.scale * rz * 0.45);
   ctx.save();
   ctx.translate(p2.sx, p2.sy); ctx.scale(1, RZ / RX); ctx.translate(-p2.sx, -p2.sy);
@@ -1909,8 +2162,8 @@ function drawUmpChair(V) {
   // curving forward over it. It faces along -x, across the court.
   const x = CHAIR_X, z = HALF_L, seat = 2.34, hood = 3.30;
   objShadow(x, z, 0.95, 0.92, seat);      // the tower throws a long shadow of its own
-  const face = shade(V.wall, 1.55), flank = shade(V.wall, 1.12);
-  const dark = shade(V.wall, 0.72), edge = shade(V.wall, 2.0);
+  const K = k => litShade(V.wall, x, z, k);
+  const face = K(1.55), flank = K(1.12), dark = K(0.72), edge = K(2.0);
   const BZ = 0.74, TZ = 0.46, BX = 0.50, TX = 0.34;
   const zAt = f => BZ + (TZ - BZ) * f, xAt = f => BX + (TX - BX) * f;
   // side flanks, then the front face over them
@@ -1934,7 +2187,7 @@ function drawUmpChair(V) {
   }
   // branded panel at the foot
   quad([{ x:x-BX-0.012, y:0.16, z:z-BZ*0.76 }, { x:x-BX-0.012, y:0.16, z:z+BZ*0.76 },
-        { x:x-xAt(0.30)-0.012, y:0.72, z:z+zAt(0.30)*0.76 }, { x:x-xAt(0.30)-0.012, y:0.72, z:z-zAt(0.30)*0.76 }], V.rail);
+        { x:x-xAt(0.30)-0.012, y:0.72, z:z+zAt(0.30)*0.76 }, { x:x-xAt(0.30)-0.012, y:0.72, z:z-zAt(0.30)*0.76 }], litCol(V.rail, x, z));
   // base plinth
   quad([{ x:x-BX-0.06, y:0, z:z-BZ-0.06 }, { x:x+BX+0.06, y:0, z:z-BZ-0.06 },
         { x:x+BX+0.06, y:0.16, z:z-BZ-0.06 }, { x:x-BX-0.06, y:0.16, z:z-BZ-0.06 }], dark);
@@ -1958,35 +2211,41 @@ function drawUmpChair(V) {
 // ---- Courtside chairs and kit, one set each side of the umpire ----
 // Chairs first, then what sits on and around them: a towel over the back, a racket
 // bag on the ground and a pair of bottles.
-// A duffel: a soft cylinder lying on its side with a strap, not a crate.
-function duffel(x, z, len, col) {
+// A duffel: a soft cylinder lying on its side with a strap, not a crate. `hex` stays a
+// HEX colour all the way down: it used to arrive pre-shaded as an rgb() string, and
+// every shade() applied to it after that parsed to NaN and silently did nothing, so
+// the underside, the end cap and the strap were never actually drawn.
+function duffel(x, z, len, hex, k) {
   const p = W2S({ x, y: 0.17, z }); if (!p) return;
   const w = p.scale * len, h = p.scale * 0.17;
+  const K = f => litShade(hex, x, z, k * f);
   ctx.save(); ctx.translate(p.sx, p.sy);
-  ctx.fillStyle = shade(col, 0.72);
+  ctx.fillStyle = K(0.72);
   ctx.beginPath(); ctx.ellipse(0, h * 0.40, w, h * 0.92, 0, 0, 7); ctx.fill();      // shadowed underside
-  ctx.fillStyle = col;
+  ctx.fillStyle = K(1);
   ctx.beginPath(); ctx.ellipse(0, 0, w, h, 0, 0, 7); ctx.fill();                     // body
-  ctx.fillStyle = shade(col, 1.25);
+  ctx.fillStyle = K(1.25);
   ctx.beginPath(); ctx.ellipse(-w * 0.62, -h * 0.16, w * 0.30, h * 0.62, 0, 0, 7); ctx.fill();   // end cap
-  ctx.strokeStyle = shade(col, 0.5); ctx.lineWidth = Math.max(1, h * 0.22);
+  ctx.strokeStyle = K(0.5); ctx.lineWidth = Math.max(1, h * 0.22);
   ctx.beginPath(); ctx.moveTo(-w * 0.34, -h * 0.62); ctx.lineTo(w * 0.30, -h * 0.62); ctx.stroke();  // strap
   ctx.restore();
 }
 // A 500 ml bottle is about 7 cm across and 25 cm tall: drawn to that, with a neck and cap.
-function bottle(x, z, col) {
+function bottle(x, z, hex) {
   const p = W2S({ x, y: 0, z }); if (!p) return;
   const w = p.scale * 0.07, h = p.scale * 0.25;
-  ctx.fillStyle = '#dbeaf5'; ctx.fillRect(p.sx - w/2, p.sy - h * 0.80, w, h * 0.80);         // body
-  ctx.fillStyle = col;       ctx.fillRect(p.sx - w/2, p.sy - h * 0.44, w, h * 0.26);         // label
-  ctx.fillStyle = '#cfe0ee'; ctx.fillRect(p.sx - w * 0.26, p.sy - h * 0.94, w * 0.52, h * 0.14);  // neck
-  ctx.fillStyle = shade(col, 0.75); ctx.fillRect(p.sx - w * 0.30, p.sy - h, w * 0.60, h * 0.07);  // cap
+  ctx.fillStyle = litCol('#dbeaf5', x, z); ctx.fillRect(p.sx - w/2, p.sy - h * 0.80, w, h * 0.80);         // body
+  ctx.fillStyle = litCol(hex, x, z);       ctx.fillRect(p.sx - w/2, p.sy - h * 0.44, w, h * 0.26);         // label
+  ctx.fillStyle = litCol('#cfe0ee', x, z); ctx.fillRect(p.sx - w * 0.26, p.sy - h * 0.94, w * 0.52, h * 0.14);  // neck
+  ctx.fillStyle = litShade(hex, x, z, 0.75); ctx.fillRect(p.sx - w * 0.30, p.sy - h, w * 0.60, h * 0.07);  // cap
 }
 function drawChair(V, x, z) {
   const sy = 0.44, hw = 0.28, hd = 0.27;
   objShadow(x, z, 0.42, 0.40, 0.85);
-  const seatCol = shade(V.wall, 1.42), backCol = shade(V.wall, 1.05), tube = shade(V.wall, 0.7);
+  const seatCol = litShade(V.wall, x, z, 1.42), backCol = litShade(V.wall, x, z, 1.05),
+        tube = litShade(V.wall, x, z, 0.7);
   const tw = V.towel || { a:'#4b1e78', b:'#c8a951' };
+  const TW = (h, k) => litShade(h, x, z, k);
   for (const dz of [-hw, hw]) {                                   // sled frame
     bar(x-hd, 0, z+dz, x-hd*0.55, sy, z+dz, 0.026, tube);
     bar(x+hd, 0, z+dz, x+hd*0.72, sy+0.52, z+dz, 0.026, tube);
@@ -2000,12 +2259,12 @@ function drawChair(V, x, z) {
   // tournament's stripe across it.
   const tX = x + hd*0.72, drop = 0.22;
   quad([{ x:tX-0.055, y:sy+0.52, z:z-hw*0.88 }, { x:tX+0.035, y:sy+0.52, z:z-hw*0.88 },
-        { x:tX+0.035, y:sy+0.535, z:z+hw*0.88 }, { x:tX-0.055, y:sy+0.535, z:z+hw*0.88 }], shade(tw.a, 1.2));
+        { x:tX+0.035, y:sy+0.535, z:z+hw*0.88 }, { x:tX-0.055, y:sy+0.535, z:z+hw*0.88 }], TW(tw.a, 1.2));
   for (const [xo, sh2] of [[-0.055, 1.0], [0.035, 0.78]]) {
     quad([{ x:tX+xo, y:sy+0.52-drop, z:z-hw*0.88 }, { x:tX+xo, y:sy+0.52-drop, z:z+hw*0.88 },
-          { x:tX+xo, y:sy+0.52, z:z+hw*0.88 }, { x:tX+xo, y:sy+0.52, z:z-hw*0.88 }], shade(tw.a, sh2));
+          { x:tX+xo, y:sy+0.52, z:z+hw*0.88 }, { x:tX+xo, y:sy+0.52, z:z-hw*0.88 }], TW(tw.a, sh2));
     quad([{ x:tX+xo, y:sy+0.52-drop*0.58, z:z-hw*0.88 }, { x:tX+xo, y:sy+0.52-drop*0.58, z:z+hw*0.88 },
-          { x:tX+xo, y:sy+0.52-drop*0.44, z:z+hw*0.88 }, { x:tX+xo, y:sy+0.52-drop*0.44, z:z-hw*0.88 }], shade(tw.b, sh2));
+          { x:tX+xo, y:sy+0.52-drop*0.44, z:z+hw*0.88 }, { x:tX+xo, y:sy+0.52-drop*0.44, z:z-hw*0.88 }], TW(tw.b, sh2));
   }
 }
 function drawSeatSet(V, z, kit) {
@@ -2013,8 +2272,8 @@ function drawSeatSet(V, z, kit) {
   // bags go down first and sit behind the chairs, so they never cover them
   objShadow(x + 0.66, z + 1.24, 0.34, 0.30, 0.30);
   objShadow(x + 0.54, z + 0.94, 0.31, 0.28, 0.28);
-  duffel(x + 0.66, z + 1.24, 0.26, shade(kit.bag, 0.62));
-  duffel(x + 0.54, z + 0.94, 0.23, shade(kit.bag, 0.74));
+  duffel(x + 0.66, z + 1.24, 0.26, kit.bag, 0.62);
+  duffel(x + 0.54, z + 0.94, 0.23, kit.bag, 0.74);
   drawChair(V, x, z - 0.40);                      // two chairs at each end, as on court
   drawChair(V, x, z + 0.40);
   bottle(x - 0.46, z - 0.60, kit.cool);
@@ -2030,13 +2289,19 @@ function drawBenches(V) {
 // The playing surface plus the run-off apron out to the wall.
 function drawRunOff(T, V) {
   const X = HALF_W + V.side, zN = -V.back, zF = L + V.back;
-  quad([{ x:-X, y:0, z:zN }, { x:X, y:0, z:zN }, { x:X, y:0, z:zF }, { x:-X, y:0, z:zF }], T.surround);
-  quad([{ x:-HALF_W, y:0, z:0 }, { x:HALF_W, y:0, z:0 }, { x:HALF_W, y:0, z:L }, { x:-HALF_W, y:0, z:L }], T.court);
+  // Every ground surface is painted with the light ALREADY IN IT -- the same colour,
+  // shaded at one end and sunlit at the other, with the shade line and its penumbra
+  // between them. The old model laid a flat grey quad over the finished court instead,
+  // which darkened the surface without ever making it look lit, and left the lit half
+  // no brighter than the surface would have been with no sun at all.
+  quad([{ x:-X, y:0, z:zN }, { x:X, y:0, z:zN }, { x:X, y:0, z:zF }, { x:-X, y:0, z:zF }], groundPaint(T.surround));
+  quad([{ x:-HALF_W, y:0, z:0 }, { x:HALF_W, y:0, z:0 }, { x:HALF_W, y:0, z:L }, { x:-HALF_W, y:0, z:L }], groundPaint(T.court));
   if (T.grass) {                        // the stripes are mown down the LENGTH across the whole enclosure,
     const sw = 1.37;                    // run-off included, not just between the lines. One mower width.
+    const stripe = groundPaint(T.courtB);
     for (let x = -X; x < X; x += sw * 2)
       quad([{ x, y:0, z:zN }, { x:Math.min(x + sw, X), y:0, z:zN },
-            { x:Math.min(x + sw, X), y:0, z:zF }, { x, y:0, z:zF }], T.courtB);
+            { x:Math.min(x + sw, X), y:0, z:zF }, { x, y:0, z:zF }], stripe);
   }
   if (T.grass) {                          // by the second week the baselines wear through to bare earth
     for (const zc of [1.9, L - 1.9]) {
@@ -2054,8 +2319,8 @@ function drawRunOff(T, V) {
       ctx.restore();
     }
   }
-  if (V.paint) { groundText(V.paint, L + V.back * 0.55, 2.6, '#ffffff', 0.85);   // stencilled on the run-off
-                 groundText(V.paint, -V.back * 0.55, 2.6, '#ffffff', 0.85); }
+  if (V.paint) { groundText(V.paint, L + V.back * 0.55, 2.6, litCol('#ffffff', 0, L + V.back * 0.55), 0.85);   // stencilled on the run-off
+                 groundText(V.paint, -V.back * 0.55, 2.6, litCol('#ffffff', 0, -V.back * 0.55), 0.85); }
 }
 // Text lying flat on the run-off, letter by letter so the perspective holds.
 function groundText(txt, z, h, col, alpha) {
@@ -2080,7 +2345,10 @@ function groundText(txt, z, h, col, alpha) {
 }
 
 function drawCourtLines() {
-  const w = '#f3f7ff', SH = SINGLES_HALF;
+  // Court paint is white, so it swings further between sun and shade than anything
+  // else on the ground -- a line running out of the sun is the clearest single sign
+  // of where the shade line is.
+  const w = groundPaint('#f3f7ff'), SH = SINGLES_HALF;
   // baselines (full doubles width)
   line({x:-HALF_W,y:0,z:0},{x:HALF_W,y:0,z:0}, w, 0.06);
   line({x:-HALF_W,y:0,z:L},{x:HALF_W,y:0,z:L}, w, 0.06);
@@ -2101,6 +2369,10 @@ function drawCourtLines() {
 
 function drawNet() {
   const V = venue(), postX = NET_POST_X, z = HALF_L, topH = 1.07, hAt = netHeightAt;
+  // The net stands on the court, so it takes the court's light like everything else on
+  // it. Left unlit, the tape was the one bright white object in an arena that had gone
+  // into shade, and it cut the frame in half.
+  const netC = litCol(V.net, 0, z), tapeC = litCol(V.tape, 0, z);
   const N = 20, top = [], bot = [];
   for (let i = 0; i <= N; i++) { const x = -postX + 2*postX*i/N; top.push(W2S({x,y:hAt(x),z})); bot.push(W2S({x,y:0,z})); }
   if (top.some(p=>!p) || bot.some(p=>!p)) return;
@@ -2108,7 +2380,7 @@ function drawNet() {
   ctx.beginPath(); ctx.moveTo(top[0].sx, top[0].sy);
   for (let i=1;i<=N;i++) ctx.lineTo(top[i].sx, top[i].sy);
   for (let i=N;i>=0;i--) ctx.lineTo(bot[i].sx, bot[i].sy);
-  ctx.closePath(); ctx.fillStyle = V.net; ctx.globalAlpha = 0.80; ctx.fill(); ctx.globalAlpha = 1;
+  ctx.closePath(); ctx.fillStyle = netC; ctx.globalAlpha = 0.80; ctx.fill(); ctx.globalAlpha = 1;
   ctx.strokeStyle = 'rgba(255,255,255,0.10)'; ctx.lineWidth = 1;
   for (let i=0;i<=N;i++){ ctx.beginPath(); ctx.moveTo(bot[i].sx,bot[i].sy); ctx.lineTo(top[i].sx,top[i].sy); ctx.stroke(); }
   for (const fr of [0.4, 0.75]) { ctx.beginPath(); for (let i=0;i<=N;i++){ const x=-postX+2*postX*i/N; const s=W2S({x,y:hAt(x)*fr,z}); if(!s)continue; i?ctx.lineTo(s.sx,s.sy):ctx.moveTo(s.sx,s.sy);} ctx.stroke(); }
@@ -2120,15 +2392,15 @@ function drawNet() {
   ctx.beginPath(); ctx.moveTo(bTop[0].sx, bTop[0].sy);
   for (let i=1;i<=N;i++) ctx.lineTo(bTop[i].sx, bTop[i].sy);
   for (let i=N;i>=0;i--) ctx.lineTo(bBot[i].sx, bBot[i].sy);
-  ctx.closePath(); ctx.fillStyle = V.tape; ctx.fill();
+  ctx.closePath(); ctx.fillStyle = tapeC; ctx.fill();
   // centre strap
-  line({x:0,y:0,z},{x:0,y:hAt(0),z}, V.tape, 0.05);
+  line({x:0,y:0,z},{x:0,y:hAt(0),z}, tapeC, 0.05);
   // posts: square section, and Centre Court's are famously pale
   for (const px of [-postX, postX]) {
     const a = W2S({x:px,y:0,z}), c = W2S({x:px,y:topH+0.06,z}); if(!a||!c) continue;
-    ctx.lineCap='butt'; ctx.strokeStyle=V.post; ctx.lineWidth=Math.max(3,a.scale*0.13);
+    ctx.lineCap='butt'; ctx.strokeStyle=litCol(V.post, px, z); ctx.lineWidth=Math.max(3,a.scale*0.13);
     ctx.beginPath(); ctx.moveTo(a.sx,a.sy); ctx.lineTo(c.sx,c.sy); ctx.stroke();
-    ctx.strokeStyle=shade(V.post, 1.35); ctx.lineWidth=Math.max(1,a.scale*0.04);
+    ctx.strokeStyle=litShade(V.post, px, z, 1.35); ctx.lineWidth=Math.max(1,a.scale*0.04);
     ctx.beginPath(); ctx.moveTo(a.sx,a.sy); ctx.lineTo(c.sx,c.sy); ctx.stroke();
   }
   ctx.lineCap='round';
@@ -2146,7 +2418,7 @@ function drawBallShadow() {
   // the higher the ball, the wider and fainter its shadow, and the less light it
   // is blocking if it is over shaded ground anyway
   const r = clamp(s.scale * BALL_R * (1 + h * 0.10 * L2.soft), 3.4, 17);   // the ball's own size, widening only as it climbs
-  const a = L2.shadowA * L2.dim * litAt(g.x, g.z) / (1 + h * 0.22 * L2.soft);
+  const a = (L2.shadowA * L2.sunFrac * litAt(g.x, g.z) * 1.15 + 0.05) / (1 + h * 0.22 * L2.soft);
   ctx.fillStyle = 'rgba(12,18,28,' + a.toFixed(3) + ')';
   ctx.beginPath(); ctx.ellipse(s.sx, s.sy, r, r * 0.55, 0, 0, 7); ctx.fill();   // foreshortened onto the ground plane
 }
@@ -2161,8 +2433,8 @@ function drawBall() {
   // The ball takes the same light as the court under it, and its highlight sits on the
   // side the sun is actually coming from.
   const LB = litTint(b.x, b.z), sunV = light().sun;
-  ctx.beginPath(); ctx.arc(s.sx, s.sy, r, 0, 7); ctx.fillStyle = tint('#e8ff3b', LB.lum, LB.warm); ctx.fill();
-  ctx.lineWidth = Math.max(0.5, r*0.16); ctx.strokeStyle = tint('#aacb13', LB.lum, LB.warm); ctx.stroke();
+  ctx.beginPath(); ctx.arc(s.sx, s.sy, r, 0, 7); ctx.fillStyle = tint('#e8ff3b', LB); ctx.fill();
+  ctx.lineWidth = Math.max(0.5, r*0.16); ctx.strokeStyle = tint('#aacb13', LB); ctx.stroke();
   const hx = clamp(-sunV.x * 0.8, -0.45, 0.45), hy = -0.36;
   ctx.beginPath(); ctx.arc(s.sx + r*hx, s.sy + r*hy, r*0.24, 0, 7);
   ctx.fillStyle = 'rgba(255,255,255,' + (0.10 + 0.16*LB.lum).toFixed(2) + ')'; ctx.fill();   // a felt ball is matte, not glossy
@@ -2315,6 +2587,23 @@ function drawPlayer(i, opts) {
       // contact frame, fading out either side so the rest of the swing keeps its shape.
       hitAim = (gs.hitPt && gs.hitPt[i]) ? W2S({ x: gs.hitPt[i].x, y: gs.hitPt[i].y, z: gs.hitPt[i].z }) : null;
       hitW = clamp(1 - Math.abs(prog - CONTACT_T) / 0.20, 0, 1);
+      // HOW STRETCHED they actually are, in metres off the body. Contact inside the
+      // strike zone -- roughly an arm and a racket away, which is most rally balls --
+      // needs no reaching at all: the swing's own shape already puts the strings on the
+      // ball. Everything used to be dragged onto the contact point by the same fixed
+      // amount, so a comfortable forehand from the middle of the court was drawn with
+      // the same wrenched, fully-extended arm as a lunge at a pass down the line, and
+      // the stretch stopped meaning anything. It is earned now: nothing until the ball
+      // is past the strike zone, full lunge only right out at the edge of the reach.
+      // A serve and a smash are reached for in the other direction -- straight up, with
+      // the ball nearly over the player's own head -- so a distance measured across the
+      // ground says nothing at all about them and would read every one as comfortable.
+      // Those two keep the full pull, which is what puts the strings on the toss.
+      if (hitAim) {
+        const hp = gs.hitPt[i], pp = gs.players[i];
+        hitAim.st = (pose === 'serve' || pose === 'smash') ? null
+                  : clamp((Math.hypot(hp.x - pp.x, hp.z - pp.z) - 0.95) / 0.62, 0, 1);
+      }
     }
     else if (gs.phase === 'ready' && gs.srv === i) { pose = moving ? gait : 'serveready'; }   // walking to the mark is on foot
     else if (gs.phase === 'toss' && gs.srv === i)  { pose = 'servehold'; }
@@ -2382,7 +2671,13 @@ function drawPlayer(i, opts) {
   // a hand out in front of them is further away; facing us it is nearer. camDepth is
   // that distance in camera terms, and it decides both size and draw order.
   // Weight shifts across with the turn rather than just bobbing on a sine.
-  const lean = (swinging || pose === 'servehold') ? sg*S*0.06*bodyRot : 0;
+  // A real stretch is a LUNGE, not just a longer arm: the trunk goes with the racket
+  // and the outside knee folds under it. Weighted by the same hitAim.st the reach uses,
+  // so it only ever shows up on the ball that earned it -- a pass hit off the last
+  // stride, not a rally ball played from the middle of the court.
+  const stretch = (swinging && hitAim && hitAim.st != null) ? hitAim.st * hitW : 0;
+  const lungeX = stretch ? clamp((hitAim.sx - base.sx) / (S * 1.9), -1, 1) * S * 0.22 : 0;
+  const lean = ((swinging || pose === 'servehold') ? sg*S*0.06*bodyRot : 0) + lungeX;
   // How square the trunk is to the camera: 1 dead-on, 0 fully side-on. A server stands
   // side-on to the box he is hitting into whatever the swing is doing, so the stance
   // poses carry their own yaw instead of taking it from the stroke table.
@@ -2453,12 +2748,13 @@ function drawPlayer(i, opts) {
         ? S*(0.09 + 0.09*Math.max(0, -bodyRot)) : S*0.06;
   let crouch = crouchOf(pose);
   if (recPose && recW > 0) crouch = lerp(crouch, crouchOf(recPose), recW);
+  crouch += stretch * S * 0.13;             // ...and the lunge drops the body under the ball
   const cx = base.sx + lean, fy = base.sy - jump + crouch;
   // A figure in the stand's shade is lit by sky alone: darker and a touch cooler.
   const SIL = opts.silhouette;                   // set when this pass is drawing the cast shadow
-  const LT = (preview || SIL) ? { lum: 1, warm: 1 } : litTint(gs.players[i].x, gs.players[i].z);
+  const LT = (preview || SIL) ? NO_TINT : litTint(gs.players[i].x, gs.players[i].z);
   const lum = LT.lum;
-  const L4 = v => SIL ? SIL : (lum >= 0.999 && LT.warm === 1 ? v : tint(v, lum, LT.warm));
+  const L4 = v => SIL ? SIL : tint(v, LT);
   const skin = L4(st.skin), shirt = L4(st.top), short = L4(st.shorts), shoe = L4('#ffffff'), hair = L4(st.hair);
   if (SIL) { ctx.globalAlpha = 1; }
   const band = L4(st.band);
@@ -2480,7 +2776,7 @@ function drawPlayer(i, opts) {
     // overcast or the player is in the stand's shade the result is invisible -- and the
     // silhouette pass means drawing the entire figure a second time, the single most
     // expensive thing in the frame. Below the visibility floor it is pure waste.
-    const shA = clamp(L2.shadowA * L2.dim * (0.35 + litAt(pw.x, pw.z) * 0.65) * 0.95, 0, 0.24);
+    const shA = clamp(L2.shadowA * L2.sunFrac * (0.25 + litAt(pw.x, pw.z) * 0.75) * 1.2, 0, 0.34);
     if (foot && tipS && shA >= 0.055) {
       const dx = tipS.sx - foot.sx, dy = tipS.sy - foot.sy;
       const bodyPx = S * 1.68;
@@ -2519,7 +2815,10 @@ function drawPlayer(i, opts) {
     // shape stays anchored to the feet. A gradient is soft for free, no filter -- and it
     // is drawn whether or not the cast shape was worth building.
     if (foot) {
-      const cr = S * 0.26, ca = clamp(L2.shadowA * L2.dim * 1.15, 0.06, 0.30);
+      // Never zero: this is the contact darkening under the shoes, not the sun's cast
+      // shadow, and a player standing in shade under thick cloud still touches the
+      // ground. Losing it was what left figures hovering on overcast points.
+      const cr = S * 0.26, ca = clamp(L2.shadowA * L2.sunFrac * 1.25 + 0.06, 0.06, 0.32);
       const rg = ctx.createRadialGradient(foot.sx, foot.sy, 0, foot.sx, foot.sy, cr);
       rg.addColorStop(0, 'rgba(30,36,48,' + ca.toFixed(3) + ')');
       rg.addColorStop(0.6, 'rgba(30,36,48,' + (ca * 0.55).toFixed(3) + ')');
@@ -3219,7 +3518,7 @@ function drawRacket(cx, shY, S, pose, sg, prog, skin, oneHandBh, rk, lum, SIL, b
   // each player's own frame: Borg and Laver on small wooden heads, Sampras on a
   // narrow graphite, the moderns on full-size frames
   const R = rk || { frame:'#2c40a6', grip:'#23272f', string:'#ffffff', head:1 };
-  const L5 = v => SIL ? SIL : ((lum == null || lum >= 0.999) ? v : shade(v, lum));   // racket parts follow the body's light
+  const L5 = v => SIL ? SIL : ((lum == null || lum >= 0.999) ? v : shade(v, lum));   // the frame follows the body's own light
   // Real frame: 27 in (68.6 cm) overall, ~100 sq in head, which works out at a head
   // 32.4 cm long by 25.6 cm wide. Against a 1.85 m figure that is 0.147 units of
   // half-length, with about 0.18 of throat showing beyond the hand.
@@ -3245,9 +3544,14 @@ function drawRacket(cx, shY, S, pose, sg, prog, skin, oneHandBh, rk, lum, SIL, b
       // point discarded the swing's shape on the one frame anyone looks at and made
       // every stroke the same rigid pole; but capping the pull too tightly (this was
       // 0.20 S) stops the player reaching at all, so wide balls got a short, stunted arm
-      // instead of a stretch. 0.44 S lets the arm extend most of the way to its own
-      // reach limit while the swing still reads as the stroke it started as.
-      const MAXPULL = S * 0.44;
+      // instead of a stretch.
+      // The cap now RIDES ON HOW STRETCHED THEY ARE (hitAim.st, metres off the body).
+      // At a fixed 0.44 S every ball was reached for, so a set-up forehand from the
+      // middle of the court was drawn wrenched out at full extension exactly like a
+      // lunging pass, and the stretch read as the animation's default rather than as
+      // the player being in trouble. A comfortable ball now barely moves the hand off
+      // the swing's own path; only a genuine stretch gets the full reach.
+      const MAXPULL = S * lerp(0.13, 0.46, hitAim.st == null ? 1 : hitAim.st);
       const px = tgx - gx, py = tgy - gy, pd = Math.hypot(px, py);
       if (pd > MAXPULL) { tgx = gx + px/pd*MAXPULL; tgy = gy + py/pd*MAXPULL; }
       const tsA = Math.atan2(-(hitAim.sy - tgy), hitAim.sx - tgx);
@@ -3434,6 +3738,7 @@ function reasonText(r) {
   return { out:'shot was out', net:'into the net', dfault:'double fault',
            ace:'ace, unreturned!',   drop:'dropshot winner!',  lob:'lob winner!',
            pass:'passing shot!',     smash:'smash winner!',    slicewin:'slice winner!',
+           volwin:'volley winner!',
            fhwin:'forehand winner!', bhwin:'backhand winner!', winner:'clean winner!' }[r] || '';
 }
 function updatePing() {
@@ -3793,6 +4098,7 @@ function setupPoint() {
   // Clear what the LAST point's final shot was, or its flags leak into this one and the
   // next winner gets called a passing shot / lob / dropshot that never happened.
   sim.lastHitWasDrop = false; sim.lastHitWasLob = false;
+  sim.lastHitWasSlice = false; sim.lastHitWasVolley = false;
   sim.lastShotWasPass = false; sim.lastShotWasApproach = false;
   sim.stroke = null;
   if (sim.tiebreak && sim.points[0] + sim.points[1] === 0) setNotice('TIEBREAK', 2.0);
@@ -4115,6 +4421,14 @@ function doHit(p) {
   sim.lastShotType = stroke;                       // what the RECEIVER is now facing (sim.stroke gets overwritten at their swing)
   sim.lastHitWasDrop = drop;                       // remembered so a drop winner is called out AFTER the point
   sim.lastHitWasLob = lob;                          // remembered so the LOB is declared when it lands, not on contact
+  // ...and so is the slice, for exactly the same reason. Reading it back off
+  // sim.stroke did not work: the moment the opponent starts a swing at the ball --
+  // which they nearly always do, even on one they never reach -- startSwing replaces
+  // sim.stroke with THEIR stroke, and that one carries no `shot`. The slice tag was
+  // gone by the time the ball bounced twice, so every slice winner was announced as
+  // a plain backhand winner.
+  sim.lastHitWasSlice = sliced;
+  sim.lastHitWasVolley = stroke === 'volley';
   // The wing decides which side the racket is on; the shot decides how it swings.
   sim.stroke = { who: p, type: stroke, shot: lob ? 'lob' : drop ? 'drop' : sliced ? 'slice' : null };
   sim.lastShotWasPass = passing; sim.lastShotWasApproach = approach;
@@ -4211,18 +4525,20 @@ function rallyBounce() {
   if (sim.bouncesSinceHit >= 1) {
     const ace = (sim.shotCount === 1 && sim.lastHitter === sim.server);   // serve never returned
     // Name the shot that won the point rather than calling everything a clean winner.
-    // Everything needed is already remembered from the moment of contact.
-    const shot = sim.stroke && sim.stroke.shot;
+    // Everything needed was remembered at the moment of contact -- NOT read back off
+    // sim.stroke, which by now belongs to whoever swung at the ball last.
     const reason = ace                      ? 'ace'
                  : sim.lastHitWasDrop       ? 'drop'
                  : sim.lastHitWasLob        ? 'lob'
                  : sim.lastShotWasPass      ? 'pass'
                  : sim.lastShotType === 'smash' ? 'smash'
-                 : shot === 'slice'         ? 'slicewin'
+                 : sim.lastHitWasSlice      ? 'slicewin'
+                 : sim.lastHitWasVolley     ? 'volwin'
                  : sim.lastShotType === 'backhand' ? 'bhwin'
                  : sim.lastShotType === 'forehand' ? 'fhwin' : 'winner';
     setNotice({ ace: 'ACE!', drop: 'DROP SHOT!', lob: 'LOB WINNER!', pass: 'PASSING SHOT!',
-                smash: 'SMASH!', slicewin: 'SLICE WINNER!', bhwin: 'BACKHAND WINNER!',
+                smash: 'SMASH!', slicewin: 'SLICE WINNER!', volwin: 'VOLLEY WINNER!',
+                bhwin: 'BACKHAND WINNER!',
                 fhwin: 'FOREHAND WINNER!' }[reason] || 'WINNER!', 1.4);
     endPoint(sim.lastHitter, reason);
     return;
