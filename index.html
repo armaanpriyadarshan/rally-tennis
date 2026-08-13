@@ -2569,14 +2569,22 @@ function drawPlayer(i, opts) {
     S = base.scale * 1.06; near = (i === myIndex);
     const pv = playerPrev[i];
     const dMoved = pv ? Math.hypot(p.x-pv.x, p.z-pv.z) : 0;
+    // A new point puts both players back on their marks by MOVING THEM THERE -- measured
+    // at 670 m/s across a single frame, against a top footspeed of 6.5. That is a cut,
+    // not a sprint, and it must never reach the smoothing below: fed in, it pinned the
+    // gait on for over a second, so the server stood on his mark RUNNING ON THE SPOT
+    // before the toss. Anything faster than a player could possibly move is treated as
+    // the jump it is -- the stride resets and the gait memory is cleared with it.
+    const dt = Math.max(frameDt, 1e-3);
+    const cut = dMoved / dt > 12;
+    playerPrev[i] = { x:p.x, z:p.z };
     // Stride cadence. At 5.0 radians per metre a player crossing the court at 4.4 m/s
     // took SEVEN steps a second -- roughly twice a real sprint -- and the cycle advanced
     // 0.37 rad per frame, which is coarse enough that the sine driving the arms and feet
     // was visibly under-sampled: the legs strobed rather than ran. 2.6 rad/m puts it at
     // about 3.6 steps a second, which is what a player actually does at that speed.
-    // Capped per frame as well, so a teleport or a long frame can never skip a stride.
-    runPhase[i] = (runPhase[i] || 0) + Math.min(dMoved * 2.6, 0.45);
-    playerPrev[i] = { x:p.x, z:p.z };
+    if (cut) runPhase[i] = 0;
+    else runPhase[i] = (runPhase[i] || 0) + dMoved * 2.6;
     // Footspeed is SMOOTHED before anything is decided off it. A raw per-frame delta is
     // noisy enough that a player crossing the court at a steady speed straddled the
     // "moving" threshold and flickered between running and standing several times a
@@ -2585,8 +2593,8 @@ function drawPlayer(i, opts) {
     // Fast to rise, slow to fall: starting to move has to register on the frame it
     // happens, but stopping is allowed to coast, which is also what a body does.
     const mm = moveMemo[i] || (moveMemo[i] = { vx: 0, vz: 0, moving: false, gait: 'run' });
-    {
-      const dt = Math.max(frameDt, 1e-3);
+    if (cut) { mm.vx = 0; mm.vz = 0; mm.moving = false; }
+    else {
       const ivx = pv ? Math.abs(p.x - pv.x) / dt : 0, ivz = pv ? Math.abs(p.z - pv.z) / dt : 0;
       const k = t => 1 - Math.exp(-dt / t);
       mm.vx += (ivx - mm.vx) * k(ivx > mm.vx ? 0.045 : 0.16);
@@ -5441,7 +5449,12 @@ function keyframeSheet() {
         sim.server = 1; sim.receiver = 0; sim.phase = 'ready';
         sim.ball = { x: AWAY.x, y: 1, z: AWAY.z, vx: 0, vy: 0, vz: 0, gAcc: 9.81 };
         buildGS();
-        playerPrev[0] = R.lateral ? { x: HOME.x - 0.35, z: HOME.z } : { x: HOME.x, z: HOME.z - 0.35 };
+        // The gait is stated outright rather than faked with a position delta: a delta
+        // big enough for the smoothing to read back as a run is also big enough to look
+        // like the jump a new point makes, and is now discarded as one.
+        playerPrev[0] = { x: HOME.x, z: HOME.z };
+        moveMemo[0] = { vx: R.lateral ? 4 : 0, vz: R.lateral ? 0 : 4,
+                        moving: true, gait: R.lateral ? 'shuffle' : 'run' };
         runPhase[0] = item;
         shoot(gx, y, 'stride ' + item.toFixed(1));
       } else {
@@ -5543,6 +5556,7 @@ function animLab() {
     sim.players[me] = { x: here.x, z: here.z };
     sim.players[them] = { x: -1.0, z: far ? 3.0 : 20.0 };
     frameDt = 1 / 60; runPhase[me] = 0; playerPrev[me] = { x: here.x, z: here.z };
+    moveMemo[me] = null;   // standing still unless the pose below says otherwise
     sim.swing = [0, 0]; sim.stroke = null; sim.hitPt[me] = null; sim.swingAt = [0.5, 0.5];
     sim.phase = 'rally'; sim.bouncesSinceHit = 1;
     const hand = PLAYERS[me].lefty ? -1 : 1;
@@ -5560,7 +5574,8 @@ function animLab() {
       sim.ball = { x: -1.0, y: 1, z: 12, vx:0, vy:0, vz:0, gAcc: 9.81 };
       if (P[0] === 'run' || P[0] === 'shuffle') {
         runPhase[me] = t * Math.PI * 4;
-        playerPrev[me] = P[0] === 'shuffle' ? { x: here.x - 0.4, z: here.z } : { x: here.x, z: here.z - 0.4 };
+        moveMemo[me] = { vx: P[0] === 'shuffle' ? 4 : 0, vz: P[0] === 'shuffle' ? 0 : 4,
+                         moving: true, gait: P[0] };
       } else if (P[0] === 'pre-serve' || P[0] === 'post-toss') {
         sim.phase = P[0] === 'pre-serve' ? 'ready' : 'toss';
         sim.server = me; sim.receiver = them;
