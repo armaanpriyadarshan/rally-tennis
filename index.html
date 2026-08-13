@@ -2509,17 +2509,50 @@ const POSE_BLEND = 0.16;            // seconds spent easing between ANY two pose
 // during normal play. Arming this only on a flip keeps the racket from lagging the
 // wrist the rest of the time, which is why the old always-on version was removed.
 const SIDE_BLEND = 0.13;
+// A stroke can change its own SHAPE half way through: the shot (lob / slice / dropshot)
+// is only decided at the contact frame, so a swing that began as a backhand becomes a
+// lob on one frame, mid-flight. That switch used to cut, and it cut at the loudest
+// possible moment -- the ball being struck. It is blended like every other pose change,
+// but faster, because there is very little swing left to spend on it.
+const SHOT_BLEND = 0.11;
 const gripMemo = [null, null];
-const recovering = [null, null];
-// The pose each player was in last frame, so a change can be blended out of. Only the
-// end of a stroke used to be eased; every other change cut on a single frame, which is
-// what made the pre-serve -> toss -> serve chain snap twice.
+// THE BLEND STACK. Every pose the figure is still fading OUT of, newest first, each with
+// its own weight. It used to be a single "previous pose" slot, and a change arriving
+// while an earlier one was still fading DISCARDED the earlier one outright: serving,
+// breaking into a run and then shuffling inside a third of a second threw away a third
+// of the figure between two frames -- MEASURED at 1.1 body heights of racket-head travel
+// in 16 ms, against a p50 of zero. Chains like that are the normal case in a rally, not
+// an edge case. The stack is combined newest-first, so at the instant a new blend starts
+// it reproduces exactly what the old one was drawing and nothing is thrown away.
 const poseMemo = [null, null];
+// Smoothed footspeed per player, per axis. Deciding "moving or not" and "run or shuffle"
+// off a SINGLE frame's position delta made both flip back and forth on any diagonal or
+// near-threshold movement -- and every flip re-armed the pose blend, so the figure sat
+// in a permanent half-way crossfade instead of committing to a gait.
+const moveMemo = [null, null];
+// The contact frame re-times the swing: swingAt goes from a guess (0.5) to the measured
+// value, and the pose fraction that comes out of it can step by a sixth of a whole
+// stroke in one frame. The step is absorbed here as an offset that decays away.
+const warpMemo = [null, null];
+// How hard the racket is currently being pulled onto the ball, held frame to frame so
+// it can only change so fast. Contact often lands on the FIRST frame or two of a swing
+// -- a blocked return, a reflex volley, anything hit hard at you -- and on that frame
+// the pull went from nothing to full, wrenching the hand across the body in 16 ms.
+// MEASURED as the largest remaining velocity step in the whole figure, ~1.5 body
+// heights per frame against a p90 of 0.03.
+const aimMemo = [null, null];
+// The stroke each player is actually swinging. `gs.stroke` is ONE slot shared by both of
+// them, so the instant the opponent starts a swing it stops describing this one -- and
+// this player's stroke was abandoned on that frame with the racket still half way
+// through, cutting straight to a run. Both players swinging at once is the normal case
+// in a rally, not a rare one. Held here for as long as this player's own swing clock is
+// still running.
+const strokeMemo = [null, null];
 function drawPlayer(i, opts) {
   opts = opts || {};
   const preview = !!opts.ctx, savedCtx = ctx;   // preview mode reuses this exact figure on a card canvas
   if (preview) ctx = opts.ctx;
-  let base, S, near, pose = 'returnready', wing = '', prog = 0, swinging = false, sg, ph = 0, jump = 0, srvTurn = 0, hitAim = null, hitW = 0, recPose = null, recW = 0, recSg = null, recFlip = false, strokeScale = 1, footW = null, gripBlend = null, armSg = null;
+  let base, S, near, pose = 'returnready', wing = '', prog = 0, swinging = false, sg, ph = 0, jump = 0, srvTurn = 0, hitAim = null, hitW = 0, layers = [], strokeScale = 1, gripBlend = null, armSg = null;
   if (preview) {
     base = opts.base; S = opts.S; near = opts.silhouette ? (i === myIndex) : false;
     pose = opts.pose || 'returnready';
@@ -2536,16 +2569,51 @@ function drawPlayer(i, opts) {
     S = base.scale * 1.06; near = (i === myIndex);
     const pv = playerPrev[i];
     const dMoved = pv ? Math.hypot(p.x-pv.x, p.z-pv.z) : 0;
-    runPhase[i] = (runPhase[i] || 0) + dMoved * 5.0;
+    // Stride cadence. At 5.0 radians per metre a player crossing the court at 4.4 m/s
+    // took SEVEN steps a second -- roughly twice a real sprint -- and the cycle advanced
+    // 0.37 rad per frame, which is coarse enough that the sine driving the arms and feet
+    // was visibly under-sampled: the legs strobed rather than ran. 2.6 rad/m puts it at
+    // about 3.6 steps a second, which is what a player actually does at that speed.
+    // Capped per frame as well, so a teleport or a long frame can never skip a stride.
+    runPhase[i] = (runPhase[i] || 0) + Math.min(dMoved * 2.6, 0.45);
     playerPrev[i] = { x:p.x, z:p.z };
-    const moving = dMoved / Math.max(frameDt, 1e-3) > 0.6;
+    // Footspeed is SMOOTHED before anything is decided off it. A raw per-frame delta is
+    // noisy enough that a player crossing the court at a steady speed straddled the
+    // "moving" threshold and flickered between running and standing several times a
+    // second; a near-diagonal run did the same between run and shuffle. Each flip
+    // re-armed the pose blend, so the figure never actually arrived anywhere.
+    // Fast to rise, slow to fall: starting to move has to register on the frame it
+    // happens, but stopping is allowed to coast, which is also what a body does.
+    const mm = moveMemo[i] || (moveMemo[i] = { vx: 0, vz: 0, moving: false, gait: 'run' });
+    {
+      const dt = Math.max(frameDt, 1e-3);
+      const ivx = pv ? Math.abs(p.x - pv.x) / dt : 0, ivz = pv ? Math.abs(p.z - pv.z) / dt : 0;
+      const k = t => 1 - Math.exp(-dt / t);
+      mm.vx += (ivx - mm.vx) * k(ivx > mm.vx ? 0.045 : 0.16);
+      mm.vz += (ivz - mm.vz) * k(ivz > mm.vz ? 0.045 : 0.16);
+    }
+    const spd = Math.hypot(mm.vx, mm.vz);
+    // Hysteresis, not a threshold: it takes a real move to start the gait and a real
+    // stop to end it, so a player hovering at walking pace picks one and stays there.
+    mm.moving = mm.moving ? spd > 0.45 : spd > 0.85;
+    const moving = mm.moving;
     // Going side to side a player SHUFFLES -- feet stay wide and square to the net, no
     // crossover -- and only breaks into a run when covering ground up or down the court.
-    const lateral = pv && Math.abs(p.x - pv.x) > Math.abs(p.z - pv.z) * 1.2;
-    const gait = lateral ? 'shuffle' : 'run';
-    if (gs.swing && gs.swing[i] > 0 && gs.stroke && gs.stroke.who === i) {
-      wing = gs.stroke.type;                       // forehand or backhand: sets which side the racket is on
-      pose = gs.stroke.shot || gs.stroke.type;     // lob or drive: sets how it swings
+    // Sticky, for the same reason: on a diagonal the two axes are within a few percent
+    // of each other and an equality test alone changes its mind every frame.
+    if (mm.gait === 'run') { if (mm.vx > mm.vz * 1.45) mm.gait = 'shuffle'; }
+    else if (mm.vx < mm.vz * 1.00) mm.gait = 'run';
+    const gait = mm.gait;
+    if (gs.stroke && gs.stroke.who === i) strokeMemo[i] = gs.stroke;
+    const swung = (gs.swing && gs.swing[i] > 0) ? strokeMemo[i] : (strokeMemo[i] = null);
+    if (swung) {
+      // The WING is which side of the body the racket is on, and it is now carried on the
+      // stroke in its own right. Reading it off `type` meant a volley or a smash -- which
+      // are stroke types, not wings -- always reported "not a backhand", so every backhand
+      // volley was drawn with the racket over on the forehand side and the arm dragged
+      // across the chest to reach it.
+      wing = swung.wing || swung.type;
+      pose = swung.shot || swung.type;             // lob or drive: sets how it swings
       // A real stroke is not linear: the take-back loads slowly, the racket explodes
       // through contact, then the follow-through coasts.
       const raw = swingEase(clamp(1 - gs.swing[i], 0, 1));
@@ -2558,35 +2626,59 @@ function drawPlayer(i, opts) {
       // stroke played back at wildly different speeds depending on where the ball
       // happened to arrive. Contact still lands on the ball, but the swing keeps its
       // shape either side of it.
-      const at = clamp((gs.swingAt && gs.swingAt[i]) || 0.5, 0.34, 0.72);
+      const rawAt = (gs.swingAt && gs.swingAt[i]) || 0.5;
+      const at = clamp(rawAt, 0.34, 0.72);
       // Every forehand now plays at the same size. Scaling the reach per shot by how
       // rushed it was meant no two strokes matched, which read as the animation being
       // unable to make up its mind rather than as the player being under pressure.
       strokeScale = 1;
-      prog = raw <= at ? CONTACT_T * (raw / at)
-                       : CONTACT_T + (1 - CONTACT_T) * ((raw - at) / (1 - at));
+      const warp = (r, a) => r <= a ? CONTACT_T * (r / a)
+                                    : CONTACT_T + (1 - CONTACT_T) * ((r - a) / (1 - a));
+      // Until the ball is actually struck `at` is a GUESS (0.5), and on the contact frame
+      // it is replaced by the measured value. That re-times the whole swing underneath a
+      // pose fraction that is supposed to be continuous: measured at up to 0.18 of a
+      // stroke stepped through in a single frame -- forwards on an early contact,
+      // BACKWARDS on a late one, so the racket visibly rewound. The step is taken as an
+      // offset and paid back over ~0.09 s, which is short enough that the swing is on its
+      // true schedule again well before the follow-through.
+      const wm = warpMemo[i] || (warpMemo[i] = { at, off: 0 });
+      if (wm.at !== at) { wm.off += warp(raw, wm.at) - warp(raw, at); wm.at = at; }
+      wm.off *= Math.exp(-Math.max(frameDt, 1e-3) / 0.030);
+      prog = clamp(warp(raw, at) + wm.off, 0, 1);
       swinging = true;
-      // The stroke's OWN racket side, worked out here rather than read from `sg` -- which
-      // is not assigned until further down, so this stored `undefined` every time. The
-      // consequence was silent: every consumer guarded with `recSg != null`, so the
-      // side-flip handling in the recovery simply never ran.
-      const swSg = ((wing || pose) === 'backhand' ? -1 : 1)
-                 * racketScreenSign(i, PLAYERS[i] && PLAYERS[i].lefty);
-      recovering[i] = { pose, sg: swSg, rot: 0, t: RECOVER_TIME };   // for the blend back to idle
-      // Entering a stroke used to CUT from the ready position to the take-back on a
-      // single frame. It now eases in over the first fifth of the swing, exactly as
-      // the finish eases back out, so both ends of every stroke are continuous.
-      // Blend out of the pose the player was ACTUALLY in -- for a serve that is the toss
-      // hold, not the return stance.
-      if (prog < ENTER_T) {
-        const pv = poseMemo[i];
-        recPose = (pv && pv.pose !== pose) ? pv.pose : (pv && pv.prev) || 'returnready';
-        recW = 1 - prog / ENTER_T;
+      // How strongly the racket is pulled onto the contact point: full at the contact
+      // frame, fading out either side so the rest of the swing keeps its shape.
+      // Weighted off the swing CLOCK, not the warped pose fraction. Keying it to prog
+      // meant the warp smoothing above could leave prog a little short of CONTACT_T on
+      // the very frame the ball was struck, which is the one frame the strings have to
+      // be on the ball. `rawAt` is where the clock stood at contact, so this is exactly
+      // 1 there whatever the pose is doing.
+      hitW = clamp(1 - Math.abs(raw - rawAt) / 0.20, 0, 1);
+      // BEFORE contact the racket tracks the LIVE ball. There is no contact point yet, so
+      // the pull was simply off -- and then switched on at full strength the instant the
+      // ball was struck, snapping the hand onto it in one frame. That snap is most of
+      // what read as jitter on a volley, where the pull is largest and the swing shortest.
+      // The racket now converges on the ball as it arrives and takes over the frozen
+      // contact point without a step, which is also what a player's hands actually do.
+      {
+        const hp = (gs.hitPt && gs.hitPt[i]) || null, pp = gs.players[i];
+        const tgt = hp || (gs.ball && gs.ball.y > 0 ? gs.ball : null);
+        if (tgt) {
+          hitAim = W2S({ x: tgt.x, y: tgt.y, z: tgt.z });
+          const d = Math.hypot(tgt.x - pp.x, tgt.z - pp.z);
+          // A ball still three metres away is not something to reach at: the tracking
+          // fades in over the last stride and a half of its flight.
+          if (!hp) hitW *= clamp((2.6 - d) / 1.1, 0, 1);
+        }
+        // ...and however suddenly the target appears, the arm takes ~0.08 s to commit to
+        // it. The reach is a body moving, not a switch.
+        const am = aimMemo[i] || (aimMemo[i] = { w: 0, raw: 1 });
+        if (raw < am.raw) am.w = 0;              // a new swing: nothing carried over from the last
+        am.raw = raw;
+        const step = Math.max(frameDt, 1e-3) / 0.08;
+        am.w += clamp(hitW - am.w, -step, step);
+        hitW = am.w;
       }
-      // How strongly the racket is pulled onto the real contact point: full at the
-      // contact frame, fading out either side so the rest of the swing keeps its shape.
-      hitAim = (gs.hitPt && gs.hitPt[i]) ? W2S({ x: gs.hitPt[i].x, y: gs.hitPt[i].y, z: gs.hitPt[i].z }) : null;
-      hitW = clamp(1 - Math.abs(prog - CONTACT_T) / 0.20, 0, 1);
       // HOW STRETCHED they actually are, in metres off the body. Contact inside the
       // strike zone -- roughly an arm and a racket away, which is most rally balls --
       // needs no reaching at all: the swing's own shape already puts the strings on the
@@ -2600,7 +2692,7 @@ function drawPlayer(i, opts) {
       // ground says nothing at all about them and would read every one as comfortable.
       // Those two keep the full pull, which is what puts the strings on the toss.
       if (hitAim) {
-        const hp = gs.hitPt[i], pp = gs.players[i];
+        const hp = (gs.hitPt && gs.hitPt[i]) || gs.ball, pp = gs.players[i];
         hitAim.st = (pose === 'serve' || pose === 'smash') ? null
                   : clamp((Math.hypot(hp.x - pp.x, hp.z - pp.z) - 0.95) / 0.62, 0, 1);
       }
@@ -2609,16 +2701,6 @@ function drawPlayer(i, opts) {
     else if (gs.phase === 'toss' && gs.srv === i)  { pose = 'servehold'; }
     else if ((gs.phase === 'ready' || gs.phase === 'toss' || gs.phase === 'serve') && gs.srv !== i) { pose = moving ? gait : 'returnready'; }   // receiver still animates while shuffling
     else if (moving) pose = gait;
-    // Coming out of a stroke the figure eased back to the ready position instead of
-    // cutting to it on one frame. The stroke's LAST pose is blended out over
-    // RECOVER_TIME, and the trunk unwinds over the same ramp.
-    const rec = recovering[i];
-    if (!swinging && rec && rec.t > 0) {
-      rec.t -= Math.max(frameDt, 1e-3);
-      if (rec.t > 0) { recPose = rec.pose; recW = clamp(rec.t / RECOVER_TIME, 0, 1); recSg = rec.sg; }
-      else recovering[i] = null;
-    } else if (swinging) { /* keep the fresh entry */ }
-    else recovering[i] = null;
     // a backhand crosses to the other side of the body; everything else stays on the racket-hand side
     armSg = racketScreenSign(i, PLAYERS[i] && PLAYERS[i].lefty);   // the racket SHOULDER: handedness only
     sg = ((wing || pose) === 'backhand' ? -1 : 1) * armSg;         // the swing's direction: flips for a backhand
@@ -2626,20 +2708,58 @@ function drawPlayer(i, opts) {
     // until the recovery was half over and then snapped, which flipped the meaning of
     // every u mid-blend and made the grip smoother drag the racket bodily across the
     // body -- a six-frame lurch peaking at 21 px/frame coming out of a backhand, against
-    // one 12 px step out of a forehand. The blend below handles the flip instead.
-    recFlip = (recSg != null && recSg !== sg);
+    // one 12 px step out of a forehand. Each blend layer remembers the side it was drawn
+    // on instead, and is mirrored into the current one before it is folded in.
     ph = runPhase[i];
     // Arm the grip blend the moment the racket changes sides.
     const gm = gripMemo[i] || (gripMemo[i] = { sg, x: null, y: null, a: null, t: 0 });
     if (gm.sg !== sg) { gm.sg = sg; gm.t = SIDE_BLEND; }
     else gm.t = Math.max(0, gm.t - Math.max(frameDt, 1e-3));
     gripBlend = gm;
-    // Remember this frame's pose and ease out of the previous one. This runs AFTER the
-    // stroke branch above has had its say, so an explicit stroke blend always wins.
-    const pm = poseMemo[i] || (poseMemo[i] = { pose, prev: null, t: 0 });
-    if (pm.pose !== pose) { pm.prev = pm.pose; pm.pose = pose; pm.t = POSE_BLEND; }
-    else pm.t = Math.max(0, pm.t - Math.max(frameDt, 1e-3));
-    if (!recPose && pm.prev && pm.t > 0) { recPose = pm.prev; recW = pm.t / POSE_BLEND; }
+    // Push the pose being left onto the blend stack and age everything already on it.
+    const pm = poseMemo[i] || (poseMemo[i] = { pose, sg, sw: false, stack: [] });
+    for (const Ly of pm.stack) Ly.t -= Math.max(frameDt, 1e-3);
+    if (pm.pose !== pose) {
+      // Three kinds of change, three ramps.
+      // MID-SWING: the shot is only decided at the contact frame, so a backhand becomes a
+      // lob, a slice or a dropshot half way through its own swing. Short ramp -- there is
+      // little swing left to spend -- and the pose being left keeps ADVANCING through its
+      // own stroke (prog: null) so both halves are read at the same point in the swing.
+      // Freezing it at its follow-through crossfaded two poses half a stroke apart.
+      // RECOVERY: a stroke that has finished is eased back to the ready position from its
+      // follow-through, over the longer RECOVER_TIME.
+      // ENTRY: starting a stroke, the ramp follows the SWING'S OWN progress rather than
+      // the clock, so a rushed swing leaves the ready position as quickly as it needs to.
+      const mid = swinging && pm.sw && isSwingPose(pm.pose) && isSwingPose(pose);
+      const rec = !swinging && pm.sw;              // a stroke that has just finished
+      // An entry ramp follows the swing's progress, so its clock is only a safety net --
+      // long enough never to cut a real swing's entry short, short enough that a swing
+      // abandoned before it got going cannot leave the layer stuck at full weight.
+      const enter = !mid && swinging;
+      const dur = mid ? SHOT_BLEND : rec ? RECOVER_TIME : enter ? 0.30 : POSE_BLEND;
+      // A stroke is left at its FOLLOW-THROUGH, so it is sampled at prog 1 -- including
+      // the serve and the smash, which carry no keyframe table but are still swings.
+      // Reading "is this a swing?" off the table alone sampled a finished serve at its
+      // own frame ZERO, so the racket snapped from across the body back down to the toss
+      // position as the server started to run.
+      pm.stack.unshift({ pose: pm.pose, sg: pm.sg, sw: pm.sw, prog: mid ? null : (pm.sw ? 1 : 0),
+                         enter, t: dur, dur });
+      pm.pose = pose;
+      if (pm.stack.length > 3) pm.stack.length = 3;   // three deep is already more chaining than a rally produces
+    }
+    pm.sg = sg; pm.sw = swinging;
+    // Resolve each surviving layer to a weight. Newest first: the combination below folds
+    // them in that order, which is what makes a new blend start exactly where the old one
+    // had got to. Smoothstepped, so a blend neither starts nor stops with a kick.
+    pm.stack = pm.stack.filter(Ly => Ly.t > 0 && !(Ly.enter && prog >= ENTER_T));
+    layers = [];
+    for (const Ly of pm.stack) {
+      let w = clamp(Ly.t / Ly.dur, 0, 1);
+      if (Ly.enter) w = Math.min(w, clamp(1 - prog / ENTER_T, 0, 1));
+      if (w <= 0) continue;
+      layers.push({ pose: Ly.pose, prog: Ly.prog == null ? prog : Ly.prog, sw: Ly.sw,
+                    w: w * w * (3 - 2 * w), flip: Ly.sg !== sg });
+    }
     // A server sets up SIDE-ON to the box he is serving into: from right of the centre
     // mark into the deuce court, from left of it into the ad court. Which way that is
     // on screen depends on the half he is standing in and on the camera, so it is read
@@ -2659,14 +2779,23 @@ function drawPlayer(i, opts) {
   }
   const st = preview ? opts.st : (PLAYERS[i] || PLAYERS[0]);
   curStyle = st;
+  // EVERY per-pose scalar goes through here. Blending the arm across a pose change while
+  // leaving the trunk, the hip hinge, the lean and the stance as step functions of the
+  // pose is what still made a transition read as a cut: the racket crossfaded politely
+  // while the shoulders, the head and both feet jumped on one frame. `blend` folds in the
+  // whole stack of poses still fading out, newest first, on the same ramp the arm uses.
+  const blend = f => { let v = f(pose, prog);
+                       for (const L of layers) v = lerp(v, f(L.pose, L.prog), L.w);
+                       return v; };
   // How far the trunk has turned on this frame of the stroke, -1 coiled to +1 through.
   const rotK = strokeKF(pose, st.oneHandBh);
   const kfNow = rotK ? kfAt(rotK, prog) : null;
-  let bodyRot = kfNow ? kfNow.rot : 0;
-  if (!swinging && recW > 0 && recPose) {          // the trunk unwinds instead of snapping square
-    const rk2 = strokeKF(recPose, st.oneHandBh);
-    if (rk2) bodyRot = kfAt(rk2, 1).rot * recW;
-  }
+  // The trunk goes through the SAME ramp as everything else, which now covers all three
+  // ends of a stroke with one line: it winds up out of square as the swing starts
+  // (it used to snap to the take-back's -0.50 coil on frame one), it crossfades when the
+  // shot changes shape mid-swing, and it unwinds back to square on the follow-through.
+  const rotOf = (p, t) => { const K = strokeKF(p, st.oneHandBh); return K ? kfAt(K, t).rot : 0; };
+  const bodyRot = blend(rotOf);
   // A player with their back to us has their FRONT pointing away from the camera, so
   // a hand out in front of them is further away; facing us it is nearer. camDepth is
   // that distance in camera terms, and it decides both size and draw order.
@@ -2709,7 +2838,11 @@ function drawPlayer(i, opts) {
   // THE HIP JOINT. The spine hinges forward at the pelvis: the shoulders swing forward
   // along the body's OWN facing axis and drop as they tip, and the head rides with
   // them. Until now the figure could only lean as a rigid plank from the ankles.
-  const bendW  = poseBend(pose);                 // how far the trunk is folded forward
+  // Blended: as a step function of the pose this folded the trunk 0.19 forward on ONE
+  // frame coming out of a stroke into a run, which drops the shoulders and the head
+  // ~6% of a body height in 16 ms. That snap was most of what read as "jarring" going
+  // from a slice into chasing the next ball.
+  const bendW  = blend(poseBend);                // how far the trunk is folded forward
   const bendX  = S * bodyU(0, bendW);            // where that hinge lands on screen
   const bendDy = S * bendW * 0.30;               // and how much the trunk shortens doing it
   // Layering keys off the ROTATED depth of the hands, so which arm is in front of the
@@ -2722,12 +2855,13 @@ function drawPlayer(i, opts) {
   // A player at the ready or on the move is tipped forward over the balls of the feet,
   // never stood bolt upright.
   // The forward lean follows the racket side, so a left-hander leans the other way.
-  const tilt = (pose === 'returnready' || pose === 'stance' || pose === 'shuffle') ? sg*S*0.075
-             : pose === 'run' ? sg*S*0.075
-             : (pose === 'serveready' || pose === 'servehold') ? sg*S*0.10 : 0;
-  // A runner rises and falls once per step, which is most of what sells a stride.
-  const bob = pose === 'run' ? Math.abs(Math.sin(ph))*S*0.026
-            : pose === 'ready' ? Math.sin(animClock*3.2)*S*0.018 : 0;
+  const tiltOf = p => (p === 'returnready' || p === 'stance' || p === 'shuffle' || p === 'run') ? 0.075
+                    : (p === 'serveready' || p === 'servehold') ? 0.10 : 0;
+  const tilt = sg * S * blend(tiltOf);
+  // A runner rises and falls once per step, which is most of what sells a stride -- and
+  // it fades in and out with the gait instead of switching on mid-step.
+  const bobOf = p => p === 'run' ? Math.abs(Math.sin(ph))*0.026 : 0;
+  const bob = S * blend(bobOf);
   // A stroke is hit from bent knees: deepest at the coil, straightening as the legs
   // drive up through contact.
   // How low the hips sit. The game places them 0.80 S up before this is subtracted;
@@ -2746,9 +2880,7 @@ function drawPlayer(i, opts) {
     : (p === 'forehand' || p === 'backhand' || p === 'slice' || p === 'drop' ||
        p === 'volley'   || p === 'lob'      || p === 'serve' || p === 'smash')
         ? S*(0.09 + 0.09*Math.max(0, -bodyRot)) : S*0.06;
-  let crouch = crouchOf(pose);
-  if (recPose && recW > 0) crouch = lerp(crouch, crouchOf(recPose), recW);
-  crouch += stretch * S * 0.13;             // ...and the lunge drops the body under the ball
+  let crouch = blend(crouchOf) + stretch * S * 0.13;   // ...and the lunge drops the body under the ball
   const cx = base.sx + lean, fy = base.sy - jump + crouch;
   // A figure in the stand's shade is lit by sky alone: darker and a touch cooler.
   const SIL = opts.silhouette;                   // set when this pass is drawing the cast shadow
@@ -2835,74 +2967,21 @@ function drawPlayer(i, opts) {
   }
   // feet — the whole body (feet included) leaves the ground by `jump`; the shadow stays down
   const fyG = base.sy - jump;
-  let lfx, rfx, lfy, rfy;
-  if (pose === 'run') {
-    // Seen from behind, a stride is mostly DEPTH, which is screen-y. The old cycle swung
-    // the feet 0.17 S sideways about a 0.03 S gap, so they swapped sides and the legs
-    // visibly crossed. Lateral travel now stays inside the gap between the feet.
-    // MEASURED off the 2008 final over 1300 frames of players covering ground: the feet
-    // sit about 0.40 S apart while moving. At 0.15 the figure ran with its ankles almost
-    // touching, which is most of why the run read as a shuffle on the spot.
-    const sw = Math.sin(ph), lift = Math.cos(ph);
-    lfx = base.sx - S*0.185 + sw*S*0.05; lfy = fyG - Math.max(0,  lift)*S*0.12 - sw*S*0.055;
-    rfx = base.sx + S*0.185 - sw*S*0.05; rfy = fyG - Math.max(0, -lift)*S*0.12 + sw*S*0.055;
-  } else if (jump > 0) {                                   // airborne (serve / smash): whole body leaves the ground
-    lfx = base.sx - S*0.13; rfx = base.sx + S*0.16; lfy = fyG + jump*0.18; rfy = fyG;
-  } else if (swinging && pose !== 'servehold') {
-    // Legs and core drive the stroke. A wide loaded base at the coil, then the weight
-    // moves off the back foot onto the front one through contact, and the back foot
-    // comes up and round on the follow-through. Without this the arm was swinging off
-    // a pair of planted feet, which is what made the backhand read as all-arm.
-    const w = (bodyRot + 1) / 2;                        // 0 = all on the back foot, 1 = all on the front
-    // Setting a stroke up, the outside foot STEPS ACROSS the body -- most obviously on
-    // a backhand, where you cross over to get side-on before you swing. It plants and
-    // swings back out as the weight comes through.
-    // Measured off the footage: through the coil the feet come almost TOGETHER (0.09 S
-    // and 0.07 S either side of the hip centre), not planted wide. They only spread as
-    // the weight drives through.
-    // MEASURED across 12 tracked forehands: through the stroke the back foot sits about
-    // 0.30 S out on the take-back side and the front foot starts around 0.34 S across,
-    // then comes through. This stance used to be roughly half that wide -- the same
-    // error as the run -- so the figure hit off a narrow, upright base.
-    const narrow = 1 - 0.30 * Math.max(0, -bodyRot);
-    const cross = Math.max(0, -bodyRot) * S * 0.20;
-    const backX  = base.sx + sg*S*(0.28 + 0.08*Math.max(0, -bodyRot))*narrow;   // take-back side
-    const frontX = base.sx - sg*S*(0.26 + 0.10*Math.max(0,  bodyRot))*narrow + sg*cross;
-    lfx = frontX; rfx = backX;
-    lfy = fyG - (1 - w) * S*0.022;                      // front foot floats until the weight arrives
-    rfy = fyG - w * S*0.075;                            // back foot lifts as it comes through
-  } else if (pose === 'serveready' || pose === 'servehold') {
-    // Staggered stance aimed at the box. The front foot is the NON-DOMINANT one (a
-    // right-hander leads with the left, a left-hander with the right) and it points
-    // along the line of the serve, so the whole body is turned toward the target.
-    // The NON-DOMINANT foot leads and the stagger is in DEPTH, not across the screen.
-    // Once the body turns side-on that reads as one foot ahead of the other, which is
-    // what a real service stance looks like -- not two feet splayed left and right.
-    // The feet sit where they sit; only their DEPTH mirrors. Mirroring the x positions
-    // by sg as well as the stagger meant the two cancelled exactly, and every player --
-    // right- or left-handed, near or far -- ended up with the same side forward.
-    lfx = base.sx - S*0.055; lfy = fyG;
-    rfx = base.sx + S*0.055; rfy = fyG;
-    footW = sg > 0 ? [0.40, -0.34] : [-0.34, 0.40];   // the NON-dominant foot leads, whichever side that is
-  } else if (pose === 'shuffle') {
-    // Sideways shuffle: the stance stays wide and square, each foot skimming the ground
-    // in turn. The feet never cross, which is what separates it from a run.
-    const u = Math.sin(ph);
-    lfx = base.sx - S*0.20 + u*S*0.05; lfy = fyG - Math.max(0,  u)*S*0.055;
-    rfx = base.sx + S*0.20 + u*S*0.05; rfy = fyG - Math.max(0, -u)*S*0.055;
-  } else if (pose === 'returnready') {
-    // The return stance is WIDE and low: feet well outside the shoulders, knees loaded.
-    lfx = base.sx - S*0.225; rfx = base.sx + S*0.225; lfy = rfy = fyG;
-  } else { lfx = base.sx - S*0.095; rfx = base.sx + S*0.095; lfy = rfy = fyG; }
+  // The stance is worked out for the pose being ENTERED and the pose being LEFT and the
+  // two are mixed on the same ramp as everything else. As a hard if/else on the pose the
+  // feet teleported: coming out of a slice into a run they jumped from the stroke's wide
+  // loaded base straight to mid-stride, both legs at once, on a single frame -- the
+  // biggest remaining discontinuity in the figure once the arms had been calmed down.
+  let F = feetOf(pose, swinging, bodyRot, ph, sg, jump / S);
+  for (const L of layers) F = mixFeet(F, feetOf(L.pose, L.sw, bodyRot, ph, sg, 0), L.w);
+  let lfx = base.sx + S*F.lx, rfx = base.sx + S*F.rx;
+  let lfy = fyG + S*F.ly,     rfy = fyG + S*F.ry;
   // ONE depth per foot, used both to place it and to sort its leg. These used to be two
   // separate numbers -- 0.11 for the placement, 0.30 for the layering -- with OPPOSITE
   // signs and neither following the racket side. For a left-hander the take-back foot is
   // on the other side, so the stagger and the layering were both mirrored the wrong way
   // and the wrong leg was drawn on top through every groundstroke.
-  let lfd, rfd;
-  if (footW) { lfd = footW[0]; rfd = footW[1]; }
-  else if (swinging) { lfd = sg*0.30; rfd = -sg*0.30; }   // the BACK foot is the take-back side
-  else { lfd = rfd = 0; }
+  let lfd = F.ld, rfd = F.rd;
   // legs
   const knee = S * (swinging ? 0.034 : crouch > 0 ? 0.030 : pose === 'run' ? 0.026 : 0.014);   // a hint of knee, not a bow
   const HIPW = S * 0.078 * girthHip;                // the pelvis keeps its depth too
@@ -2995,7 +3074,7 @@ function drawPlayer(i, opts) {
   // shoulder riding higher (further from the camera) than the other.
   const SHW  = S * 0.185 * girth;                          // shoulders keep their depth, so they never go paper-thin
   const SHDY = S * bodyD(SHOULDER_HW, 0) * 0.32;                 // what has gone into depth
-  const shLift = paramsTilt(pose, prog, st.oneHandBh) * S;   // how far the HITTING shoulder rides up
+  const shLift = S * blend((p, t) => paramsTilt(p, t, st.oneHandBh));   // how far the HITTING shoulder rides up
   const shOff = (stanceYaw || sg * bodyRot) * S*0.088 + bendX;   // shoulders swing across the hips, and forward on the hip hinge
   // Layering is just depth: an arm further from the camera than the trunk goes UNDER
   // it, an arm nearer goes over the trunk and over the face. The head and neck are part
@@ -3046,7 +3125,7 @@ function drawPlayer(i, opts) {
       // behind the arm to hide jumps that the pose blending should never have made.
       // With the strokes calmed down there is nothing left to hide, and the lag itself
       // was visible as the racket trailing the wrist.
-      drawRacket(cx, shY, S, pose, sg, prog, skin, st.oneHandBh, st.rk, lum, SIL, band, SHW, ph, shOff, yawR, dsg, hitAim, hitW, recPose, recW, strokeScale, part, gripBlend, armSg, recFlip);
+      drawRacket(cx, shY, S, pose, sg, prog, skin, st.oneHandBh, st.rk, lum, SIL, band, SHW, ph, shOff, yawR, dsg, hitAim, hitW, layers, strokeScale, part, gripBlend, armSg);
     }
   };
   // Head, neck and hair as one sortable part, so whatever passes behind them is
@@ -3087,7 +3166,7 @@ function drawPlayer(i, opts) {
   // layering was wrong on nearly every frame.
   const armD = (pose === 'celebrate') ? { free: 0, racket: 0 }
     : drawRacket(cx, shY, S, pose, sg, prog, skin, st.oneHandBh, st.rk, lum, SIL, band,
-                 SHW, ph, shOff, yawR, dsg, hitAim, hitW, recPose, recW, strokeScale, 'depths', null, armSg, recFlip);
+                 SHW, ph, shOff, yawR, dsg, hitAim, hitW, layers, strokeScale, 'depths', null, armSg);
   const drawFree   = () => drawArms('free');
   const drawRack   = () => drawArms('racket');
   // FIXED LAYER BANDS. The lower body is not sorted against the upper body at all: a
@@ -3158,17 +3237,38 @@ function kfAt(K, t) {
   let i = 0; while (i < K.length - 2 && t > K[i + 1][0]) i++;
   const a = K[i], b = K[i + 1];
   const u = clamp((t - a[0]) / (b[0] - a[0]), 0, 1);
+  // A CURVE through the keyframes, not a polyline between them. Straight lerps meant the
+  // hand travelled each leg of the stroke at a constant speed and then changed speed and
+  // DIRECTION instantly at every row -- four hard corners in a five-row table, on every
+  // stroke, every time. That is a genuine velocity step in the drawing, and it is the
+  // one the eye reads as a stroke "kinking" rather than swinging. Catmull-Rom still
+  // passes exactly through every keyframe, so the measured take-back, drop, contact and
+  // finish are all untouched; only the path between them stops having corners.
+  const p = j => K[Math.max(0, Math.min(K.length - 1, j))];
+  const P0 = p(i - 1), P1 = a, P2 = b, P3 = p(i + 2);
+  const cr = (c, dflt) => {
+    const v = r => { const x = r[c]; return x == null ? (typeof dflt === 'function' ? dflt(r) : dflt) : x; };
+    const q0 = v(P0), q1 = v(P1), q2 = v(P2), q3 = v(P3);
+    return 0.5 * ((2*q1) + (q2 - q0)*u + (2*q0 - 5*q1 + 4*q2 - q3)*u*u + (-q0 + 3*q1 - 3*q2 + q3)*u*u*u);
+  };
   // Angles take the SHORT way round. Interpolating the shaft linearly meant a row going
   // 30 deg to 310 swept forward through 170 -- the racket spun nearly a full turn between
   // two keyframes instead of rotating the 80 deg that actually separates them. Measured
   // at 460 degrees of excess travel on the forehand and ~450 on both backhands; the
   // slice and dropshot never wrapped, which is why only those two looked right.
-  const arc = (p, q) => p + ((q - p + 540) % 360 - 180) * u;
-  return { dx: lerp(a[1], b[1], u), dy: lerp(a[2], b[2], u), shaft: arc(a[3], b[3]),
-           odx: lerp(a[4], b[4], u), ody: lerp(a[5], b[5], u), rot: lerp(a[6] || 0, b[6] || 0, u),
-           dz: lerp(a[7] || 0, b[7] || 0, u), face: arc(a[8] == null ? 45 : a[8], b[8] == null ? 45 : b[8]),
-           odz: lerp(a[9] == null ? (a[7]||0)*0.35 : a[9], b[9] == null ? (b[7]||0)*0.35 : b[9], u),
-           tilt: lerp(a[10] || 0, b[10] || 0, u) };
+  // Unwrapped across all FOUR control rows before the curve is fitted, so the same short
+  // way round holds for the spline's tangents as well as for its endpoints.
+  const arc = (c, dflt) => {
+    const raw = [P0, P1, P2, P3].map(r => (r[c] == null ? dflt : r[c]));
+    for (let k = 1; k < 4; k++) raw[k] = raw[k - 1] + ((raw[k] - raw[k - 1] + 540) % 360 - 180);
+    const [q0, q1, q2, q3] = raw;
+    return 0.5 * ((2*q1) + (q2 - q0)*u + (2*q0 - 5*q1 + 4*q2 - q3)*u*u + (-q0 + 3*q1 - 3*q2 + q3)*u*u*u);
+  };
+  return { dx: cr(1, 0), dy: cr(2, 0), shaft: arc(3, 0),
+           odx: cr(4, 0), ody: cr(5, 0), rot: cr(6, 0),
+           dz: cr(7, 0), face: arc(8, 45),
+           odz: cr(9, r => (r[7] || 0) * 0.35),
+           tilt: cr(10, 0) };
 }
 const FOREHAND_KF = [
   // The racket reaches 0.52 S from the hand, so ANY near-vertical shaft angle throws the
@@ -3261,6 +3361,32 @@ const BACKHAND1_KF = [                               // one-hander: opens furthe
   [0.80, -0.16,  0.06, 128,  0.30,  0.34,  0.55,  0.11, 34, -0.12,  0.05],   // free arm flung BACK for balance
   [1.00, -0.48, -0.14, 178,  0.44,  0.28,  0.72,  0.05, 46, -0.18,  0.06],   // FINISH: arm fully extended out, free arm behind
 ];
+// A VOLLEY is a punch, not a swing: a short set with the frame already up and out in
+// front, a compact block through the ball, and it stops. Almost nothing behind it.
+// It used to be the last stroke still driven by the legacy `a0 -> a1` shoulder sweep,
+// which meant it had NO trunk rotation, NO depth curve and NO shoulder tilt -- the three
+// numbers every other stroke moves smoothly through. So the arm swung on a body that
+// was frozen square, and the hand's depth stayed pinned at a constant while the racket
+// was being dragged onto the ball. That mismatch is what read as jitter, and it was
+// worst on the volley because a volley is played at the net, where the figure is
+// biggest on screen and the swing is shortest.
+// t, hand u, hand v, shaft, free u, free v, trunk rot, depth, face, free depth, shoulder lift
+const VOLLEY_KF = [
+  [0.00,  0.30,  0.06,  46, -0.26,  0.14, -0.30,  0.18, 26,  0.22,  0.00],   // set: frame already up and in front
+  [0.30,  0.33,  0.02,  34, -0.28,  0.14, -0.40,  0.22, 22,  0.24,  0.01],   // the whole take-back there is
+  [0.55,  0.30,  0.13,  10, -0.30,  0.17,  0.06,  0.46, 16,  0.20,  0.03],   // CONTACT: punched out in FRONT, blocked
+  [0.78,  0.19,  0.18,  -8, -0.30,  0.19,  0.22,  0.38, 22,  0.16,  0.03],   // through the ball, staying compact
+  [1.00,  0.10,  0.20, -16, -0.28,  0.20,  0.30,  0.28, 28,  0.12,  0.02],   // and it stops: no follow-through
+];
+// A LOB gets right under the ball and lifts: the racket drops below it, the face opens
+// under the ball at contact, and the arm carries on climbing to a high finish.
+const LOB_KF = [
+  [0.00,  0.30,  0.40, 350, -0.20,  0.16, -0.42, -0.04, 32,  0.26,  0.00],   // low take-back, under the ball
+  [0.30,  0.31,  0.52, 330, -0.24,  0.18, -0.56, -0.01, 28,  0.28, -0.02],   // dropping further under it
+  [0.55,  0.26,  0.28,  24, -0.28,  0.20,  0.12,  0.24, 22,  0.20,  0.03],   // CONTACT: lifting, face wide open
+  [0.80,  0.10, -0.06,  84, -0.30,  0.20,  0.42,  0.14, 34,  0.14,  0.05],   // still climbing
+  [1.00, -0.06, -0.30, 128, -0.30,  0.22,  0.58,  0.06, 48,  0.10,  0.06],   // HIGH finish, well above the shoulder
+];
 // How far the hands sit from the trunk along the LINE OF PLAY for the static poses:
 // positive is out toward the net. Everything about foreshortening and layering falls
 // out of this one number.
@@ -3270,9 +3396,7 @@ function poseFace(pose) {
   return (pose === 'returnready' || pose === 'shuffle') ? 52
        : pose === 'stance' ? 34
        : pose === 'serveready' ? 40
-       : pose === 'run' ? 64
-       : pose === 'volley' ? 24
-       : pose === 'lob' ? 30 : 45;
+       : pose === 'run' ? 64 : 45;   // the strokes all carry their own face angle in their tables
 }
 // How far forward the trunk is folded at the hip, in body-frame w. A server waiting to
 // start is noticeably bent over; a receiver and a runner are tipped forward too.
@@ -3287,14 +3411,14 @@ function poseBend(pose) {
 function poseDepth(pose) {
   return (pose === 'returnready' || pose === 'shuffle' || pose === 'stance') ? 0.34
        : pose === 'serveready' ? 0
-       : pose === 'run' ? 0.20
-       : pose === 'volley' ? 0.44
-       : pose === 'lob' ? 0.22 : 0;
+       : pose === 'run' ? 0.20 : 0;   // ...and their own depth curve
 }
 // Which table a pose swings on, so the body and the arm always read the same frame.
 function strokeKF(pose, oneHandBh) {
   return pose === 'drop' ? DROP_KF
        : pose === 'slice' ? SLICE_KF
+       : pose === 'volley' ? VOLLEY_KF
+       : pose === 'lob' ? LOB_KF
        : pose === 'forehand' ? ((curStyle && curStyle.lassoFh) ? LASSO_FH_KF : FOREHAND_KF)
        : pose === 'backhand' ? (oneHandBh ? BACKHAND1_KF : BACKHAND_KF)
        : null;   // the serve is a plain arm sweep, not a keyframed stroke
@@ -3361,14 +3485,22 @@ function poseParams(pose, prog, S, oneHandBh, ph) {
   // squarely over the player's face on every menu card; it is angled out and away now.
   else if (pose === 'stance')               { a0 = 90;  a1 = 90;  pivYoff = 0; armL = S*0.32; twoHand = true;
                                               handAt = { dx: 0.30, dy: 0.17 }; shaftDeg = 66; }
-  else if (pose === 'volley')               { a0 = -18; a1 = 74;  pivYoff = 0; armL = S*0.46; off = 'swing'; }   // a volley is a punch, not a swing
+  else if (pose === 'volley') {
+    const f = kfAt(VOLLEY_KF, prog);
+    a0 = a1 = 90; pivYoff = 0; armL = S*0.46;
+    handAt = { dx: f.dx, dy: f.dy }; shaftDeg = f.shaft; faceDeg = f.face; offAt = { dx: f.odx, dy: f.ody };
+  }
   else if (pose === 'forehand') {
     const f = kfAt((curStyle && curStyle.lassoFh) ? LASSO_FH_KF : FOREHAND_KF, prog);
     a0 = a1 = 90; pivYoff = 0; armL = S*0.52;
     handAt = { dx: f.dx, dy: f.dy }; shaftDeg = f.shaft; faceDeg = f.face; offAt = { dx: f.odx, dy: f.ody };
   }
   // A lob brushes up under the ball and finishes high, straight off what the sim decided.
-  else if (pose === 'lob')                  { a0 = -64; a1 = 104; pivYoff = S*0.04;  armL = S*0.54; off = 'swing'; }
+  else if (pose === 'lob') {
+    const f = kfAt(LOB_KF, prog);
+    a0 = a1 = 90; pivYoff = 0; armL = S*0.54;
+    handAt = { dx: f.dx, dy: f.dy }; shaftDeg = f.shaft; faceDeg = f.face; offAt = { dx: f.odx, dy: f.ody };
+  }
   else if (pose === 'slice') {
     const f = kfAt(SLICE_KF, prog);
     a0 = a1 = 90; pivYoff = 0; armL = S*0.50;
@@ -3435,6 +3567,74 @@ function paramsTilt(pose, prog, oneHandBh) {
   const K = strokeKF(pose, oneHandBh);
   return K ? kfAt(K, prog).tilt : 0;
 }
+// Does this pose swing off a keyframe table? Used to tell a stroke changing SHAPE
+// mid-flight (a backhand becoming a lob at the contact frame) from an ordinary pose
+// change, since the two want different blend rules.
+function isSwingPose(p) { return !!strokeKF(p, false); }
+// WHERE THE FEET GO, for one pose, in body units off the stance centre: lx/rx across,
+// ly/ry up (negative is off the ground), ld/rd the depth each foot sits at. Returned
+// rather than drawn straight, so two poses can be mixed -- the stance used to be a hard
+// if/else on the pose and the legs teleported on every transition.
+function feetOf(pose, swinging, rot, ph, sg, jn) {
+  if (pose === 'run') {
+    // Seen from behind, a stride is mostly DEPTH, which is screen-y. The old cycle swung
+    // the feet 0.17 S sideways about a 0.03 S gap, so they swapped sides and the legs
+    // visibly crossed. Lateral travel now stays inside the gap between the feet.
+    // MEASURED off the 2008 final over 1300 frames of players covering ground: the feet
+    // sit about 0.40 S apart while moving. At 0.15 the figure ran with its ankles almost
+    // touching, which is most of why the run read as a shuffle on the spot.
+    const sw = Math.sin(ph), lift = Math.cos(ph);
+    return { lx: -0.185 + sw*0.05, ly: -Math.max(0,  lift)*0.12 - sw*0.055,
+             rx:  0.185 - sw*0.05, ry: -Math.max(0, -lift)*0.12 + sw*0.055, ld: 0, rd: 0 };
+  }
+  if (jn > 0)                                              // airborne (serve / smash): whole body leaves the ground
+    return { lx: -0.13, ly: jn*0.18, rx: 0.16, ry: 0, ld: 0, rd: 0 };
+  if (swinging && pose !== 'servehold') {
+    // Legs and core drive the stroke. A wide loaded base at the coil, then the weight
+    // moves off the back foot onto the front one through contact, and the back foot
+    // comes up and round on the follow-through. Without this the arm was swinging off
+    // a pair of planted feet, which is what made the backhand read as all-arm.
+    const w = (rot + 1) / 2;                            // 0 = all on the back foot, 1 = all on the front
+    // Setting a stroke up, the outside foot STEPS ACROSS the body -- most obviously on
+    // a backhand, where you cross over to get side-on before you swing. It plants and
+    // swings back out as the weight comes through.
+    // MEASURED across 12 tracked forehands: through the stroke the back foot sits about
+    // 0.30 S out on the take-back side and the front foot starts around 0.34 S across,
+    // then comes through. This stance used to be roughly half that wide -- the same
+    // error as the run -- so the figure hit off a narrow, upright base.
+    const narrow = 1 - 0.30 * Math.max(0, -rot);
+    const cross = Math.max(0, -rot) * 0.20;
+    return { lx: -sg*(0.26 + 0.10*Math.max(0,  rot))*narrow + sg*cross,   // front foot
+             ly: -(1 - w) * 0.022,                      // ...floats until the weight arrives
+             rx:  sg*(0.28 + 0.08*Math.max(0, -rot))*narrow,              // back foot, take-back side
+             ry: -w * 0.075,                            // ...lifts as it comes through
+             ld: sg*0.30, rd: -sg*0.30 };
+  }
+  if (pose === 'serveready' || pose === 'servehold')
+    // Staggered stance aimed at the box. The front foot is the NON-DOMINANT one (a
+    // right-hander leads with the left, a left-hander with the right) and it points
+    // along the line of the serve, so the whole body is turned toward the target.
+    // The feet sit where they sit; only their DEPTH mirrors. Mirroring the x positions
+    // by sg as well as the stagger meant the two cancelled exactly, and every player --
+    // right- or left-handed, near or far -- ended up with the same side forward.
+    return { lx: -0.055, ly: 0, rx: 0.055, ry: 0,
+             ld: sg > 0 ? 0.40 : -0.34, rd: sg > 0 ? -0.34 : 0.40 };
+  if (pose === 'shuffle') {
+    // Sideways shuffle: the stance stays wide and square, each foot skimming the ground
+    // in turn. The feet never cross, which is what separates it from a run.
+    const u = Math.sin(ph);
+    return { lx: -0.20 + u*0.05, ly: -Math.max(0,  u)*0.055,
+             rx:  0.20 + u*0.05, ry: -Math.max(0, -u)*0.055, ld: 0, rd: 0 };
+  }
+  // The return stance is WIDE and low: feet well outside the shoulders, knees loaded.
+  if (pose === 'returnready') return { lx: -0.225, ly: 0, rx: 0.225, ry: 0, ld: 0, rd: 0 };
+  return { lx: -0.095, ly: 0, rx: 0.095, ry: 0, ld: 0, rd: 0 };
+}
+function mixFeet(A, B, t) {
+  const L = (x, y) => x + (y - x) * t;
+  return { lx: L(A.lx, B.lx), ly: L(A.ly, B.ly), rx: L(A.rx, B.rx), ry: L(A.ry, B.ry),
+           ld: L(A.ld, B.ld), rd: L(A.rd, B.rd) };
+}
 // Blend two pose parameter sets. t=0 is A, t=1 is B.
 function mixPose(A, B, t) {
   const L = (x, y) => x + (y - x) * t;
@@ -3454,25 +3654,32 @@ function mixPose(A, B, t) {
 // and shorts turn with the body instead of staying square to the screen.
 var lastRacketHead = null;   // hoisted: the menu previews draw before this line is reached
 // racket-arm as a rotating limb; angles in math degrees (0=right, 90=up); screen-y inverted
-function drawRacket(cx, shY, S, pose, sg, prog, skin, oneHandBh, rk, lum, SIL, band, shw, ph, shOff, yawR, depthSign, hitAim, hitW, fromPose, fromW, shape, part, memo, armSg, fromFlip) {
+function drawRacket(cx, shY, S, pose, sg, prog, skin, oneHandBh, rk, lum, SIL, band, shw, ph, shOff, yawR, depthSign, hitAim, hitW, layers, shape, part, memo, armSg) {
   part = part || 'all';
   shape = shape == null ? 1 : shape;
   shOff = shOff || 0; hitW = hitW || 0; yawR = yawR || 0;
-  let PP = poseParams(pose, prog, S, oneHandBh, ph);
-  if (fromPose && fromW > 0) {
-    let from = poseParams(fromPose, 1, S, oneHandBh, ph);
+  layers = layers || [];
+  const PPnow = poseParams(pose, prog, S, oneHandBh, ph);
+  // Each layer is resolved to its own parameter set. `L.prog` is where that pose should
+  // be sampled: its finish for a stroke that has ended, the CURRENT point in the swing
+  // for one that changed shape mid-flight -- otherwise the crossfade would run a
+  // backhand's follow-through into a lob's contact, two poses half a stroke apart.
+  const LP = layers.map(L => {
+    let P = poseParams(L.pose, L.prog, S, oneHandBh, ph);
     // A stroke and the pose after it can live in MIRRORED spaces: sg flips for a
     // backhand, so the same u means opposite sides of the body. Blending them raw
-    // interpolates through nonsense. Mirror the one we are coming FROM into the
-    // destination's space first, and the hand then travels a straight, short path.
-    if (fromFlip) from = { ...from,
-      handAt: from.handAt ? { dx: -from.handAt.dx, dy: from.handAt.dy } : null,
-      offAt:  from.offAt  ? { dx: -from.offAt.dx,  dy: from.offAt.dy  } : null,
-      shaftDeg: 180 - from.shaftDeg, aDeg: 180 - from.aDeg };
-    PP = mixPose(from, PP, 1 - fromW);
-  }
+    // interpolates through nonsense. Mirror the layer into the CURRENT side's space
+    // first, and the hand then travels a straight, short path.
+    if (L.flip) P = { ...P,
+      handAt: P.handAt ? { dx: -P.handAt.dx, dy: P.handAt.dy } : null,
+      offAt:  P.offAt  ? { dx: -P.offAt.dx,  dy: P.offAt.dy  } : null,
+      shaftDeg: 180 - P.shaftDeg, aDeg: 180 - P.aDeg };
+    return { P, w: L.w, pose: L.pose, prog: L.prog };
+  });
+  let PP = PPnow;
+  for (const L of LP) PP = mixPose(PP, L.P, L.w);
   const pivYoff = PP.pivYoff, armL = PP.armL, twoHand = PP.twoHand;
-  const off = PP.off, handAt = PP.handAt, shaftDeg = PP.shaftDeg, offAt = PP.offAt, faceDeg = PP.faceDeg;
+  const handAt = PP.handAt, shaftDeg = PP.shaftDeg, faceDeg = PP.faceDeg;
   const aDeg = PP.aDeg;
   const ang = ((sg > 0) ? aDeg : 180 - aDeg) * Math.PI / 180;
   // The arm ALWAYS hangs off the shoulder joint. Sliding the pivot itself up or down
@@ -3492,7 +3699,16 @@ function drawRacket(cx, shY, S, pose, sg, prog, skin, oneHandBh, rk, lum, SIL, b
   // Shoulders sit on the body's elliptical cross-section, so they stay a real distance
   // apart however far the trunk has turned.
   const GIRTH = Math.hypot(cY, 0.62*sY);
-  const shT = paramsTilt(pose, prog, oneHandBh) * S;   // the hitting shoulder rides up
+  // The three numbers that were still read off the CURRENT pose alone while the hand
+  // itself was being crossfaded: how far the hitting shoulder rides up, how far in front
+  // of the body the hand sits, and the same for the free hand. All three step on a pose
+  // change, and depth steps hardest -- it moves the hand up the screen AND resizes the
+  // racket through the foreshortening, so a stroke ending into a run popped the frame
+  // several percent bigger on one frame. They ride the same ramp as everything else now.
+  const bl = f => { let v = f(pose, prog);
+                    for (const L of LP) v = lerp(v, f(L.pose, L.prog), L.w);
+                    return v; };
+  const shT = bl((p, t) => paramsTilt(p, t, oneHandBh)) * S;   // the hitting shoulder rides up
   // WHICH SHOULDER the racket arm hangs from is fixed by the player's handedness. It is
   // NOT sg: sg flips for a backhand, because the HAND crosses the body -- but the
   // shoulder does not move. Driving the pivot off sg swung the whole arm to the other
@@ -3503,8 +3719,9 @@ function drawRacket(cx, shY, S, pose, sg, prog, skin, oneHandBh, rk, lum, SIL, b
   const SHp = { x: cx + shOff + aSg*SHOULDER_HW*GIRTH*S, y: shY - aSg*SHOULDER_HW*sY*dsg*S*0.32 - shT, fore: 1 };
   const OSp = { x: cx + shOff - aSg*SHOULDER_HW*GIRTH*S, y: shY + aSg*SHOULDER_HW*sY*dsg*S*0.32 + shT*0.35, fore: 1 };
   const pvx = SHp.x, pvy = SHp.y;
-  const dz  = paramsDepth(pose, prog, oneHandBh);
-  const odz = paramsOffDepth(pose, prog, oneHandBh, dz);
+  const dzOf  = (p, t) => paramsDepth(p, t, oneHandBh);
+  const odzOf = (p, t) => paramsOffDepth(p, t, oneHandBh, dzOf(p, t));
+  const dz = bl(dzOf);
   const REACH = S * 0.545;      // how far a hand can get from its own shoulder
   const offShx = OSp.x, offShy = OSp.y;   // the free shoulder, needed by the two-hand reach clamp
   let gx, gy, shaftAng, handFore = 1;
@@ -3589,31 +3806,46 @@ function drawRacket(cx, shY, S, pose, sg, prog, skin, oneHandBh, rk, lum, SIL, b
   // off (non-racket) arm
   ctx.strokeStyle = skin; ctx.lineWidth = S*0.098; ctx.lineCap = 'round';
 
-  let ohx, ohy, obend = sg * S * 0.05;
-  if (offAt) { const OP = proj(offAt.dx, offAt.dy, odz); ohx = OP.x; ohy = OP.y; obend = -sg * S * 0.062; }   // keyframed free arm
-  // Two hands on the handle sit one ABOVE the other, not on the same point. Stacked
-  // exactly they read as a single blob with the second arm vanishing into it, which is
-  // why only one hand was ever visible on the ready pose.
-  else if (twoHand) { ohx = gx + Math.cos(shaftAng)*S*0.085; ohy = gy - Math.sin(shaftAng)*S*0.085;
-                      obend = sg * S * 0.07; }
-  // The tossing arm reaches up after the ball and comes back down through the swing.
-  else if (off === 'toss') { const u = clamp(prog, 0, 1);
-    ohx = cx - sg*S*(0.13 + u*0.07); ohy = shY - S*0.46 + u*S*0.72; obend = -sg * S * 0.05; }
-  else if (off === 'serveready') { ohx = cx - sg*S*0.21; ohy = shY + S*0.28; obend = -sg * S * 0.06; }   // ball hand clear of the shirt, or the arm vanishes into it
-  else if (off === 'ready') { ohx = cx + sg*S*0.05; ohy = shY - S*0.14; }
-  else if (off === 'swing') { const u = Math.sin(prog*Math.PI);
-    ohx = cx - sg*(S*0.34 - u*S*0.22); ohy = shY + S*0.10 - u*S*0.06; obend = -sg * S * 0.06; }
-  else if (off === 'trail') {                      // one-handed backhand: the free arm flies back and open
-    const u = clamp(prog, 0, 1);
-    ohx = cx - sg*(S*0.16 + u*S*0.34); ohy = shY + S*0.14 - u*S*0.20; obend = -sg * S * 0.07; }
-  else { ohx = cx - sg*S*0.20; ohy = shY + S*0.28; obend = -sg * S * 0.05; }   // relaxed at the side
+  // THE FREE HAND is resolved for each pose SEPARATELY and the two results blended,
+  // rather than the pose parameters being mixed first and one branch then picked off
+  // the result. Those branches are not answers on the same scale -- "both hands on the
+  // handle" and "arm out at 0.3 to the side" are different kinds of thing -- so mixPose
+  // had to choose one of them outright, at the half-way point of the crossfade. The free
+  // hand therefore teleported across the body on a single frame every time the choice
+  // flipped, which is the first frame of every stroke out of the ready position and the
+  // middle of every recovery back into it.
+  const freeOf = (PX, pr, odzx) => {
+    if (PX.offAt) { const OP = proj(PX.offAt.dx, PX.offAt.dy, odzx); return { x: OP.x, y: OP.y, b: -sg*S*0.062 }; }
+    // Two hands on the handle sit one ABOVE the other, not on the same point. Stacked
+    // exactly they read as a single blob with the second arm vanishing into it, which is
+    // why only one hand was ever visible on the ready pose.
+    if (PX.twoHand) return { x: gx + Math.cos(shaftAng)*S*0.085, y: gy - Math.sin(shaftAng)*S*0.085, b: sg*S*0.07 };
+    const u = clamp(pr, 0, 1);
+    // The tossing arm reaches up after the ball and comes back down through the swing.
+    if (PX.off === 'toss') return { x: cx - sg*S*(0.13 + u*0.07), y: shY - S*0.46 + u*S*0.72, b: -sg*S*0.05 };
+    // ball hand clear of the shirt, or the arm vanishes into it
+    if (PX.off === 'serveready') return { x: cx - sg*S*0.21, y: shY + S*0.28, b: -sg*S*0.06 };
+    if (PX.off === 'ready') return { x: cx + sg*S*0.05, y: shY - S*0.14, b: sg*S*0.05 };
+    if (PX.off === 'swing') { const w = Math.sin(u*Math.PI);
+      return { x: cx - sg*(S*0.34 - w*S*0.22), y: shY + S*0.10 - w*S*0.06, b: -sg*S*0.06 }; }
+    if (PX.off === 'trail')                        // one-handed backhand: free arm flies back and open
+      return { x: cx - sg*(S*0.16 + u*S*0.34), y: shY + S*0.14 - u*S*0.20, b: -sg*S*0.07 };
+    return { x: cx - sg*S*0.20, y: shY + S*0.28, b: -sg*S*0.05 };   // relaxed at the side
+  };
+  let FH = freeOf(PPnow, prog, odzOf(pose, prog));
+  for (const L of LP) {
+    const B = freeOf(L.P, L.prog, odzOf(L.pose, L.prog));
+    FH = { x: lerp(FH.x, B.x, L.w), y: lerp(FH.y, B.y, L.w), b: lerp(FH.b, B.b, L.w) };
+  }
+  let ohx = FH.x, ohy = FH.y, obend = FH.b;
   { const ddx = ohx - offShx, ddy = ohy - offShy, dd = Math.hypot(ddx, ddy);
     if (dd > REACH) { ohx = offShx + ddx/dd*REACH; ohy = offShy + ddy/dd*REACH; } }
   if (part !== 'racket') limb(offShx, offShy + S*0.02, ohx, ohy, obend, S*0.035, S*0.098, skin);
   // Ease across a racket-side flip: pull the grip back toward where it was drawn last
   // frame and let it travel over SIDE_BLEND instead of teleporting.
   if (memo && memo.t > 0 && memo.x != null) {
-    const k = clamp(memo.t / SIDE_BLEND, 0, 1);
+    let k = clamp(memo.t / SIDE_BLEND, 0, 1);
+    k = k * k * (3 - 2 * k);          // eased, so the grip neither starts nor stops with a kick
     gx = lerp(gx, memo.x, k); gy = lerp(gy, memo.y, k);
     let ds = memo.a - shaftAng;
     while (ds >  Math.PI) ds -= 2*Math.PI;
@@ -3737,7 +3969,7 @@ function updateHUD() {
 function reasonText(r) {
   return { out:'shot was out', net:'into the net', dfault:'double fault',
            ace:'ace, unreturned!',   drop:'dropshot winner!',  lob:'lob winner!',
-           pass:'passing shot!',     smash:'smash winner!',    slicewin:'slice winner!',
+           smash:'smash winner!',    slicewin:'slice winner!',
            volwin:'volley winner!',
            fhwin:'forehand winner!', bhwin:'backhand winner!', winner:'clean winner!' }[r] || '';
 }
@@ -4096,10 +4328,10 @@ function setupPoint() {
   sim.phase = 'ready'; sim.bouncesSinceHit = 0; sim.lastHitter = null; sim.shotCount = 0;
   sim.runSpd = [0, 0]; sim.runAtSwing = [0, 0]; sim.lastShotType = null;
   // Clear what the LAST point's final shot was, or its flags leak into this one and the
-  // next winner gets called a passing shot / lob / dropshot that never happened.
+  // next winner gets called a lob or a dropshot that never happened.
   sim.lastHitWasDrop = false; sim.lastHitWasLob = false;
   sim.lastHitWasSlice = false; sim.lastHitWasVolley = false;
-  sim.lastShotWasPass = false; sim.lastShotWasApproach = false;
+  sim.lastShotWasApproach = false;
   sim.stroke = null;
   if (sim.tiebreak && sim.points[0] + sim.points[1] === 0) setNotice('TIEBREAK', 2.0);
   else if (isMatchPoint(server) || isMatchPoint(receiver)) setNotice('MATCH POINT', 2.4);
@@ -4200,13 +4432,21 @@ function applyServeMove(pl, inp, idx, dt, halfSign) {
 // ---- automatic stroke selection ----
 // overheads are a forecourt shot: nearer the net you put away lower balls; from the baseline you don't smash, you drive
 function smashCut(nd) { return nd < 3 ? 0.85 : nd < 5.5 ? 0.85 + (nd - 3) * 0.62 : 99; }   // at the net you put away almost any ball taken out of the air
+// Which SIDE of the body the ball is on. A volley and a smash are stroke types, not
+// wings, so this is kept separate: a backhand volley is still a backhand as far as the
+// racket hand is concerned, and used to be drawn on the forehand side because the wing
+// was being read off the stroke type.
+function wingOf(idx, b) {
+  const p = sim.players[idx];
+  const hand = (PLAYERS[idx] && PLAYERS[idx].lefty) ? -1 : 1;  // lefties hit forehands off the other wing
+  const latRel = (b.x - p.x) * (idx === 0 ? 1 : -1) * hand;   // + = this player's forehand side
+  return latRel >= -0.15 ? 'forehand' : 'backhand';
+}
 function strokeType(idx, b) {
   const p = sim.players[idx];
   if (b.y > smashCut(Math.abs(p.z - HALF_L))) return 'smash'; // smash window widens the closer you are to the net
   if (sim.bouncesSinceHit === 0 && b.y > 0.5) return 'volley'; // taken out of the air
-  const hand = (PLAYERS[idx] && PLAYERS[idx].lefty) ? -1 : 1;  // lefties hit forehands off the other wing
-  const latRel = (b.x - p.x) * (idx === 0 ? 1 : -1) * hand;   // + = this player's forehand side
-  return latRel >= -0.15 ? 'forehand' : 'backhand';
+  return wingOf(idx, b);
 }
 function shotVel(aim, idx, b, stroke, gAcc, speedFactor, exec) {
   const dir = idx === 0 ? 1 : -1, latSign = idx === 0 ? 1 : -1;
@@ -4325,8 +4565,18 @@ function moonVel(idx, b) {
 function doHit(p) {
   const b = sim.ball;
   const inSpeed = Math.hypot(b.vx, b.vy, b.vz);     // incoming pace (before we overwrite the velocity)
-  const stroke = strokeType(p, b);
-  let aim = sim.aim[p] || { lat:0, fwd:0 };   // a passing shot overrides it to aim into the open court
+  let stroke = strokeType(p, b);
+  // A swing COMMITS to a wing. Re-picking it here, at the contact frame, meant a ball
+  // drifting across the body between the press and the strike flipped the racket to the
+  // other side of the player on the single loudest frame of the animation -- grip, trunk
+  // turn, stance and both feet mirroring at once. The stroke TYPE is still re-read, so a
+  // ball taken out of the air is still a volley and one over the head still a smash;
+  // only which side of the body it is played from is held from the swing's start.
+  const began = (sim.stroke && sim.stroke.who === p) ? sim.stroke : null;
+  const wing = stroke === 'smash' ? null : ((began && began.wing) || wingOf(p, b));
+  if (began && (stroke === 'forehand' || stroke === 'backhand')
+            && (began.type === 'forehand' || began.type === 'backhand')) stroke = began.type;
+  const aim = sim.aim[p] || { lat:0, fwd:0 };
   const pl = sim.players[p], opp = sim.players[1 - p];
   const oppNetDist = Math.abs(opp.z - HALF_L);
   const ground = (stroke === 'forehand' || stroke === 'backhand');
@@ -4367,11 +4617,11 @@ function doHit(p) {
   const szN = stroke === 'smash' ? lerp(0.9, 0.25, q) : lerp(SHOT.sigZ0, SHOT.sigZ1, q);
   const exec = { latMul: lerp(SHOT.regress0, 1, q), sx: sxN, sz: szN, nx: gauss() * sxN, nz: gauss() * szN, bias: (1 - q) * 0.9 };
   // moonball reflex: smashed at, or a rocket you never set up for → an automatic high defensive reset
-  // Worked out AFTER shotQuality, which is where q and missD come from. Facing a
-  // player at the net you either drive PAST them or loft it OVER them; the pass is the
-  // aggressive option and needs a clean contact, so off a stretch you have to lob.
-  const passing = atNet && q > 0.52 && missD < 1.15 && Math.random() < 0.66;
-  const lob  = atNet && !passing;
+  // Worked out AFTER shotQuality, which is where q and missD come from. Facing a player
+  // at the net, a clean contact off a set position is driven as an ordinary groundstroke;
+  // stretched wide or late, there is nothing to do but loft it over them. That choice is
+  // what keeps net play a duel rather than a lob machine.
+  const lob = atNet && !(q > 0.52 && missD < 1.15 && Math.random() < 0.66);
   // An APPROACH is a groundstroke hit moving forward into the net: flatter and deeper
   // than a rally ball, because you are following it in.
   const approach = !atNet && ground && !drop && Math.abs(pl.z - HALF_L) < 6.5 && q > 0.5;
@@ -4390,15 +4640,10 @@ function doHit(p) {
   else if (lob) { v = lobVel(aim, p, b, q); gAcc = v.gAcc; }   // use the lob's own (variable) topspin gravity so it lands right
   else if (moon) { v = moonVel(p, b); gAcc = v.gAcc; }
   else {
-    // A pass is driven flat and hard past the volleyer; an approach is flatter than a
-    // rally ball because you are coming in behind it.
+    // An approach is flatter than a rally ball because you are coming in behind it.
     gAcc = stroke === 'smash' ? G*1.5 : drop ? G*0.82 : sliced ? G*0.90
-         : passing ? G*st.topspinG*0.88 : approach ? G*st.topspinG*0.94
+         : approach ? G*st.topspinG*0.94
          : stroke === 'volley' ? G*1.4 : ground ? G*st.topspinG : G;
-    if (passing) {                       // aim into the open court, away from the volleyer
-      const open = opp.x >= 0 ? -1 : 1;
-      aim = { lat: open, fwd: 0 };
-    }
     v = shotVel(aim, p, b, stroke, gAcc, (!drop && (ground || stroke === 'volley')) ? speedFactor : 1, exec);   // drops are touch shots, not power
   }
   // residual shank coin: misses now mostly emerge from the placement scatter when ambition outruns contact
@@ -4430,8 +4675,8 @@ function doHit(p) {
   sim.lastHitWasSlice = sliced;
   sim.lastHitWasVolley = stroke === 'volley';
   // The wing decides which side the racket is on; the shot decides how it swings.
-  sim.stroke = { who: p, type: stroke, shot: lob ? 'lob' : drop ? 'drop' : sliced ? 'slice' : null };
-  sim.lastShotWasPass = passing; sim.lastShotWasApproach = approach;
+  sim.stroke = { who: p, type: stroke, wing, shot: lob ? 'lob' : drop ? 'drop' : sliced ? 'slice' : null };
+  sim.lastShotWasApproach = approach;
   const pace = clamp((Math.hypot(b.vx, b.vy, b.vz) - 14) / 24, 0, 1);
   const hx = sim.players[p].x, hz = sim.players[p].z;      // where on court it happened, for distance and pan
   sfx('hit', pace, stroke, hx, hz);
@@ -4530,13 +4775,12 @@ function rallyBounce() {
     const reason = ace                      ? 'ace'
                  : sim.lastHitWasDrop       ? 'drop'
                  : sim.lastHitWasLob        ? 'lob'
-                 : sim.lastShotWasPass      ? 'pass'
                  : sim.lastShotType === 'smash' ? 'smash'
                  : sim.lastHitWasSlice      ? 'slicewin'
                  : sim.lastHitWasVolley     ? 'volwin'
                  : sim.lastShotType === 'backhand' ? 'bhwin'
                  : sim.lastShotType === 'forehand' ? 'fhwin' : 'winner';
-    setNotice({ ace: 'ACE!', drop: 'DROP SHOT!', lob: 'LOB WINNER!', pass: 'PASSING SHOT!',
+    setNotice({ ace: 'ACE!', drop: 'DROP SHOT!', lob: 'LOB WINNER!',
                 smash: 'SMASH!', slicewin: 'SLICE WINNER!', volwin: 'VOLLEY WINNER!',
                 bhwin: 'BACKHAND WINNER!',
                 fhwin: 'FOREHAND WINNER!' }[reason] || 'WINNER!', 1.4);
@@ -4629,7 +4873,10 @@ function startSwing(p) {
     aiDecideShot(); sim.aim[p] = { lat: aiAimLat, fwd: aiDropShot ? -1 : 1 };
   }
   const t = strokeType(p, sim.ball);
-  sim.stroke = { who: p, type: t };
+  // A smash is played over the head off the racket shoulder whichever side the ball is
+  // on, so it carries no wing and stays on that shoulder. Only a stroke played out to
+  // one side of the body has one.
+  sim.stroke = { who: p, type: t, wing: t === 'smash' ? null : wingOf(p, sim.ball) };
   sim.swing[p] = 1.0;
 }
 function tryContact(p) {   // merciful: connect on any frame the ball is within reach during the swing
@@ -4654,7 +4901,13 @@ function tryContact(p) {   // merciful: connect on any frame the ball is within 
     // Contact can land on ANY frame of the 0.28 s swing window, so remember how far in
     // it happened. The animation is warped to put its contact frame right here, which
     // is what stops the racket meeting the ball at the wrong moment.
-    sim.swingAt[p] = clamp(1 - sim.swingTimer[p] / SWING_TIME, 0.02, 0.98);
+    // Recorded on the SWING'S OWN clock -- the eased 1 - swing[p] the renderer reads --
+    // not on swingTimer. The two run over different durations (0.33 s against 0.28 s)
+    // and one of them is eased, so the "fraction of the swing at which contact happened"
+    // handed to the animation was measured on a different ruler from the one it plays
+    // back on. Contact could therefore never land on the contact frame, however carefully
+    // the swing was warped around it.
+    sim.swingAt[p] = clamp(swingEase(clamp(1 - sim.swing[p], 0, 1)), 0.02, 0.98);
     // Where the ball actually WAS at contact. The racket head is aimed at this point so
     // strings and ball meet; without it the frame swung past a ball it never touched.
     sim.hitPt[p] = { x: b.x, y: b.y, z: b.z };
@@ -5147,6 +5400,10 @@ function keyframeSheet() {
     sim.players[0] = { x: HOME.x, z: HOME.z }; sim.players[1] = { x: AWAY.x, z: AWAY.z };
     sim.serveTargetSignX = -1; sim.swing = [0, 0]; sim.stroke = null;
     sim.swingAt = [0.5, 0.5]; frameDt = 1 / 60;
+    // Each cell is ONE pose, shown on its own. Without this the blend stack carried over
+    // from the previous cell and every frame in the sheet was a crossfade out of an
+    // unrelated pose -- which is exactly what the sheet exists to rule out.
+    poseMemo[0] = gripMemo[0] = warpMemo[0] = aimMemo[0] = moveMemo[0] = null;
     playerPrev[0] = { x: HOME.x, z: HOME.z }; runPhase[0] = 0;
     sim.phase = 'rally'; sim.ball = { x: 1.9, y: 1.0, z: 4.2, vx: 0, vy: 0, vz: 0, gAcc: 9.81 };
   };
