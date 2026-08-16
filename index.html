@@ -475,10 +475,37 @@ const SHOT = {
   sigZ0: 1.6, sigZ1: 0.35,            // depth scatter σz; a separate short bias of 0.9·(1−q) drags poor contacts shorter
   regress0: 0.62,                     // ambition regression: the aim itself shrinks toward the middle at q=0 (×1 at q=1)
   errBase: 0.10, errFR: 0.08,         // residual shank coin: errP = (1−q)·errBase + faultRisk·errFR (placement scatter carries the rest)
-  moonHard: 0.68, moonSetq: 0.45,     // moonball reflex: incoming pace above moonHard while setup below moonSetq
+  moonHard: 0.62, moonSetq: 0.48,     // moonball reflex: incoming pace above moonHard while setup below moonSetq
+  moonQ: 0.14,                        // ...or any contact this poor (on the qNorm scale), at any pace
   moonG: 1.9, moonT: 1.15,            // moonball arc: gravity mult (below a lob's 2.4 so the bounce stays takeable) and flight time
   scoopPen: 0.12, spinPen: 0.10, wingPen: 0.06, runPen: 0.24, qNewCap: 0.28,   // newer difficulty factors; their sum is capped
+  // ---- contact window: how far off the body the ball may pass before the swing is compromised ----
+  // The strike zone has to be small RELATIVE TO REACH or positioning stops meaning anything: lateral
+  // reach is ~1.6 m, so a 0.9 m free zone scored over half of every possible contact as perfect.
+  zoneIn: 0.45, zoneFree: 0.85, zoneSpan: 0.95,   // strike-zone band: jammed below zoneIn, clean to zoneFree, gone by zoneFree+zoneSpan
+  hard0: 15, hardSpan: 19,            // incoming pace scale (m/s): 15 = a nothing ball, 34+ = a rocket
+  rushPen: 0.42,                      // pace × being unset: THE interaction — a rocket you never set up for
+  // ---- arc: required net clearance, which is what makes shot height legible ----
+  // Height is not decoration. A ball you are late on has to be lifted; a clean one can be driven flat
+  // over the tape. Driving clearance off q (and off how much spin the player actually hits with) is
+  // what makes a stretched reply LOOK stretched.
+  arcBad: 1.20, arcGood: 0.32,        // groundstroke net clearance (m) at qNorm 0 → 1
+  arcVolBad: 1.05, arcVolGood: 0.20,  // the same for a volley: a stretched stab pops up
+  arcSmashBad: 0.70, arcSmashGood: 0.06,   // and for an overhead, which is otherwise struck flat at the feet
+  spinArc0: 0.75, spinArc1: 1.55,     // clearance multiplier from flat (topspinG 1.0) to heavy (1.62)
+  spinPace0: 1.05, spinPace1: 0.95,   // ...and the pace trade that comes with it: flat drives through, spin loops
+  bounceSpin: 0.55, bounceSkid: 0.10, // topspin kicks up off the bounce, slice skids through low
+  volleyZone: 5.0,                    // metres from the net inside which a ball taken on the full is a volley
+  qLo: 0.10, qHi: 0.58,               // the band raw q actually occupies in play — see qNorm
+  shankVy: 2.0, shankArc: 0.55,       // a framed ball loses this much lift, plus this share of the arc it wanted
 };
+// Raw q clusters low and narrow: contact is made on whatever frame the ball first comes within reach,
+// which is almost never the ideal one, so timing alone holds the median down around 0.35. Curves that
+// read q straight therefore spend the whole match bunched at one end and express nothing. qNorm maps
+// it onto the range it genuinely occupies, so "clean strike" and "scrambled" land at opposite ends of
+// the arc and pace curves the way they are meant to. The older scatter/error curves are deliberately
+// left on raw q — they were tuned against it and still read correctly.
+function qNorm(q) { return clamp((q - SHOT.qLo) / (SHOT.qHi - SHOT.qLo), 0, 1); }
 
 // ---- Camera (fixed lookAt) ----
 const CAM_H = 16.5, CAM_Z = -13, LOOK_Z = 11.885, FOCAL_BASE = 1180;   // steep, almost bird's-eye; court fills more of the screen
@@ -4454,25 +4481,58 @@ function wingOf(idx, b) {
   const latRel = (b.x - p.x) * (idx === 0 ? 1 : -1) * hand;   // + = this player's forehand side
   return latRel >= -0.15 ? 'forehand' : 'backhand';
 }
+// An overhead is struck from UNDER the ball. Height alone never made it one: a ball sailing past a
+// metre and a half to the side, or dropping in behind the shoulder, is not something anyone jumps and
+// puts away -- and neither is a rocket that arrives before the feet get under it. Fail any of those
+// and the ball is still playable, just not as a smash: out of the air it becomes a blocked high
+// volley, off the bounce a high groundstroke. That is the difference between a putaway and a save.
+function canSmash(idx, b) {
+  const p = sim.players[idx];
+  const lat = Math.abs(b.x - p.x);
+  const behind = (idx === 0 ? p.z - b.z : b.z - p.z);            // + = the ball has got in behind them
+  if (lat > 0.95 || behind > 0.55) return false;                 // not under it
+  const inSp = Math.hypot(b.vx, b.vy, b.vz);
+  // arriving flat and fast at head height is a reflex block, not an overhead -- unless you are already
+  // camped at the net, where the ball has had no room to build pace and the window is genuinely there
+  const netDist = Math.abs(p.z - HALF_L);
+  return inSp < lerp(26, 40, clamp((3.4 - netDist) / 3.4, 0, 1));
+}
 function strokeType(idx, b) {
   const p = sim.players[idx];
-  if (b.y > smashCut(Math.abs(p.z - HALF_L))) return 'smash'; // smash window widens the closer you are to the net
-  if (sim.bouncesSinceHit === 0 && b.y > 0.5) return 'volley'; // taken out of the air
+  const netDist = Math.abs(p.z - HALF_L);
+  const high = b.y > smashCut(netDist);                        // smash window widens the closer you are to the net
+  if (high && canSmash(idx, b)) return 'smash';
+  // A volley is a forecourt shot. "Any ball met before it bounced" was standing in for that, and it
+  // held only while every ball flew flat -- give shots a real arc and a baseliner spends most of the
+  // rally with a descending ball above knee height in front of him, so half the groundstrokes in the
+  // match turned into soft 5-metre volleys hit from the baseline. Out of the air from back there is a
+  // swinging groundstroke; the volley proper starts once you have actually come in.
+  if (sim.bouncesSinceHit === 0 && b.y > 0.5 && netDist < SHOT.volleyZone) return 'volley';
   return wingOf(idx, b);
 }
 function shotVel(aim, idx, b, stroke, gAcc, speedFactor, exec) {
   const dir = idx === 0 ? 1 : -1, latSign = idx === 0 ? 1 : -1;
   const drop = aim.fwd < 0 && (stroke === 'forehand' || stroke === 'backhand' || stroke === 'volley');
+  // `margin` is the net clearance the flight solver must find, and clearance IS the shot's height:
+  // the solver stretches the flight time until the arc clears the tape by this much, so raising it
+  // produces a slower, higher ball that still lands on the same spot. Two things set it -- how clean
+  // the contact was, and how much spin this player actually hits with. That is where the height
+  // variance comes from: the flat, skimming ball has to be EARNED by a clean strike, and Nadal's
+  // rally ball loops over the net where McEnroe's does not.
+  const q = qNorm((exec && exec.q != null) ? exec.q : 0.35);
+  const pst = PLAYERS[idx] || PLAYERS[0];
+  const spinT = clamp(((pst && pst.topspinG || 1) - 1) / 0.62, 0, 1);            // 0 = flat hitter … 1 = heavy topspin
+  const spinArc = lerp(SHOT.spinArc0, SHOT.spinArc1, spinT);
   let depth, baseT, margin;
-  if (stroke === 'smash')       { const nd = Math.abs(sim.players[idx].z - HALF_L); depth = 9.0; baseT = clamp(0.30 + nd*0.05, 0.30, 0.60); margin = 0.08; }   // forecourt = flat & fast; deeper = controlled
+  if (stroke === 'smash')       { const nd = Math.abs(sim.players[idx].z - HALF_L); depth = 9.0; baseT = clamp(0.30 + nd*0.05, 0.30, 0.60); margin = lerp(SHOT.arcSmashBad, SHOT.arcSmashGood, q); }   // forecourt = flat & fast; deeper = controlled; a mistimed one is lifted
   else if (drop)                { depth = 2.4; baseT = 0.42; margin = 0.12; }   // dropshot: quicker over the net & shorter (still arcs enough to bounce)
-  else if (stroke === 'volley') { depth = 5.0 + aim.fwd*2.8; baseT = 0.55; margin = 0.25; }
+  else if (stroke === 'volley') { depth = 5.0 + aim.fwd*2.8; baseT = 0.55; margin = lerp(SHOT.arcVolBad, SHOT.arcVolGood, q); }   // a stretched stab pops up
   else {                                                                         // topspin drive — varied pace & depth shot to shot
     const deep = aim.fwd > 0;
     depth = (deep ? 11.6 : 9.2) + (Math.random() * 1.8 - 0.78);                  // skews DEEP (spread ×0.6 — exec scatter carries the rest)
     depth -= Math.abs(aim.lat) * 2.2;                                            // angling pulls it shorter & wider → a real cross-court
     baseT = (deep ? 0.84 : 0.94) - Math.random() * 0.16;
-    margin = 0.6;
+    margin = clamp(lerp(SHOT.arcBad, SHOT.arcGood, q) * spinArc, 0.20, 2.6);
   }
   if (stroke === 'backhand') baseT += 0.03;
   baseT = clamp(baseT / (speedFactor || 1), 0.34, 1.25);   // pace folded into flight time — flatter/faster but lands on target
@@ -4495,7 +4555,10 @@ function shotVel(aim, idx, b, stroke, gAcc, speedFactor, exec) {
   const y0 = Math.max(b.y, 0.35);
   // pick the fastest flight time whose (spin-affected) arc still clears the net by `margin`
   let T = baseT;
-  for (let k = 0; k < 18; k++) {
+  // the search has to be able to REACH the clearance now being asked for: a heavily-lifted defensive
+  // ball wants close to a second of extra hang time, and stopping short of it silently flattened the
+  // very shots the arc model exists to make visible
+  for (let k = 0; k < 30; k++) {
     T = baseT + k*0.05;
     const vy = (-y0)/T + 0.5*gAcc*T, vz = (tz-b.z)/T;
     if (Math.abs(vz) < 1e-3) break;
@@ -4542,18 +4605,34 @@ function feederVel(idx, b) {
 // wing, and arriving at a dead sprint.
 function shotQuality(ctx) {
   const st = ctx.st;
-  const posq = clamp(1 - Math.max(0, ctx.missD - 0.9) / 1.3, 0, 1);
+  // How fast this ball is ARRIVING, on the scale the game actually plays at. The old window (17 → 43 m/s)
+  // was serve-speed territory: a rally ball travels 14–23 m/s here, so it scored ~0.02 and the pace
+  // penalty simply never fired outside a serve. Every groundstroke was, to the model, a slow ball.
+  // Calibrated to the real distribution, a heavy drive now reads as heavy and a serve still pins it at 1.
+  const hard = clamp((ctx.inSpeed - SHOT.hard0) / SHOT.hardSpan, 0, 1);       // 0 = easy slow ball … 1 = rocket at you
+  // The strike zone is a BAND, not a maximum. The ball you can actually swing at passes half a metre
+  // off the hip; one arriving into your chest jams the swing as surely as one you have to lunge for.
+  // Scoring "closer is always better" and then subtracting a separate body-jam penalty made every
+  // well-positioned contact pay for its own good positioning -- and once incoming pace was calibrated
+  // properly that double charge was taking nearly half a point of quality off routine rally balls.
+  // One band, charged once: jammed at zero, clean across the middle, stretched out at the edge.
+  const off = ctx.missD;
+  const jamQ = lerp(0.88, 0.26, hard);                                        // a slow ball into the body is playable; a rocket is not
+  const posq = off < SHOT.zoneIn ? lerp(jamQ, 1, off / SHOT.zoneIn)
+                                 : clamp(1 - (off - SHOT.zoneFree) / SHOT.zoneSpan, 0, 1);
   const timeq = clamp(1 - Math.abs(ctx.swp - 0.45) / 0.5, 0, 1);
   const ret = st.retSkill != null ? st.retSkill : 0.7;
-  const hard = clamp((ctx.inSpeed - 17) / 26, 0, 1);                          // 0 = easy slow ball … 1 = rocket at you
   const ground = ctx.stroke === 'forehand' || ctx.stroke === 'backhand';
+  const setq0 = posq * 0.55 + timeq * 0.45;                                   // how SET the contact is, before any skill is credited
   let q = posq * 0.48 + timeq * 0.34 + ret * 0.18;
-  if (ctx.cpuFloor) q = Math.max(q, AI.qFloor * lerp(0.72, 1, posq));         // CPU technique floor — full value only when set & balanced
+  // Pace and position are not independent difficulties -- their PRODUCT is the shot. A rocket you are
+  // set for comes back fine; the same ball reached late and off the body cannot be driven at all, by
+  // anyone. This interaction is what stops a scrambled player from replying like a set one.
+  const rush = hard * (1 - setq0);
+  if (ctx.cpuFloor) q = Math.max(q, AI.qFloor * lerp(0.72, 1, posq) * (1 - rush));   // the CPU's technique floor collapses under it too
   if (ctx.scrape) q = Math.min(q, clamp(0.62 - ctx.scrapeOver * 0.35, 0.15, 0.62));   // a desperate dig pops up weak & attackable
-  q = clamp(q - hard * (1 - timeq * 0.6) * 0.26, 0, 1);                       // raw incoming pace degrades EVERYONE'S reply, floor or not
+  q = clamp(q - hard * (1 - timeq * 0.6) * 0.26 - rush * SHOT.rushPen, 0, 1);  // raw pace degrades EVERYONE'S reply; being unset for it compounds
   if (ground && ctx.ballY > 2.3) q = clamp(q - (ctx.ballY - 2.3) * 0.18, 0, 1);   // shoulder-high contact is awkward for everyone
-  const jam = clamp(0.3 + hard, 0, 1) * clamp((0.8 - ctx.missD) / 0.8, 0, 1); // a ball AT the body cramps the swing
-  q = clamp(q - jam * 0.8, 0, 1);
   let pen = 0;                                                                // newer factors — summed & capped (`hard` above already taxes pace twice)
   if (ground && ctx.ballY < 0.4) pen += (0.4 - ctx.ballY) / 0.4 * SHOT.scoopPen;                    // half-volley scoop off the shoetops
   if ((ctx.lastShot === 'forehand' || ctx.lastShot === 'backhand') && ctx.bounced)
@@ -4561,7 +4640,7 @@ function shotQuality(ctx) {
   if (ctx.stroke === 'backhand') pen += clamp((1.08 - (st.bhPace || 1)) * 0.30, 0, SHOT.wingPen);   // the weaker wing under duress
   if (ctx.maxRun > 0) pen += clamp(ctx.run / ctx.maxRun - 0.5, 0, 0.5) * SHOT.runPen;               // hitting at a full sprint
   q = clamp(q - Math.min(pen, SHOT.qNewCap), 0, 1);
-  return { q, posq, timeq, hard, setq: posq * 0.55 + timeq * 0.45 };
+  return { q, posq, timeq, hard, setq: setq0 };
 }
 // desperate defensive reset — smashed at, or a rocket arrived before the feet were set: throw the
 // ball back HIGH toward deep middle and live another shot. Survival, not placement: the landing
@@ -4620,14 +4699,19 @@ function doHit(p) {
   // target — a harder hit is flatter & quicker but still drops IN; a poor one loops in slow. No overshoot.
   // counter-pace must be EARNED: a planted, well-timed swing redirects near-full pace — off a rocket,
   // a stretched or rushed contact can only block it, so the reply comes back well below the incoming pace
-  const paceCap = lerp(1.16, lerp(0.70, 1.03, setq), hard);
-  const speedFactor = clamp(Math.min(lerp(0.86, 1.06, q) * (wingPace || 1), paceCap), 0.72, 1.16);
+  const paceCap = lerp(1.16, lerp(0.58, 1.03, setq), hard);
+  // A flat hitter drives THROUGH the court; a heavy topspin player trades that pace for the arc and the
+  // kick. Same rating, different ball -- which is the whole point of picking a player.
+  const spinT = clamp(((st.topspinG || 1) - 1) / 0.62, 0, 1);
+  const spinPace = lerp(SHOT.spinPace0, SHOT.spinPace1, spinT);
+  const qn = qNorm(q);
+  const speedFactor = clamp(Math.min(lerp(0.70, 1.12, qn) * (wingPace || 1) * spinPace, paceCap), 0.55, 1.16);
   // executed placement: the INTENDED shot regresses toward the middle and scatters as contact degrades —
   // corners are only paintable off a clean strike. The noise lands AFTER shotVel's court clamps, so a
   // low-q corner attempt can genuinely miss. Smashes scatter tighter (short arc), drops smaller (touch).
   const sxN = stroke === 'smash' ? lerp(0.8, 0.15, q) : lerp(SHOT.sigX0, SHOT.sigX1, q);
   const szN = stroke === 'smash' ? lerp(0.9, 0.25, q) : lerp(SHOT.sigZ0, SHOT.sigZ1, q);
-  const exec = { latMul: lerp(SHOT.regress0, 1, q), sx: sxN, sz: szN, nx: gauss() * sxN, nz: gauss() * szN, bias: (1 - q) * 0.9 };
+  const exec = { q, latMul: lerp(SHOT.regress0, 1, q), sx: sxN, sz: szN, nx: gauss() * sxN, nz: gauss() * szN, bias: (1 - q) * 0.9 };
   // moonball reflex: smashed at, or a rocket you never set up for → an automatic high defensive reset
   // Worked out AFTER shotQuality, which is where q and missD come from. Facing a player
   // at the net, a clean contact off a set position is driven as an ordinary groundstroke;
@@ -4637,26 +4721,39 @@ function doHit(p) {
   // An APPROACH is a groundstroke hit moving forward into the net: flatter and deeper
   // than a rally ball, because you are following it in.
   const approach = !atNet && ground && !drop && Math.abs(pl.z - HALF_L) < 6.5 && q > 0.5;
+  // A moonball is what a player with no other option actually does: pace he never got set for, a ball
+  // smashed at him, or simply a contact so bad there is nothing to drive. Getting it back high and deep
+  // buys the seconds needed to walk back into the point.
   const moon = !aiFeeder && !lob && !drop && ground &&
-               ((hard > SHOT.moonHard && setq < SHOT.moonSetq) || (sim.lastShotType === 'smash' && q < 0.75));
+               ((hard > SHOT.moonHard && setq < SHOT.moonSetq)
+                || qn < SHOT.moonQ
+                || (sim.lastShotType === 'smash' && qn < 0.55));
   // A slice is a real shot with real conditions, not a coin flip on every backhand:
   // it comes off the BACKHAND wing on a ball that has dropped below the hip, or when
   // you are stretched wide and defending. One-handers carve far more of them than
   // two-handers, which is exactly how it looks on tour.
-  const lowBall = b.y < 0.78, stretched = missD > 1.05 || setq < 0.42;
+  // ...and a player who barely hits topspin carves far more of them than one who lives on it, on top
+  // of the one-hander's own bias. That is McEnroe and Nadal on the same wing looking like two sports.
+  // (the low-ball threshold had to come up with the arcs: give every shot real net clearance and the
+  //  topspin bounce a real kick, and a ball still under the hip at contact became a rarity)
+  const lowBall = b.y < 0.95, stretched = missD > 1.05 || setq < 0.42;
   const sliced = !aiFeeder && !lob && !drop && !moon && ground && stroke === 'backhand'
                  && (lowBall || stretched)
-                 && Math.random() < (st.oneHandBh ? 0.72 : 0.34) * (lowBall ? 1 : 0.55);
+                 && Math.random() < (st.oneHandBh ? 0.72 : 0.34) * lerp(1.35, 0.70, spinT) * (lowBall ? 1 : 0.55);
   let v, gAcc = G;
   if (aiFeeder) v = feederVel(p, b);
   else if (lob) { v = lobVel(aim, p, b, q); gAcc = v.gAcc; }   // use the lob's own (variable) topspin gravity so it lands right
   else if (moon) { v = moonVel(p, b); gAcc = v.gAcc; }
   else {
     // An approach is flatter than a rally ball because you are coming in behind it.
-    gAcc = stroke === 'smash' ? G*1.5 : drop ? G*0.82 : sliced ? G*0.90
+    // gAcc doubles as the ball's SPIN once it is in the air: above G it is topspin (dips, then kicks up
+    // off the bounce), below G it is slice (floats, then skids through low). rallyBounce reads it back.
+    gAcc = stroke === 'smash' ? G*1.5 : drop ? G*0.82 : sliced ? G*0.80
          : approach ? G*st.topspinG*0.94
          : stroke === 'volley' ? G*1.4 : ground ? G*st.topspinG : G;
-    v = shotVel(aim, p, b, stroke, gAcc, (!drop && (ground || stroke === 'volley')) ? speedFactor : 1, exec);   // drops are touch shots, not power
+    // Overheads earn their pace like everything else now: one taken cleanly from under the ball is
+    // struck harder than before, one scrambled at full stretch comes off slow and sits up.
+    v = shotVel(aim, p, b, stroke, gAcc, (!drop && (ground || stroke === 'volley' || stroke === 'smash')) ? speedFactor : 1, exec);   // drops are touch shots, not power
   }
   // residual shank coin: misses now mostly emerge from the placement scatter when ambition outruns contact
   // quality — this coin carries the remaining clean whiffs, weighted toward the net (target scatter can
@@ -4667,7 +4764,10 @@ function doHit(p) {
     if (soloMode && p === 1) errP *= AI.errMul;                     // the CPU rarely sprays an unforced error
     if (Math.random() < errP) {                               // unforced error
       const r2 = Math.random();
-      if (r2 < 0.60) { v.vy -= 2.0; v.vz *= 0.85; }            // framed into the net
+      // A framed ball has to lose the clearance the shot was aiming for, not a fixed 2 m/s. Once poor
+      // contacts were given a real arc, a flat subtraction stopped putting anything in the net — shanks
+      // sailed safely over instead and the unforced-error rate quietly collapsed to a third of itself.
+      if (r2 < 0.60) { v.vy -= SHOT.shankVy + SHOT.shankArc * Math.max(0, v.vy); v.vz *= 0.85; }   // framed into the net
       else if (r2 < 0.85) v.vz *= 1.13;                        // sails long, past the baseline
       else v.vx *= 1.22;                                       // sprays wide of the sideline
     }
@@ -4823,7 +4923,15 @@ function rallyBounce() {
   sim.bouncesSinceHit = 1; b.y = 0;
   sfx('bounce', clamp((Math.abs(b.vy) - 3) / 12, 0, 1), 0, b.x, b.z);
   if (sim.lastHitWasDrop) { b.vy = Math.max(-b.vy*REST, 2.4); b.vx *= 0.4; b.vz *= 0.2; }   // backspin checks the bounce — the ball pops up but DIES near where it lands
-  else { b.vy = -b.vy*REST; b.vx *= FRICT; b.vz *= FRICT; }
+  else {
+    // Spin only ever showed up in the FLIGHT — the ball dipped, then bounced like every other ball, so
+    // heavy topspin and a skidding slice were the same shot the moment they landed. gAcc carries the
+    // spin (above G topspin, below G slice), so the bounce can finally answer it: the kick that jumps
+    // up into the strike zone, or the slice that stays under the knee and has to be dug out.
+    const spinIdx = (b.gAcc || G) / G - 1;                                  // <0 slice … 0 flat … >0 topspin
+    b.vy = -b.vy * REST * clamp(1 + spinIdx * SHOT.bounceSpin, 0.60, 1.45);
+    b.vx *= FRICT; b.vz *= FRICT * clamp(1 - spinIdx * SHOT.bounceSkid, 0.92, 1.14);
+  }
 }
 function endPoint(winner, reason) {
   if (sim.phase === 'over' || sim.phase === 'matchover') return;
