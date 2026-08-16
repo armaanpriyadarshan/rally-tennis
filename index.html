@@ -4488,6 +4488,12 @@ function wingOf(idx, b) {
 // volley, off the bounce a high groundstroke. That is the difference between a putaway and a save.
 function canSmash(idx, b) {
   const p = sim.players[idx];
+  // A drop shot and an overhead are opposite intentions, and the ball being high was quietly
+  // settling the argument: hold ↓ under a lob and the game handed back a putaway instead of the
+  // touch shot that was actually asked for. They are mutually exclusive, so whichever one the
+  // player pressed wins -- ask for a drop and you get a drop, played off the overhead.
+  const aim = sim.aim[idx];
+  if (aim && aim.fwd < 0) return false;
   const lat = Math.abs(b.x - p.x);
   const behind = (idx === 0 ? p.z - b.z : b.z - p.z);            // + = the ball has got in behind them
   if (lat > 0.95 || behind > 0.55) return false;                 // not under it
