@@ -3978,7 +3978,7 @@ function reasonText(r) {
   return { out:'shot was out', net:'into the net', dfault:'double fault',
            ace:'ace, unreturned!',   drop:'dropshot winner!',  lob:'lob winner!',
            smash:'smash winner!',    slicewin:'slice winner!',
-           volwin:'volley winner!',
+           volwin:'volley winner!',  retwin:'return winner!',
            fhwin:'forehand winner!', bhwin:'backhand winner!', winner:'clean winner!' }[r] || '';
 }
 function updatePing() {
@@ -4005,6 +4005,8 @@ function updateStats() {
     ['Break points',        s.bpWon[me] + '/' + s.bpTot[me],  s.bpWon[op] + '/' + s.bpTot[op]],
     ['Points won',          s.pointsWon[me],                  s.pointsWon[op]],
     ['Winners',             s.winners[me],                    s.winners[op]],
+    // a peer still on an older build sends no retWin at all — show zeros rather than throwing
+    ['Return winners',      (s.retWin || [0,0])[me],          (s.retWin || [0,0])[op]],
     ['Unforced errors',     s.unforced[me],                   s.unforced[op]],
     ['Fastest serve',       spd(s.fastest[me]),               spd(s.fastest[op])]
   ];
@@ -4301,6 +4303,7 @@ function startMatch() {
     serveSpeedKmh: 0, servePowerShown: 0, serveMeterTimer: 0, tiebreak: false,
     stats: { firstIn:[0,0], firstTot:[0,0], secIn:[0,0], secTot:[0,0],
              winners:[0,0], aces:[0,0], unforced:[0,0], df:[0,0], pointsWon:[0,0], fastest:[0,0],
+             retWin:[0,0],                      // winners struck off the return of serve (a subset of `winners`)
              // the serve/return split the tour actually reports
              svcPts:[0,0], svcWon:[0,0],        // points played and won on own serve
              f1Pts:[0,0],  f1Won:[0,0],         // behind a first serve
@@ -4339,6 +4342,7 @@ function setupPoint() {
   // next winner gets called a lob or a dropshot that never happened.
   sim.lastHitWasDrop = false; sim.lastHitWasLob = false;
   sim.lastHitWasSlice = false; sim.lastHitWasVolley = false;
+  sim.lastHitWasMoon = false;
   sim.lastShotWasApproach = false;
   sim.stroke = null;
   if (sim.tiebreak && sim.points[0] + sim.points[1] === 0) setNotice('TIEBREAK', 2.0);
@@ -4682,6 +4686,9 @@ function doHit(p) {
   // a plain backhand winner.
   sim.lastHitWasSlice = sliced;
   sim.lastHitWasVolley = stroke === 'volley';
+  // a moonball is survival, not intent -- remembered so one that happens to land untouched
+  // is never announced as a RETURN WINNER
+  sim.lastHitWasMoon = moon;
   // The wing decides which side the racket is on; the shot decides how it swings.
   sim.stroke = { who: p, type: stroke, wing, shot: lob ? 'lob' : drop ? 'drop' : sliced ? 'slice' : null };
   sim.lastShotWasApproach = approach;
@@ -4777,6 +4784,12 @@ function rallyBounce() {
   const b = sim.ball;
   if (sim.bouncesSinceHit >= 1) {
     const ace = (sim.shotCount === 1 && sim.lastHitter === sim.server);   // serve never returned
+    // The second shot of the point, struck by the man who did not serve, is the RETURN.
+    // One that bounces twice is the shot that hurts most in tennis -- the server never
+    // got to play a ball -- so it gets its own call ahead of naming the wing it came off.
+    // A moonball is excluded: floating one back and having it land untouched is not a
+    // return winner, it is a miss by the server.
+    const retWin = (sim.shotCount === 2 && sim.lastHitter !== sim.server && !sim.lastHitWasMoon);
     // Name the shot that won the point rather than calling everything a clean winner.
     // Everything needed was remembered at the moment of contact -- NOT read back off
     // sim.stroke, which by now belongs to whoever swung at the ball last.
@@ -4784,12 +4797,14 @@ function rallyBounce() {
                  : sim.lastHitWasDrop       ? 'drop'
                  : sim.lastHitWasLob        ? 'lob'
                  : sim.lastShotType === 'smash' ? 'smash'
+                 : retWin                   ? 'retwin'
                  : sim.lastHitWasSlice      ? 'slicewin'
                  : sim.lastHitWasVolley     ? 'volwin'
                  : sim.lastShotType === 'backhand' ? 'bhwin'
                  : sim.lastShotType === 'forehand' ? 'fhwin' : 'winner';
     setNotice({ ace: 'ACE!', drop: 'DROP SHOT!', lob: 'LOB WINNER!',
-                smash: 'SMASH!', slicewin: 'SLICE WINNER!', volwin: 'VOLLEY WINNER!',
+                smash: 'SMASH!', retwin: 'RETURN WINNER!',
+                slicewin: 'SLICE WINNER!', volwin: 'VOLLEY WINNER!',
                 bhwin: 'BACKHAND WINNER!',
                 fhwin: 'FOREHAND WINNER!' }[reason] || 'WINNER!', 1.4);
     endPoint(sim.lastHitter, reason);
@@ -4818,6 +4833,7 @@ function endPoint(winner, reason) {
   if (reason === 'ace') st.aces[winner]++;
   else if (reason === 'out' || reason === 'net') st.unforced[1 - winner]++;   // the loser made the error
   else if (reason !== 'dfault') st.winners[winner]++;
+  if (reason === 'retwin') st.retWin[winner]++;      // a return winner is also a winner, counted twice on purpose
   st.pointsWon[winner]++;
   // Serve/return split, first- and second-serve win rates, and break points all key
   // off the score BEFORE this point is added, so they are counted here.
@@ -4842,6 +4858,7 @@ function endPoint(winner, reason) {
   else {
     let loud = (reason !== 'out' && reason !== 'net' && reason !== 'dfault') ? 0.55 : 0.24;
     loud += clamp((sim.shotCount - 6) / 16, 0, 0.25);
+    if (reason === 'retwin') loud += 0.2;   // a two-shot point stands no chance on rally length, and it deserves the noise
     if (gameWon) loud += winner === sim.server ? 0.18 : 0.32;   // a break is worth more noise than a hold
     sfx('point', clamp(loud, 0.15, 1));
   }
