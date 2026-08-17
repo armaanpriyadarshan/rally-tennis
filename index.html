@@ -475,14 +475,22 @@ const SHOT = {
   sigZ0: 1.6, sigZ1: 0.35,            // depth scatter σz; a separate short bias of 0.9·(1−q) drags poor contacts shorter
   regress0: 0.62,                     // ambition regression: the aim itself shrinks toward the middle at q=0 (×1 at q=1)
   errBase: 0.10, errFR: 0.08,         // residual shank coin: errP = (1−q)·errBase + faultRisk·errFR (placement scatter carries the rest)
-  moonHard: 0.62, moonSetq: 0.48,     // moonball reflex: incoming pace above moonHard while setup below moonSetq
-  moonQ: 0.14,                        // ...or any contact this poor (on the qNorm scale), at any pace
-  // The moonball had the NAME of the shot and none of its physics: struck from a metre up it peaked
-  // at 3.6 m with 1.15 s of hang, which is a slightly loopy rally ball. The whole point of throwing
-  // one up is the time it buys — it has to climb well out of reach and stay there long enough to walk
-  // back into the point, and to come down steeply enough that the bounce sits up. ~6 m and ~1.9 s.
-  moonG: 1.30, moonT: 1.85,           // moonball arc: gravity multiplier and flight time
-  lobG0: 1.85, lobG1: 2.10, lobT: 1.60,   // ...and the lob, which was only clearing 5.3 m over a net player
+  // A moonball is a recovery shot, so the gate is court position: you have to be OFF the court and
+  // unable to drive the ball. These are NOT the real-court lines, and deliberately so — measured over
+  // 2384 contacts this game simply never pulls anyone that far: lateral offset at contact runs to a
+  // 99th percentile of 3.25 m against a 4.27 m sideline, and nobody ever gets pushed behind their own
+  // baseline (max 11.66 m against 11.885 m). Using the real lines made the moonball extinct. These
+  // sit at roughly the 90th percentile of where contact actually happens, which is what "stretched"
+  // means in this game. (That rallies don't move players the way real tennis does is its own problem.)
+  moonWideX: 2.90, moonDeepZ: 10.80,  // dragged wide / pushed back, on this game's own scale
+  moonRush: 0.30,                     // ...and beaten for pace once there (pace × being unset)
+  moonQ: 0.16,                        // ...or simply unable to make a shot of it at all
+  // Reverted to the original ~3.6 m / 1.15 s arc. Raising it to a textbook ~5.6 m moonball was
+  // correct about the shot and wrong about the game: the trigger fires on ~10% of contacts, which
+  // passes unnoticed as a loopy rally ball and reads as constant garbage once every one of them
+  // towers over the court. The arc was never the thing that needed changing — the rate is.
+  moonG: 1.9, moonT: 1.15,            // moonball arc: gravity multiplier and flight time
+  lobG0: 1.85, lobG1: 2.10, lobT: 1.60,   // the LOB is a deliberate shot and rare (~0.4% of balls); it keeps its height
   scoopPen: 0.12, spinPen: 0.10, wingPen: 0.06, runPen: 0.24, qNewCap: 0.28,   // newer difficulty factors; their sum is capped
   // ---- contact window: how far off the body the ball may pass before the swing is compromised ----
   // The strike zone has to be small RELATIVE TO REACH or positioning stops meaning anything: lateral
@@ -518,7 +526,6 @@ const SHOT = {
   // back is a fraction of what arrived and lands short — the one shot in tennis that cannot be hit hard.
   blockRush: 0.30,                    // rush (pace × unset) above which a ball out of the air can only be blocked
   blockAbs0: 0.28, blockAbs1: 0.55,   // share of incoming pace that survives the block, at qNorm 0 → 1
-  moonRush: 0.34,                     // ...and off the bounce the same emergency becomes an attempted moonball
   dressPen: 0.55,                     // how far the shank coin is suppressed under duress: survival shots don't spray
   lobZone: 3.6,                       // how far forward the opponent must be before ↑ means "lob" rather than "deep"
   depthRally: 9.2, depthDeep: 11.6,   // where a neutral / deliberately deep groundstroke aims, in metres past the net
@@ -4803,11 +4810,23 @@ function doHit(p) {
   const beaten = rush > SHOT.moonRush;
   const blocked = !aiFeeder && !drop && !lob && stroke !== 'smash' && sim.bouncesSinceHit === 0
                   && (rush > SHOT.blockRush || (hard > 0.55 && stroke === 'volley' && qn < 0.35));
+  // A moonball is a RECOVERY shot, and recovery is about WHERE YOU ARE STANDING, not merely how
+  // cleanly you struck the ball. Coaching sources put it the same way every time: you loft one when
+  // you have been pulled wide or driven back, to buy the hang time to walk back into the point --
+  // it is a reset from a defensive position. Triggering it on contact quality alone meant a player
+  // standing in the middle of his own baseline, who merely mistimed a routine ball, threw it into
+  // orbit. He has nowhere to recover TO, so that is not a moonball, it is a bad drive.
+  //
+  // Being off the court is therefore the NECESSARY condition, and a compromised contact the
+  // sufficient one: dragged outside the singles court or pushed behind your own baseline AND unable
+  // to drive it. Get to the same wide ball cleanly and you still hit a real shot.
+  const offWide = Math.abs(pl.x) > SHOT.moonWideX;                       // dragged off the side of the court
+  const offDeep = Math.abs(pl.z - HALF_L) > SHOT.moonDeepZ;              // driven back behind your own baseline
+  const outOfPosition = offWide || offDeep;
+  const cantDrive = beaten || qn < SHOT.moonQ;
   const moon = !aiFeeder && !lob && !drop && !blocked && ground &&
-               (beaten
-                || (hard > SHOT.moonHard && setq < SHOT.moonSetq)
-                || qn < SHOT.moonQ
-                || (sim.lastShotType === 'smash' && qn < 0.55));
+               ((outOfPosition && cantDrive)
+                || (sim.lastShotType === 'smash' && qn < 0.55));         // scrambling at a smash: position is moot
   // A slice is a real shot with real conditions, not a coin flip on every backhand:
   // it comes off the BACKHAND wing on a ball that has dropped below the hip, or when
   // you are stretched wide and defending. One-handers carve far more of them than
