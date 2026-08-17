@@ -522,6 +522,9 @@ const SHOT = {
   smashNetPut: 4.5,                   // inside this many metres of the net an overhead is a putaway; beyond, controlled
   dropMaxY: 1.75,                     // above shoulder height there is no drop shot to play
   srvAccMul: 1.30,                    // global scale on serve placement scatter — this is the first-serve-in dial
+  srvSprayBad: 2.60, srvSprayGood: 0.30,   // scatter multiplier at worst → best toss timing
+  srvCornerT: 0.03, srvCornerW: 0.97,      // how close to the lines a FIRST serve dares aim (0 = centre line, 1 = sideline)
+  srvSafe2nd: 0.24,                        // ...and how far inside those a second serve is played
   dropMaxSpeed: 22,                   // ...nor off a ball arriving faster than this: nothing to absorb it with
   // ---- the block ----
   // Facing pace you have no time to organise for, the racket ABSORBS instead of redirecting. What comes
@@ -4991,7 +4994,17 @@ function doServe() {
   const zoneNorm = (soloMode && sim.server === 1 && sim.aiServeNorm != null)
         ? sim.aiServeNorm                                          // the CPU picks a real spot, not a ±1 nudge
         : clamp(0.46 + latSign * lat * tSign * 0.44, 0.05, 0.95);  // ←/→ walks the target from the T out to the line
-  const scatter = sv.srvAcc * SHOT.srvAccMul * lerp(1.75, 1.0, p) * (sim.serveNum === 2 ? 0.72 : 1);   // a mistimed serve sprays; a second serve is hit to a bigger target
+  // Accuracy is EARNED WITH TIMING, and steeply. Scaling the spray gently with contact quality meant
+  // even a perfectly struck serve scattered by ~0.9 m — a quarter of the box — so aiming a spot did
+  // almost nothing and the serve felt like it had a mind of its own. Random error on a shot the player
+  // is actively aiming reads as broken controls, not as difficulty. Time the toss well and the ball
+  // goes where you sent it; mistime it and it sprays, which is a risk you chose rather than one
+  // applied to you. The server's rating sets how wide that window is.
+  // Flat across the top of the timing window and steep at the bottom: a decently timed serve goes
+  // roughly where you aimed, and only a genuinely mistimed one sprays.
+  const miss = 1 - p;
+  const spray = SHOT.srvSprayGood + (SHOT.srvSprayBad - SHOT.srvSprayGood) * miss * miss;
+  const scatter = sv.srvAcc * SHOT.srvAccMul * spray * (sim.serveNum === 2 ? 0.80 : 1);
   let tx = tSign * zoneNorm * SINGLES_HALF + gauss() * scatter + hand * latSign * 0.30 * p;
   // No clamp back into the box: aiming the line has to be able to miss it. The only guard is that a
   // serve cannot end up in the wrong service box by more than a hair — that would be a different shot.
@@ -5504,7 +5517,9 @@ function aiThink() {
 
   if (sim.server === 1 && (sim.phase === 'ready' || sim.phase === 'toss')) {
     if (sim.phase === 'ready') {
-      aiServeH = 3.15 + Math.random() * 0.55;                                            // strike high & near the toss peak → consistently big, accurate serves (still some variety)
+      // The CPU's serve variance now comes from where it catches the toss, exactly as a human's does,
+      // rather than from noise sprinkled on a perfect strike. A wider strike window = a more human server.
+      aiServeH = 3.05 + Math.random() * 0.80;
       // Pick a real SPOT from this server's own mix rather than a ±1 nudge. T is the most used
       // target and the body the least, second serves trade wide for body, and `wideBias` shades the
       // split per player. The chosen spot is then hit as accurately as he hits it — a Sampras paints
@@ -5516,10 +5531,13 @@ function aiThink() {
       let pBody = Math.max(0.05, 1 - pT - pWide);
       const rr2 = Math.random() * (pT + pWide + pBody);
       const zone = rr2 < pT ? 'T' : rr2 < pT + pWide ? 'wide' : 'body';
-      // a second serve is hit to a safer version of the same spot, not to a different one
-      const inset = second ? 0.12 : 0;
-      sim.aiServeNorm = zone === 'T'   ? 0.10 + inset + Math.random() * 0.09
-                      : zone === 'wide' ? 0.90 - inset - Math.random() * 0.09
+      // How close to the line it dares aim is the AMBITION, and that is where first serves are won
+      // and lost. A first serve goes for the corner and misses a fair share of them; a second is hit
+      // to a version of the same spot with a metre of margin, which is why it almost always lands and
+      // why the double fault is rare. Misses should come from going for it, not from noise.
+      const inset = second ? SHOT.srvSafe2nd : 0;
+      sim.aiServeNorm = zone === 'T'   ? SHOT.srvCornerT + inset + Math.random() * 0.07
+                      : zone === 'wide' ? SHOT.srvCornerW - inset - Math.random() * 0.07
                       :                   0.46 + (Math.random() - 0.5) * 0.16;
       aiServeLat = 0;
       aiPress();                                                                          // toss
