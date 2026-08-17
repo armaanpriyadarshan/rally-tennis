@@ -4922,7 +4922,7 @@ function doHit(p) {
   }
   b.vx = v.vx; b.vy = v.vy; b.vz = v.vz; b.gAcc = gAcc; b.spin = spin; b.ax = 0;   // topspin dip applies until the next hit; the serve's swerve ends here
   if (b.y < 0.3) b.y = 0.3;
-  sim.lastHitter = p; sim.bouncesSinceHit = 0; sim.shotCount++;
+  sim.lastHitter = p; sim.bouncesSinceHit = 0; sim.shotCount++; sim.ballSerial = (sim.ballSerial || 0) + 1;
   sim.lastShotType = stroke;                       // what the RECEIVER is now facing (sim.stroke gets overwritten at their swing)
   sim.lastHitWasDrop = drop;                       // remembered so a drop winner is called out AFTER the point
   sim.lastHitWasLob = lob;                          // remembered so the LOB is declared when it lands, not on contact
@@ -5035,6 +5035,7 @@ function doServe() {
   sim.hitPt[sim.server] = { x: b.x, y: y0, z: b.z };   // the serve is struck at the top of the toss
   sim.swingAt[sim.server] = 0.86;                      // and the table puts serve contact at 0.86
   sim.lastHitter = sim.server; sim.bouncesSinceHit = 0; sim.phase = 'serve'; sim.shotCount = 1; sim.lastShotType = 'serve';
+  sim.ballSerial = (sim.ballSerial || 0) + 1;   // every struck ball gets its own id; shotCount restarts each point
   sim.swing[sim.server] = 1.0; sim.swingTimer[sim.server] = SWING_TIME;
   sim.stroke = { who: sim.server, type: 'serve' };
   sfx('serve', p, sim.server, sim.players[sim.server].x, sim.players[sim.server].z);   // pace decides whether it comes with a grunt
@@ -5593,12 +5594,21 @@ function aiThink() {
     // A player swings when contact is imminent, so the trigger is now time-to-contact, and a ball
     // gets a fixed budget of attempts rather than one per frame it happens to be nearby.
     if (sim.phase === 'rally' && mine) {
-      if (sim.shotCount !== aiSwingShot) { aiSwingShot = sim.shotCount; aiSwingTries = 0; }
+      // keyed on the ball's own id, NOT on shotCount: shotCount restarts at 1 every point, so a
+      // latch built on it collided across points — having spent its attempts on shot 4 of one point,
+      // the CPU would refuse to swing at shot 4 of the next and simply stand there.
+      if (sim.ballSerial !== aiSwingShot) { aiSwingShot = sim.ballSerial; aiSwingTries = 0; }
       const pc = pcNow || aiPredictContact();
+      const d = Math.hypot(b.x - pl.x, b.z - pl.z);
       const imminent = pc && pc.t <= SWING_TIME * 0.6;
-      const reachable = b.z > HALF_L && b.y <= HIT_HEIGHT && b.y >= 0
-                        && Math.hypot(b.x - pl.x, b.z - pl.z) <= START_REACH + 0.5;
-      if (reachable && imminent && aiSwingTries < 2 && sim.swingTimer[1] <= 0) {
+      // ...or the ball is simply ON him already. aiPredictContact hunts for a comfortable FUTURE
+      // contact and gives up when there isn't one — measured, it returns its 4-second fallback for a
+      // ball 0.4 m away at knee height — so a slow ball rolling straight at the CPU produced no swing
+      // whatsoever while a fast one was fine. Time-to-contact alone was never a safe trigger. What
+      // stops the flailing is the attempt cap below, so this can be generous.
+      const onHim = d <= CONTACT_REACH + 0.7 && b.y >= 0.15;
+      const reachable = b.z > HALF_L && b.y <= HIT_HEIGHT && b.y >= 0 && d <= START_REACH + 0.5;
+      if (reachable && (imminent || onHim) && aiSwingTries < 2 && sim.swingTimer[1] <= 0) {
         if (aiPressDelay > 0) aiPressDelay--; else { aiPress(); aiSwingTries++; }
       }
     }
