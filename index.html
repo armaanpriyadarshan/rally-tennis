@@ -521,6 +521,7 @@ const SHOT = {
   smashMaxSp: 24,                     // a ball arriving faster than this is a reflex, not an overhead
   smashNetPut: 4.5,                   // inside this many metres of the net an overhead is a putaway; beyond, controlled
   dropMaxY: 1.75,                     // above shoulder height there is no drop shot to play
+  overheadCallY: 1.75,                // ...and a winner struck from up there is called an overhead, whatever stroke played it
   srvAccMul: 1.0,                     // global scale on serve placement scatter
   srvDepth: 0.97, srvDepthSig: 0.145,      // how deep into the box a serve is aimed, and its depth spread
   srvDepth2nd: 0.15,                       // ...and how much shorter a second serve is played, so it lands
@@ -4055,7 +4056,7 @@ function updateHUD() {
 function reasonText(r) {
   return { out:'shot was out', net:'into the net', dfault:'double fault',
            ace:'ace, unreturned!',   drop:'dropshot winner!',  lob:'lob winner!',
-           smash:'smash winner!',    slicewin:'slice winner!',
+           overhead:'overhead winner!', slicewin:'slice winner!',
            volwin:'volley winner!',  retwin:'return winner!',
            fhwin:'forehand winner!', bhwin:'backhand winner!', winner:'clean winner!' }[r] || '';
 }
@@ -4419,7 +4420,7 @@ function setupPoint() {
   // Clear what the LAST point's final shot was, or its flags leak into this one and the
   // next winner gets called a lob or a dropshot that never happened.
   sim.lastHitWasDrop = false; sim.lastHitWasLob = false;
-  sim.lastHitWasSlice = false; sim.lastHitWasVolley = false;
+  sim.lastHitWasSlice = false; sim.lastHitWasVolley = false; sim.lastHitY = 0;
   sim.lastHitWasMoon = false;
   sim.lastShotWasApproach = false;
   sim.stroke = null;
@@ -4746,6 +4747,7 @@ function blockVel(idx, b, qn, inSpeed) {
 function doHit(p) {
   const b = sim.ball;
   const inSpeed = Math.hypot(b.vx, b.vy, b.vz);     // incoming pace (before we overwrite the velocity)
+  const contactY = b.y;                             // ...and the height it was struck at, before anything clamps it
   let stroke = strokeType(p, b);
   // A swing COMMITS to a wing. Re-picking it here, at the contact frame, meant a ball
   // drifting across the body between the press and the strike flipped the racket to the
@@ -4934,6 +4936,12 @@ function doHit(p) {
   // a plain backhand winner.
   sim.lastHitWasSlice = sliced;
   sim.lastHitWasVolley = stroke === 'volley';
+  // The height the ball was actually struck at, which is what decides whether a winner gets CALLED an
+  // overhead. That is a different question from whether a proper overhead STROKE was available:
+  // smashY (2.25 m) gates the stroke, and using it to name the shot meant a ball put away from 2.1 m
+  // above the court — plainly over the head — was announced as a volley or a forehand winner. Ten per
+  // cent of all winners were struck above the shoulder and called something else.
+  sim.lastHitY = contactY;
   // a moonball is survival, not intent -- remembered so one that happens to land untouched
   // is never announced as a RETURN WINNER
   sim.lastHitWasMoon = moon;
@@ -5092,17 +5100,21 @@ function rallyBounce() {
     // Name the shot that won the point rather than calling everything a clean winner.
     // Everything needed was remembered at the moment of contact -- NOT read back off
     // sim.stroke, which by now belongs to whoever swung at the ball last.
+    // Anything put away from above the shoulder is an OVERHEAD, whatever branch of the stroke model
+    // it happened to take. Naming it off the smash flag instead tied the call to whether a full
+    // overhead swing was available, which is a mechanics question, not a description of the shot.
+    const overhead = sim.lastShotType === 'smash' || (sim.lastHitY || 0) >= SHOT.overheadCallY;
     const reason = ace                      ? 'ace'
                  : sim.lastHitWasDrop       ? 'drop'
                  : sim.lastHitWasLob        ? 'lob'
-                 : sim.lastShotType === 'smash' ? 'smash'
+                 : overhead                 ? 'overhead'
                  : retWin                   ? 'retwin'
                  : sim.lastHitWasSlice      ? 'slicewin'
                  : sim.lastHitWasVolley     ? 'volwin'
                  : sim.lastShotType === 'backhand' ? 'bhwin'
                  : sim.lastShotType === 'forehand' ? 'fhwin' : 'winner';
     setNotice({ ace: 'ACE!', drop: 'DROP SHOT!', lob: 'LOB WINNER!',
-                smash: 'SMASH!', retwin: 'RETURN WINNER!',
+                overhead: 'OVERHEAD WINNER!', retwin: 'RETURN WINNER!',
                 slicewin: 'SLICE WINNER!', volwin: 'VOLLEY WINNER!',
                 bhwin: 'BACKHAND WINNER!',
                 fhwin: 'FOREHAND WINNER!' }[reason] || 'WINNER!', 1.4);
