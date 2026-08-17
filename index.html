@@ -755,7 +755,7 @@ const gauss = () => (Math.random() + Math.random() + Math.random()) * 2 - 3;   /
 // ---- Networking / app state ----
 let peer = null, conn = null, isHost = false, myIndex = 0;
 let appState = 'menu';          // 'menu' | 'hosting' | 'joining' | 'playing'
-let soloMode = false, aiCd = 0, aiAimLat = 0, aiPrevSwing = false, aiApproachT = 0, aiServeH = 3.2, aiDropLag = 0, aiLastShot = -1, aiServeLat = 0, aiHumanPrevX = 0, aiHumanVx = 0, aiDropShot = false, aiScramble = false, aiGuessX = null, aiPrevPhase = '', aiLobShot = false, aiReadLag = 0;
+let soloMode = false, aiCd = 0, aiAimLat = 0, aiPrevSwing = false, aiApproachT = 0, aiServeH = 3.2, aiDropLag = 0, aiLastShot = -1, aiServeLat = 0, aiHumanPrevX = 0, aiHumanVx = 0, aiDropShot = false, aiScramble = false, aiGuessX = null, aiPrevPhase = '', aiLobShot = false, aiReadLag = 0, aiSwingShot = -1, aiSwingTries = 0;
 let aiServeHist = { wide: 1, body: 1, T: 1 };   // the CPU's running belief about where the human likes to serve
 let aiPercOff = { x: 0, z: 0 }, aiPercT = 0, aiPressDelay = 0;   // CPU perception: a noisy READ of the contact point (sharpens as the ball closes) + a late trigger finger
 let playerPrev = [null, null], runPhase = [0, 0], animClock = 0, frameDt = 1/60;
@@ -5557,7 +5557,7 @@ function aiThink() {
   } else {
     const mine = sim.lastHitter !== 1;                                                    // the ball is coming to us
     const incoming = mine && (b.z > HALF_L - 0.5 || b.vz > 0.05);
-    let tx, tz;
+    let tx, tz, pcNow = null;
     if (sim.server === 0 && (sim.phase === 'ready' || sim.phase === 'toss' || sim.phase === 'faultreset')) {
       // returning: set up in line with the box being served into — and the wider the server stands,
       // the sharper the possible cross angle, so shade the stance further toward the alley
@@ -5566,7 +5566,7 @@ function aiThink() {
     } else if (aiGuessX != null && sim.phase === 'serve' && aiReadLag > 0) {
       tx = aiGuessX; tz = L + AI.retZ;                                                     // leaning on the thesis for the reading beat — a wrong lean costs that time, not the point
     } else if (incoming && aiDropLag <= 0) {
-      const pc = aiPredictContact();                                                      // its READ of the contact point — noisy, and re-sampled as the ball closes
+      const pc = pcNow = aiPredictContact();                                              // its READ of the contact point — noisy, and re-sampled as the ball closes
       if ((aiPercT -= STEP) <= 0) {
         aiPercT = 0.15;                                                                    // re-reads every 0.15 s; the error shrinks with time-to-contact
         const sg = lerp(0.55, 0.15, skill) * clamp((pc.t || 0.5) / 0.9, 0.25, 1);
@@ -5582,10 +5582,23 @@ function aiThink() {
     }
     if (tx > pl.x + 0.22) l = true; else if (tx < pl.x - 0.22) r = true;                   // idx 1: +x ← press left (wide deadzone — no jitter when the target wobbles)
     if (tz > pl.z + 0.18) bk = true; else if (tz < pl.z - 0.18) f = true;                  // idx 1: +z ← press back
+    // ---- when to swing ----
+    // This used to fire on nothing but proximity: any ball within 3.3 m got a swing, re-tested every
+    // tick behind a 0.12 s cooldown. For a ball travelling through that radius it reads as one swing.
+    // For a ball that SITS there it reads as eight — and a drop shot loses 80% of its pace on the
+    // bounce and dies almost on the spot, so the CPU stood over one flailing at it, which is the
+    // visible "spamming shots at a ball it already missed".
+    //
+    // A player swings when contact is imminent, so the trigger is now time-to-contact, and a ball
+    // gets a fixed budget of attempts rather than one per frame it happens to be nearby.
     if (sim.phase === 'rally' && mine) {
-      const d = Math.hypot(b.x - pl.x, b.z - pl.z);
-      if (b.z > HALF_L && b.y <= HIT_HEIGHT && b.y >= 0 && d <= START_REACH + 0.5) {   // swing once it's reachable on our side...
-        if (aiPressDelay > 0) aiPressDelay--; else aiPress();                          // ...but a human trigger finger is sometimes a frame or three late
+      if (sim.shotCount !== aiSwingShot) { aiSwingShot = sim.shotCount; aiSwingTries = 0; }
+      const pc = pcNow || aiPredictContact();
+      const imminent = pc && pc.t <= SWING_TIME * 0.6;
+      const reachable = b.z > HALF_L && b.y <= HIT_HEIGHT && b.y >= 0
+                        && Math.hypot(b.x - pl.x, b.z - pl.z) <= START_REACH + 0.5;
+      if (reachable && imminent && aiSwingTries < 2 && sim.swingTimer[1] <= 0) {
+        if (aiPressDelay > 0) aiPressDelay--; else { aiPress(); aiSwingTries++; }
       }
     }
   }
