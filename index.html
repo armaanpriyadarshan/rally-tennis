@@ -521,6 +521,8 @@ const SHOT = {
   smashMaxSp: 24,                     // a ball arriving faster than this is a reflex, not an overhead
   smashNetPut: 4.5,                   // inside this many metres of the net an overhead is a putaway; beyond, controlled
   dropMaxY: 1.75,                     // above shoulder height there is no drop shot to play
+  srvAccMul: 1.30,                    // global scale on serve placement scatter — this is the first-serve-in dial
+  dropMaxSpeed: 22,                   // ...nor off a ball arriving faster than this: nothing to absorb it with
   // ---- the block ----
   // Facing pace you have no time to organise for, the racket ABSORBS instead of redirecting. What comes
   // back is a fraction of what arrived and lands short — the one shot in tennis that cannot be hit hard.
@@ -700,6 +702,15 @@ function surfCat(tourIdx) { return (TOURNAMENTS[tourIdx] || TOURNAMENTS[0]).key;
 const SURFACE_NAME = { wim:'Grass', rg:'Clay', ao:'Hard', us:'Hard' };
 function surfaceName(tourIdx) { return SURFACE_NAME[surfCat(tourIdx)] || 'Hard'; }   // what the player is told: never a slam code
 function surfAdv(r, tourIdx) { return (r.surf && r.surf[surfCat(tourIdx)]) || 1; }   // arena advantage (>1 favoured, <1 weak)
+// ---- where each player likes to serve ----
+// Tour-wide, the T is the most used target and the body the least: the corners are where the free
+// points are, and a serve down the middle of the box is the one that gets attacked. Published splits
+// put a typical first-serve mix near T 45 / wide 35 / body 20, with second serves trading wide for
+// body. Individual preference is real and documented — Federer and Nadal lean on the T from the deuce
+// court, Djokovic mixes T and wide more evenly — so `wideBias` shades that mix per player (0 = lives
+// on the T, 1 = lives out wide, 0.5 = tour average). Anyone unlisted plays the tour average.
+const SERVE_BIAS = { Federer: 0.34, Nadal: 0.36, Djokovic: 0.52, Sampras: 0.42,
+                     Alcaraz: 0.48, Sinner: 0.45, McEnroe: 0.62, Laver: 0.55 };
 // resolve a roster entry + tournament into the flat object the sim/renderer read.
 // the 5 shown ratings (serve/forehand/backhand/return/footwork, 0-100) drive an ADVANCED derived model;
 // the player's favoured-surface advantage is folded into the derived numbers here.
@@ -715,6 +726,11 @@ function build(rIdx, tourIdx, form) {
            top:k.top, shorts:k.shorts, band:k.band, adv,
            skill: C1((r.ovr - 85)/13 + (adv-1)*0.8, 0, 1),   // AI decision quality from overall greatness: 0 = club … 1 = elite
            serveMax, serveMin: serveMax - 9.5,
+           // how tightly he hits his spot, in metres of lateral scatter. This is what decides both how
+           // often the corner actually gets painted and how often the serve misses — the two are the
+           // same number, which is why aiming the line has to be a real gamble.
+           srvAcc: L1(0.95, 0.42, N(r.serve)) / (1 + (adv - 1) * 0.5),
+           wideBias: SERVE_BIAS[r.name] != null ? SERVE_BIAS[r.name] : 0.5,
            spdTop: (r.spd || 205) * (1 + (adv - 1) * 0.20),   // real-world top serve speed, for the readout only
            speed:  L1(0.98, 1.26, N(r.foot)) * adv,
            fhPace: L1(0.86, 1.2, N(r.forehand)) * boost,
@@ -735,7 +751,7 @@ const gauss = () => (Math.random() + Math.random() + Math.random()) * 2 - 3;   /
 // ---- Networking / app state ----
 let peer = null, conn = null, isHost = false, myIndex = 0;
 let appState = 'menu';          // 'menu' | 'hosting' | 'joining' | 'playing'
-let soloMode = false, aiCd = 0, aiAimLat = 0, aiPrevSwing = false, aiApproachT = 0, aiServeH = 3.2, aiDropLag = 0, aiLastShot = -1, aiServeLat = 0, aiHumanPrevX = 0, aiHumanVx = 0, aiDropShot = false, aiScramble = false, aiGuessX = null, aiPrevPhase = '', aiLobShot = false;
+let soloMode = false, aiCd = 0, aiAimLat = 0, aiPrevSwing = false, aiApproachT = 0, aiServeH = 3.2, aiDropLag = 0, aiLastShot = -1, aiServeLat = 0, aiHumanPrevX = 0, aiHumanVx = 0, aiDropShot = false, aiScramble = false, aiGuessX = null, aiPrevPhase = '', aiLobShot = false, aiReadLag = 0;
 let aiServeHist = { wide: 1, body: 1, T: 1 };   // the CPU's running belief about where the human likes to serve
 let aiPercOff = { x: 0, z: 0 }, aiPercT = 0, aiPressDelay = 0;   // CPU perception: a noisy READ of the contact point (sharpens as the ball closes) + a late trigger finger
 let playerPrev = [null, null], runPhase = [0, 0], animClock = 0, frameDt = 1/60;
@@ -4747,7 +4763,12 @@ function doHit(p) {
   // overhead-height contact that failed the smash tests (too fast, not underneath it, got in behind
   // the shoulder) fell through to a groundstroke or volley and could still be dropped, which is where
   // the overhead drop shots were coming from.
-  const drop = aim.fwd < 0 && (ground || stroke === 'volley') && b.y < SHOT.dropMaxY;
+  // ...and not off a ball that is arriving hard. A drop shot is played by ABSORBING pace with a soft,
+  // open face and letting the ball die over the net — it is the most delicate contact in tennis, and
+  // there is no version of it that works against a ball driven at you. (The CPU already refused to try
+  // one off a fast ball; the human had no such limit.)
+  const drop = aim.fwd < 0 && (ground || stroke === 'volley')
+               && b.y < SHOT.dropMaxY && inSpeed < SHOT.dropMaxSpeed;
   const aiFeeder = soloMode && p === 1 && sim.aiLobNext && ground;             // CPU feeds you a smash
   // Facing an opponent at the net you have two real answers: loft it OVER them, or
   // drive it PAST them. The pass is the aggressive one and needs a clean contact --
@@ -4957,8 +4978,24 @@ function doServe() {
   // Handedness mirrors the whole serve. A lefty's natural action carves the ball the
   // other way, so both the spot he favours and the way the ball bends invert.
   const hand = sv.lefty ? -1 : 1;
-  let tx = tSign*1.3 + latSign*lat*2.4 + hand*latSign*0.45*p;   // ←/→ places it wide / body / T (stays in the singles box)
-  tx = tSign > 0 ? clamp(tx, 0.2, SINGLES_HALF-0.2) : clamp(tx, -(SINGLES_HALF-0.2), -0.2);
+  // ---- placement: aim at a SPOT, then miss it by however much this server misses by ----
+  // The old formula built the target additively and then clamped it into the box, which had two
+  // consequences that between them made serving inert. The clamp guaranteed every serve was legal
+  // sideways, so 88% of first serves went in against a real 62%; and with no scatter at all the ball
+  // went exactly where the formula said, which was a median of 21% of the way to the sideline. The
+  // corner was never painted, so it was never missed either, and returning was never a problem.
+  //
+  // A serve is now aimed at a named spot — T, body, or wide — and then MISSED by a per-player amount.
+  // That single number decides how often the line gets painted and how often the serve goes long or
+  // wide, because in tennis those are the same act. A poorly timed one scatters much further.
+  const zoneNorm = (soloMode && sim.server === 1 && sim.aiServeNorm != null)
+        ? sim.aiServeNorm                                          // the CPU picks a real spot, not a ±1 nudge
+        : clamp(0.46 + latSign * lat * tSign * 0.44, 0.05, 0.95);  // ←/→ walks the target from the T out to the line
+  const scatter = sv.srvAcc * SHOT.srvAccMul * lerp(1.75, 1.0, p) * (sim.serveNum === 2 ? 0.72 : 1);   // a mistimed serve sprays; a second serve is hit to a bigger target
+  let tx = tSign * zoneNorm * SINGLES_HALF + gauss() * scatter + hand * latSign * 0.30 * p;
+  // No clamp back into the box: aiming the line has to be able to miss it. The only guard is that a
+  // serve cannot end up in the wrong service box by more than a hair — that would be a different shot.
+  tx = tSign > 0 ? Math.max(tx, -0.25) : Math.min(tx, 0.25);
   const dist = Math.hypot(tx - b.x, tz - b.z) || 1;
   const T = serveFlightT(y0, b.z, tz, dist, s);
   const ax = -hand * latSign * 6.0 * (0.45 + 0.55*p);          // the slice, stronger on a well-struck ball
@@ -5329,6 +5366,7 @@ const AI = {
   skillFloor: 0.90,   // decision-making floor: open-court placement, net play, serve corners
   dropBias:   1.0,    // multiplier on the drop-shot attempt rate vs a deep-camping opponent
   scramble:   0.85,   // footspeed while turning to chase a lob over its head (replaces `speed` — no elite burst backwards)
+  readLag0:   0.34, readLag1: 0.23,   // returner's reading beat (low skill → high skill), seconds
   retX:       2.0,    // return stance: metres toward the box being served into (bisects the wide/T angles)
   retZ:       0.45,   // return stance: metres BEHIND the baseline — buys reaction time on big first serves
 };
@@ -5411,6 +5449,7 @@ function aiPredictContact() {
 function aiThink() {
   if (!sim) return;
   if (aiCd > 0) aiCd -= STEP;
+  if (aiReadLag > 0) aiReadLag -= STEP;   // the returner's reading beat runs down in real time
   if (aiApproachT > 0) aiApproachT -= STEP;
   if (aiDropLag > 0) aiDropLag -= STEP;
 
@@ -5423,13 +5462,20 @@ function aiThink() {
   if (sw && !aiPrevSwing) aiDecideShot();                     // fallback (serve swings) — rally swings decide inside startSwing
   aiPrevSwing = sw;
 
-  // serve return works on a THESIS: at the strike the CPU commits to a guess — weighted by where the human
-  // has actually been serving — flies that way, and only corrects once the ball is readable. Right guess =
-  // clean return; wrong guess vs a big wide serve = beaten. Spam one corner and it starts camping there.
+  // Serve return works on a THESIS: at the strike the CPU leans one way — weighted by where the human
+  // has actually been serving — and then reads the ball. Spam one corner and it starts camping there.
+  //
+  // What the lean costs is TIME, not the point. It used to be held until the ball crossed the net,
+  // which had it backwards: a slow serve takes longer to arrive, so the CPU spent longer running the
+  // wrong way and could end up beaten by a weak serve it had every chance of reaching. Now the lean
+  // lasts a fixed reading beat — the split-step and the read, ~0.2 s — after which it tracks the real
+  // ball. Whether it gets there is then decided by how far it has to go and how fast the ball is,
+  // which is to say by where the serve was actually placed.
   if (sim.phase === 'serve' && aiPrevPhase !== 'serve' && sim.server === 0) {
     const h = aiServeHist, r = Math.random() * (h.wide + h.body + h.T);
     const kind = r < h.wide ? 'wide' : r < h.wide + h.body ? 'body' : 'T';
-    aiGuessX = sim.serveTargetSignX * (kind === 'wide' ? 4.4 : kind === 'body' ? 2.2 : 0.5);
+    aiGuessX = sim.serveTargetSignX * (kind === 'wide' ? 3.9 : kind === 'body' ? 2.0 : 0.5);
+    aiReadLag = lerp(AI.readLag0, AI.readLag1, skill) + Math.random() * 0.06;                           // the beat spent reading it
     aiPercT = 0;                                                                         // fresh ball → fresh (noisy) read once it's readable
     aiPressDelay = Math.random() < lerp(0.45, 0.15, skill) ? 1 + Math.floor(Math.random() * 3) : 0;
   } else if (sim.phase === 'rally' && aiPrevPhase === 'serve' && sim.shotCount === 1) {
@@ -5459,8 +5505,23 @@ function aiThink() {
   if (sim.server === 1 && (sim.phase === 'ready' || sim.phase === 'toss')) {
     if (sim.phase === 'ready') {
       aiServeH = 3.15 + Math.random() * 0.55;                                            // strike high & near the toss peak → consistently big, accurate serves (still some variety)
-      const sr = Math.random(), corner = lerp(0.4, 0.9, skill), tSign = sim.serveTargetSignX || 1;
-      aiServeLat = sr < corner * 0.55 ? -tSign : sr < corner ? tSign : 0;                // out wide / down-the-T / body
+      // Pick a real SPOT from this server's own mix rather than a ±1 nudge. T is the most used
+      // target and the body the least, second serves trade wide for body, and `wideBias` shades the
+      // split per player. The chosen spot is then hit as accurately as he hits it — a Sampras paints
+      // the line a Borg cannot, off the same decision.
+      const sv2 = PLAYERS[1] || PLAYERS[0], wb = sv2.wideBias != null ? sv2.wideBias : 0.5;
+      const second = sim.serveNum === 2;
+      let pT   = second ? 0.46 : 0.45;
+      let pWide = (second ? 0.20 : 0.35) * lerp(0.55, 1.55, wb);
+      let pBody = Math.max(0.05, 1 - pT - pWide);
+      const rr2 = Math.random() * (pT + pWide + pBody);
+      const zone = rr2 < pT ? 'T' : rr2 < pT + pWide ? 'wide' : 'body';
+      // a second serve is hit to a safer version of the same spot, not to a different one
+      const inset = second ? 0.12 : 0;
+      sim.aiServeNorm = zone === 'T'   ? 0.10 + inset + Math.random() * 0.09
+                      : zone === 'wide' ? 0.90 - inset - Math.random() * 0.09
+                      :                   0.46 + (Math.random() - 0.5) * 0.16;
+      aiServeLat = 0;
       aiPress();                                                                          // toss
     } else {
       if (b.y >= aiServeH || (b.vy < 0 && b.y <= aiServeH - 0.2)) aiPress();              // strike at the chosen height
@@ -5478,8 +5539,8 @@ function aiThink() {
       // the sharper the possible cross angle, so shade the stance further toward the alley
       tx = sim.serveTargetSignX * Math.min(Math.round((AI.retX + 0.35 * Math.abs(human.x)) * 2) / 2, 4.0);   // quantized so the CPU doesn't micro-mirror the server's shuffle
       tz = L + AI.retZ;                                                                    // toes behind the baseline, ready to move on the serve
-    } else if (aiGuessX != null && sim.phase === 'serve' && b.z < HALF_L + lerp(1.5, 0.5, skill)) {
-      tx = aiGuessX; tz = L + AI.retZ;                                                     // committed to the thesis until the serve actually CROSSES the net — a wrong guess is genuinely beaten
+    } else if (aiGuessX != null && sim.phase === 'serve' && aiReadLag > 0) {
+      tx = aiGuessX; tz = L + AI.retZ;                                                     // leaning on the thesis for the reading beat — a wrong lean costs that time, not the point
     } else if (incoming && aiDropLag <= 0) {
       const pc = aiPredictContact();                                                      // its READ of the contact point — noisy, and re-sampled as the ball closes
       if ((aiPercT -= STEP) <= 0) {
