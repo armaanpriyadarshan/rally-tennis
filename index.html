@@ -477,7 +477,12 @@ const SHOT = {
   errBase: 0.10, errFR: 0.08,         // residual shank coin: errP = (1−q)·errBase + faultRisk·errFR (placement scatter carries the rest)
   moonHard: 0.62, moonSetq: 0.48,     // moonball reflex: incoming pace above moonHard while setup below moonSetq
   moonQ: 0.14,                        // ...or any contact this poor (on the qNorm scale), at any pace
-  moonG: 1.9, moonT: 1.15,            // moonball arc: gravity mult (below a lob's 2.4 so the bounce stays takeable) and flight time
+  // The moonball had the NAME of the shot and none of its physics: struck from a metre up it peaked
+  // at 3.6 m with 1.15 s of hang, which is a slightly loopy rally ball. The whole point of throwing
+  // one up is the time it buys — it has to climb well out of reach and stay there long enough to walk
+  // back into the point, and to come down steeply enough that the bounce sits up. ~6 m and ~1.9 s.
+  moonG: 1.30, moonT: 1.85,           // moonball arc: gravity multiplier and flight time
+  lobG0: 1.85, lobG1: 2.10, lobT: 1.60,   // ...and the lob, which was only clearing 5.3 m over a net player
   scoopPen: 0.12, spinPen: 0.10, wingPen: 0.06, runPen: 0.24, qNewCap: 0.28,   // newer difficulty factors; their sum is capped
   // ---- contact window: how far off the body the ball may pass before the swing is compromised ----
   // The strike zone has to be small RELATIVE TO REACH or positioning stops meaning anything: lateral
@@ -507,6 +512,7 @@ const SHOT = {
   smashLat: 0.95, smashBehind: 0.55,  // ...and you have to be under it, not beside it or leaning back
   smashMaxSp: 24,                     // a ball arriving faster than this is a reflex, not an overhead
   smashNetPut: 4.5,                   // inside this many metres of the net an overhead is a putaway; beyond, controlled
+  dropMaxY: 1.75,                     // above shoulder height there is no drop shot to play
   // ---- the block ----
   // Facing pace you have no time to organise for, the racket ABSORBS instead of redirecting. What comes
   // back is a fraction of what arrived and lands short — the one shot in tennis that cannot be hit hard.
@@ -4509,10 +4515,11 @@ function wingOf(idx, b) {
 // a different shot: a block out of the air, a high groundstroke off the bounce.
 function canSmash(idx, b) {
   const p = sim.players[idx];
-  // A drop shot and an overhead are opposite intentions, and the ball being high was quietly settling
-  // the argument. They are mutually exclusive, so whichever one the player pressed wins.
-  const aim = sim.aim[idx];
-  if (aim && aim.fwd < 0) return false;
+  // A drop shot and an overhead are mutually exclusive, and the OVERHEAD is the one that wins. Letting
+  // the drop key suppress the smash did stop the two happening at once, but it bought that by making
+  // the other nonsense possible: a delicate drop shot played off a ball above the head, which is not a
+  // shot. Height decides. What stops a drop from being played here is the height gate on `drop` in
+  // doHit, not a veto on the overhead.
   if (b.y < SHOT.smashY) return false;                           // not above the head: not an overhead
   if (b.vy > 0.6) return false;                                  // still climbing — you cannot get under a rising ball
   const lat = Math.abs(b.x - p.x);
@@ -4612,8 +4619,9 @@ function lobVel(aim, idx, b, q) {
   tx += gauss() * lerp(1.3, 0.4, qq);
   tz += gauss() * lerp(1.5, 0.5, qq) * dir;
   const y0 = Math.max(b.y, 0.35);
-  // forward opponent → a HIGH arc (peaks ~4.8–5.3 m, always above smash reach) that still gets there fast, then dips in hard
-  const T = 1.25, gLob = G * lerp(2.4, 2.65, fwd);
+  // forward opponent → a HIGH arc, well above anything a net player can reach, that still dips in hard
+  // behind them. It used to peak around 5.3 m, which reads as a deep drive rather than a lob.
+  const T = SHOT.lobT, gLob = G * lerp(SHOT.lobG0, SHOT.lobG1, fwd);
   return { vx: (tx-b.x)/T, vz: (tz-b.z)/T, vy: (-y0)/T + 0.5*gLob*T, gAcc: gLob };
 }
 // CPU "feeder": a high ball aimed PAST your baseline, so it arrives at you around head height —
@@ -4726,7 +4734,13 @@ function doHit(p) {
   const pl = sim.players[p], opp = sim.players[1 - p];
   const oppNetDist = Math.abs(opp.z - HALF_L);
   const ground = (stroke === 'forehand' || stroke === 'backhand');
-  const drop = aim.fwd < 0 && (ground || stroke === 'volley');                 // ↓ = dropshot
+  // ↓ = dropshot, but only from a height you could actually play one from. A drop is a touch shot
+  // taken around waist or chest height, where the racket can be got under the ball and the pace
+  // absorbed. Off a ball above the shoulder there is no such shot -- and without this gate any
+  // overhead-height contact that failed the smash tests (too fast, not underneath it, got in behind
+  // the shoulder) fell through to a groundstroke or volley and could still be dropped, which is where
+  // the overhead drop shots were coming from.
+  const drop = aim.fwd < 0 && (ground || stroke === 'volley') && b.y < SHOT.dropMaxY;
   const aiFeeder = soloMode && p === 1 && sim.aiLobNext && ground;             // CPU feeds you a smash
   // Facing an opponent at the net you have two real answers: loft it OVER them, or
   // drive it PAST them. The pass is the aggressive one and needs a clean contact --
@@ -4841,10 +4855,23 @@ function doHit(p) {
     if (soloMode && p === 1) errP *= AI.errMul;                     // the CPU rarely sprays an unforced error
     if (Math.random() < errP) {                               // unforced error
       const r2 = Math.random();
-      // A framed ball has to lose the clearance the shot was aiming for, not a fixed 2 m/s. Once poor
-      // contacts were given a real arc, a flat subtraction stopped putting anything in the net — shanks
-      // sailed safely over instead and the unforced-error rate quietly collapsed to a third of itself.
-      if (r2 < 0.60) { v.vy -= SHOT.shankVy + SHOT.shankArc * Math.max(0, v.vy); v.vz *= 0.85; }   // framed into the net
+      // A ball put into the net has to FAIL AT THE NET, so the lift is solved for: whatever gets it
+      // to the tape at a height just under the band. Subtracting a lump of vertical speed instead --
+      // a share of the arc the shot wanted, on top of a flat 2 m/s -- works out as 0.45·vy − 2.0,
+      // which is NEGATIVE for any vy below 4.4 m/s, and most shots are below that. The ball left the
+      // racket travelling downwards and buried itself in the hitter's own half several metres short
+      // of the net, hitting the ground before it ever reached the thing it was supposed to hit.
+      if (r2 < 0.60) {
+        v.vz *= 0.85;
+        const y0s = Math.max(b.y, 0.35), tNet = (HALF_L - b.z) / v.vz;
+        if (tNet > 0.06) {
+          const tape = netHeightAt(b.x + v.vx * tNet);
+          const arrive = tape * (0.30 + Math.random() * 0.58);   // into the band, low to mid — a netted ball
+          v.vy = (arrive - y0s) / tNet + 0.5 * gAcc * tNet;
+        } else {
+          v.vy -= SHOT.shankVy;                                  // already on top of the tape: just kill the lift
+        }
+      }
       else if (r2 < 0.85) v.vz *= 1.13;                        // sails long, past the baseline
       else v.vx *= 1.22;                                       // sprays wide of the sideline
     }
