@@ -521,9 +521,10 @@ const SHOT = {
   smashMaxSp: 24,                     // a ball arriving faster than this is a reflex, not an overhead
   smashNetPut: 4.5,                   // inside this many metres of the net an overhead is a putaway; beyond, controlled
   dropMaxY: 1.75,                     // above shoulder height there is no drop shot to play
-  srvAccMul: 1.30,                    // global scale on serve placement scatter — this is the first-serve-in dial
-  srvSprayBad: 2.60, srvSprayGood: 0.30,   // scatter multiplier at worst → best toss timing
-  srvCornerT: 0.03, srvCornerW: 0.97,      // how close to the lines a FIRST serve dares aim (0 = centre line, 1 = sideline)
+  srvAccMul: 1.0,                     // global scale on serve placement scatter
+  srvDepth: 0.97, srvDepthSig: 0.145,      // how deep into the box a serve is aimed, and its depth spread
+  srvDepth2nd: 0.15,                       // ...and how much shorter a second serve is played, so it lands
+  srvCornerT: 0.10, srvCornerW: 0.90,      // how close to the lines a FIRST serve dares aim (0 = centre line, 1 = sideline)
   srvSafe2nd: 0.24,                        // ...and how far inside those a second serve is played
   dropMaxSpeed: 22,                   // ...nor off a ball arriving faster than this: nothing to absorb it with
   // ---- the block ----
@@ -729,10 +730,10 @@ function build(rIdx, tourIdx, form) {
            top:k.top, shorts:k.shorts, band:k.band, adv,
            skill: C1((r.ovr - 85)/13 + (adv-1)*0.8, 0, 1),   // AI decision quality from overall greatness: 0 = club … 1 = elite
            serveMax, serveMin: serveMax - 9.5,
-           // how tightly he hits his spot, in metres of lateral scatter. This is what decides both how
-           // often the corner actually gets painted and how often the serve misses — the two are the
-           // same number, which is why aiming the line has to be a real gamble.
-           srvAcc: L1(0.95, 0.42, N(r.serve)) / (1 + (adv - 1) * 0.5),
+           // metres of lateral spread around the spot he aimed at — his precision, full stop. It does
+           // not move with how well he caught the toss: that is pace. This is what makes aiming the
+           // line a real gamble and a safer target reliable.
+           srvAcc: L1(0.44, 0.17, N(r.serve)) / (1 + (adv - 1) * 0.5),
            wideBias: SERVE_BIAS[r.name] != null ? SERVE_BIAS[r.name] : 0.5,
            spdTop: (r.spd || 205) * (1 + (adv - 1) * 0.20),   // real-world top serve speed, for the readout only
            speed:  L1(0.98, 1.26, N(r.foot)) * adv,
@@ -4977,7 +4978,15 @@ function doServe() {
   const sv = PLAYERS[sim.server];
   const s = lerp(sv.serveMin, sv.serveMax, p);     // 2nd-serve pace → 1st-serve pace; Federer tops out higher
   const lineZ = sim.receiver === 0 ? SERVICE_NEAR : SERVICE_FAR;   // back of the service box
-  const tz = lerp(HALF_L, lineZ, clamp(lerp(0.58, 0.96, p) + (Math.random()*0.24 - 0.09), 0.42, 1.0));   // deeper with power, plus natural depth spread
+  // Depth is AIMED, not a by-product of how well the toss was caught: a serve is struck deep into the
+  // box and lands around there, give or take this server's precision. Tying it to contact quality made
+  // timing a second placement control, which it should not be — timing is pace and nothing else.
+  // A second serve is played shorter as well as narrower. Giving it lateral margin but aiming it as
+  // deep as a first serve left it going long, and the double fault rate ran to 15% of points against
+  // a real 3-5%: the margin has to be in both directions or it isn't margin.
+  const depthAim = SHOT.srvDepth - (sim.serveNum === 2 ? SHOT.srvDepth2nd : 0);
+  const depthJit = gauss() * SHOT.srvDepthSig * (sv.srvAcc / 0.30) * (sim.serveNum === 2 ? 0.85 : 1);
+  const tz = lerp(HALF_L, lineZ, clamp(depthAim + depthJit, 0.40, 1.14));   // >1 is long: the deep fault
   // Handedness mirrors the whole serve. A lefty's natural action carves the ball the
   // other way, so both the spot he favours and the way the ball bends invert.
   const hand = sv.lefty ? -1 : 1;
@@ -4988,24 +4997,20 @@ function doServe() {
   // went exactly where the formula said, which was a median of 21% of the way to the sideline. The
   // corner was never painted, so it was never missed either, and returning was never a problem.
   //
-  // A serve is now aimed at a named spot — T, body, or wide — and then MISSED by a per-player amount.
-  // That single number decides how often the line gets painted and how often the serve goes long or
-  // wide, because in tennis those are the same act. A poorly timed one scatters much further.
+  // A serve is aimed at a named spot — T, body, or wide — and then missed by a small, FIXED amount
+  // that belongs to the server, not to how he caught the toss. Timing decides pace and only pace.
+  //
+  // It has been wrong in both directions. First the target was clamped into the box with no scatter
+  // at all, so the corner was never painted and never missed: 88% of first serves in and every T and
+  // body serve returned. Then the scatter was made to scale with contact quality, which turned the
+  // toss into a second aiming control and left even a perfect strike landing ~0.9 m off target — the
+  // serve stopped answering the player. Aim decides where it goes; a fixed spread decides by how much
+  // it misses; the risk lives in how close to the line you choose to aim.
   const zoneNorm = (soloMode && sim.server === 1 && sim.aiServeNorm != null)
         ? sim.aiServeNorm                                          // the CPU picks a real spot, not a ±1 nudge
         : clamp(0.46 + latSign * lat * tSign * 0.44, 0.05, 0.95);  // ←/→ walks the target from the T out to the line
-  // Accuracy is EARNED WITH TIMING, and steeply. Scaling the spray gently with contact quality meant
-  // even a perfectly struck serve scattered by ~0.9 m — a quarter of the box — so aiming a spot did
-  // almost nothing and the serve felt like it had a mind of its own. Random error on a shot the player
-  // is actively aiming reads as broken controls, not as difficulty. Time the toss well and the ball
-  // goes where you sent it; mistime it and it sprays, which is a risk you chose rather than one
-  // applied to you. The server's rating sets how wide that window is.
-  // Flat across the top of the timing window and steep at the bottom: a decently timed serve goes
-  // roughly where you aimed, and only a genuinely mistimed one sprays.
-  const miss = 1 - p;
-  const spray = SHOT.srvSprayGood + (SHOT.srvSprayBad - SHOT.srvSprayGood) * miss * miss;
-  const scatter = sv.srvAcc * SHOT.srvAccMul * spray * (sim.serveNum === 2 ? 0.80 : 1);
-  let tx = tSign * zoneNorm * SINGLES_HALF + gauss() * scatter + hand * latSign * 0.30 * p;
+  const scatter = sv.srvAcc * SHOT.srvAccMul * (sim.serveNum === 2 ? 0.85 : 1);   // a second serve is hit with more shape and lands tighter
+  let tx = tSign * zoneNorm * SINGLES_HALF + gauss() * scatter + hand * latSign * 0.22;
   // No clamp back into the box: aiming the line has to be able to miss it. The only guard is that a
   // serve cannot end up in the wrong service box by more than a hair — that would be a different shot.
   tx = tSign > 0 ? Math.max(tx, -0.25) : Math.min(tx, 0.25);
@@ -5017,7 +5022,8 @@ function doServe() {
   b.ax = ax;
   b.vx = (tx - b.x)/T - 0.5*ax*T; b.vz = (tz - b.z)/T; b.vy = (-y0)/T + 0.5*G*T; b.gAcc = G; b.spin = 0.10;   // a serve is struck flat with a little slice; it skids rather than kicks
   if (y0 < 1.5) { b.vy *= 0.55; b.vz *= 0.8; }     // only a really early/low jab dies in the net (fault)
-  else if (sim.serveNum === 1 && p > 0.6 && Math.random() < 0.18) b.vz *= 1.045;  // a big first serve occasionally sails just long
+  // (a "big serves sail long" coin used to live here; depth is aimed and scattered now, so the deep
+  //  fault comes out of that instead of out of how hard the ball was hit)
   // The readout is calibrated to real serve speeds, not to the ball's in-game velocity:
   // SPEED_KMH exists precisely because the ball flies slower than life so the game is
   // playable. Driving the number off each player's real top speed keeps the board honest
