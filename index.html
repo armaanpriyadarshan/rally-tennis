@@ -521,7 +521,6 @@ const SHOT = {
   smashMaxSp: 24,                     // a ball arriving faster than this is a reflex, not an overhead
   smashNetPut: 4.5,                   // inside this many metres of the net an overhead is a putaway; beyond, controlled
   dropMaxY: 1.75,                     // above shoulder height there is no drop shot to play
-  overheadCallY: 1.75,                // ...and a winner struck from up there is called an overhead, whatever stroke played it
   srvAccMul: 1.0,                     // global scale on serve placement scatter
   srvDepth: 0.97, srvDepthSig: 0.145,      // how deep into the box a serve is aimed, and its depth spread
   srvDepth2nd: 0.15,                       // ...and how much shorter a second serve is played, so it lands
@@ -5100,10 +5099,14 @@ function rallyBounce() {
     // Name the shot that won the point rather than calling everything a clean winner.
     // Everything needed was remembered at the moment of contact -- NOT read back off
     // sim.stroke, which by now belongs to whoever swung at the ball last.
-    // Anything put away from above the shoulder is an OVERHEAD, whatever branch of the stroke model
-    // it happened to take. Naming it off the smash flag instead tied the call to whether a full
-    // overhead swing was available, which is a mechanics question, not a description of the shot.
-    const overhead = sim.lastShotType === 'smash' || (sim.lastHitY || 0) >= SHOT.overheadCallY;
+    // An overhead is struck from above the HEAD, and smashY is already where this file puts that line.
+    // The call keys off the same number as the stroke, so the two cannot drift apart -- naming it off a
+    // separate shoulder-height threshold meant two thirds of "overhead winners" were shoulder-high
+    // volleys and forehands, which are high shots, not overheads. What the height test still buys over
+    // reading the smash flag is the ball struck from up there that FAILED the overhead tests (arriving
+    // too fast, or not quite underneath it) and got played as a volley or a drive: that is an overhead
+    // by any description, and it is the only reason this is a height test rather than a flag.
+    const overhead = sim.lastShotType === 'smash' || (sim.lastHitY || 0) >= SHOT.smashY;
     const reason = ace                      ? 'ace'
                  : sim.lastHitWasDrop       ? 'drop'
                  : sim.lastHitWasLob        ? 'lob'
