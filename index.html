@@ -461,15 +461,53 @@ const HALF_W = 5.485, L = 23.77, HALF_L = 11.885;   // doubles: 10.97 m wide, 23
 const SERVICE_NEAR = 5.485, SERVICE_FAR = 18.285;   // service lines 6.40 m either side of the net
 const NET_H = 0.914;
 const G = 9.8, REST = 0.73, FRICT = 0.68;           // real tennis-ball bounce (~73% on hard court; ~32% of horizontal speed goes into the court)
-// ONE conversion from the ball's own speed to the number on the board, used by every speed the game
-// shows. There used to be two: the serve board read off a player's TOP speed and the shot board
-// multiplied the ball's velocity by a different constant, so a serve and a groundstroke showing the
-// same number were moving at visibly different speeds -- and a second serve was displayed 16% slower
-// while actually leaving the racket just as fast. The ball deliberately flies slower than life so the
-// game is playable, and this is the single factor that maps it back. It is calibrated so the two
-// anchors land together: an ATP first serve averages ~190 km/h and an ATP forehand ~117, and the
-// sim's own serve-to-groundstroke ratio already matches the real one, so one number does both.
-const SPEED_KMH = 5.3;
+// The board shows the ball's REAL speed. There is no scale factor any more: a serve that reads
+// 190 km/h crosses the court at 190 km/h. That only works because the ball now flies through air --
+// see DRAG. Without drag a game has to choose between honest numbers and a playable tempo, because a
+// tennis ball leaves the racket at ~32 m/s and arrives at ~21, and a game with no air has to pick
+// one of those two speeds and live with it. This one launches at the first and arrives at the second.
+const SPEED_KMH = 3.6;
+// Quadratic air drag on a tennis ball: a = DRAG * |v| * v, with DRAG = 0.5*rho*Cd*A/m
+// (rho 1.21, Cd 0.55, radius 33.5 mm, mass 57 g). This is the single biggest thing separating a
+// tennis ball's flight from a thrown rock: it sheds roughly a third of its speed on the way across.
+const DRAG = 0.0206;
+// How much faster than the flat-earth average a shot has to LEAVE to still cover d metres in the
+// same flight time once drag is taken out of it. Integrating dx/dt = v0*e^(-k*x) gives
+// T = (e^(k*d) - 1)/(k*v0), so the launch starts this much quicker and decays back to the average --
+// which is why the flight times, and therefore the rally's tempo, are unchanged by any of this.
+function dragBoost(d) { const kd = DRAG * Math.max(0.5, d); return Math.expm1(kd) / kd; }
+// Launch velocity that actually puts the ball on (tx,tz) in about `T` seconds THROUGH AIR, plus how
+// high it crossed the net on the way. The horizontal part is exact -- that is what dragBoost solves.
+// The vertical has no closed form once drag is pulling on it as well as gravity, and the error is
+// not small: left uncorrected a groundstroke lands the best part of a metre short and crosses the
+// tape with a third of the clearance the shot was supposed to have. So the loft is solved against
+// the flight it actually produces, which takes three or four steps from the flat-earth guess.
+function launchThroughAir(x0, y0, z0, tx, tz, T, gAcc, ax, dir) {
+  const kick = dragBoost(Math.hypot(tx - x0, tz - z0));
+  const vx0 = ((tx - x0) / T - 0.5 * (ax || 0) * T) * kick, vz0 = (tz - z0) / T * kick;
+  let vy = (-y0) / T + 0.5 * gAcc * T;
+  let landZ = tz, netY = null;
+  for (let it = 0; it < 5; it++) {
+    let y = y0, z = z0, vx = vx0, vyl = vy, vz = vz0; netY = null;
+    const h = 1 / 60;
+    for (let i = 0; i < 200 && y > 0; i++) {
+      const sp = Math.hypot(vx, vyl, vz), kd = DRAG * sp * h;
+      vx -= vx * kd; vyl -= vyl * kd; vz -= vz * kd;
+      const pz = z; z += vz * h; vyl -= gAcc * h; y += vyl * h;
+      if (netY === null && (pz - HALF_L) * (z - HALF_L) < 0) netY = y;
+    }
+    landZ = z;
+    const long = (z - tz) * dir;                 // + = it went past the target
+    if (Math.abs(long) < 0.06) break;
+    vy -= long * 0.40;                           // more loft carries it further; less brings it back
+  }
+  // Belt and braces: a solver that returns a NaN would put the ball nowhere and take the match with
+  // it, so anything not finite falls back to the plain flat-earth launch.
+  if (!isFinite(vx0) || !isFinite(vy) || !isFinite(vz0)) {
+    return { vx: (tx - x0) / T, vy: (-y0) / T + 0.5 * gAcc * T, vz: (tz - z0) / T, netY: null, landZ: tz };
+  }
+  return { vx: vx0, vy, vz: vz0, netY, landZ };
+}
 const PLAYER_SPEED = 4.4, REACH = 1.6;              // realistic on-court footspeed; REACH only gates the joiner's cosmetic hit prediction
 // tighter reach so positioning matters — you can no longer cover the whole court
 const SWING_TIME = 0.28, START_REACH = 2.8, CONTACT_REACH = 1.6, HIT_HEIGHT = 3.9, BUFFER_TIME = 0.22;
@@ -519,7 +557,11 @@ const SHOT = {
   // Height is not decoration. A ball you are late on has to be lifted; a clean one can be driven flat
   // over the tape. Driving clearance off q (and off how much spin the player actually hits with) is
   // what makes a stretched reply LOOK stretched.
-  arcBad: 1.20, arcGood: 0.32,        // groundstroke net clearance (m) at qNorm 0 → 1
+  // Groundstroke net clearance (m) at qNorm 0 -> 1. Retuned for a ball that flies through air: the
+  // old numbers were set against a drag-free flight where the solver overshot its own margin and the
+  // ball ended up crossing a metre and a half above the tape. Solved honestly, the same numbers gave
+  // a third of that. These put the real clearance back at the 0.8-1.4 m a topspin rally ball has.
+  arcBad: 1.70, arcGood: 0.66,
   arcVolBad: 1.05, arcVolGood: 0.20,  // the same for a volley: a stretched stab pops up
   arcSmashBad: 0.70, arcSmashGood: 0.06,   // and for an overhead, which is otherwise struck flat at the feet
   spinArc0: 0.75, spinArc1: 1.55,     // clearance multiplier from flat (topspinG 1.0) to heavy (1.62)
@@ -757,7 +799,7 @@ function build(rIdx, tourIdx, form) {
   const r = ROSTER[rIdx] || ROSTER[0], k = kitFor(r, tourIdx);
   const adv = surfAdv(r, tourIdx) * (1 + (form || 0) * FORM_ADV);
   const boost = 1 + (adv - 1) * 0.6;                          // softened advantage for the touch stats
-  const serveMax = L1(31, 43, N(r.serve)) * (1 + (adv - 1) * 0.35);
+  const serveMax = L1(37, 51, N(r.serve)) * (1 + (adv - 1) * 0.35);   // real launch speeds: the board is honest now
   return { name:r.name, skin:r.skin, hair:r.hair, rk:r.rk || { frame:'#2c40a6', grip:'#23272f', string:'#ffffff', head:1 }, sleeveless:!!r.sleeveless, capri:!!r.capri, longHair:!!r.longHair, lefty:!!r.lefty, oneHandBh:!!r.oneHandBh, lassoFh:!!r.lassoFh,
            top:k.top, shorts:k.shorts, band:k.band, adv,
            skill: C1((r.ovr - 85)/13 + (adv-1)*0.8, 0, 1),   // AI decision quality from overall greatness: 0 = club … 1 = elite
@@ -4518,6 +4560,8 @@ function setNotice(t, dur) { sim.notice = t; sim.noticeTimer = dur; }
 // is why a lefty's wide serve opens up the opposite corner.
 function integrate(b, dt) {
   b.vx += (b.ax || 0)*dt;
+  const sp = Math.hypot(b.vx, b.vy, b.vz), kd = DRAG * sp * dt;   // air, opposing the direction of travel
+  b.vx -= b.vx*kd; b.vy -= b.vy*kd; b.vz -= b.vz*kd;
   b.x += b.vx*dt; b.z += b.vz*dt; b.vy -= (b.gAcc || G)*dt; b.y += b.vy*dt;
 }
 // The courtside wall is solid: a ball that sails long or wide hits it and drops,
@@ -4677,7 +4721,7 @@ function shotVel(aim, idx, b, stroke, gAcc, speedFactor, exec) {
     // Flight time IS pace, and pace IS arc: a ball that takes longer to cover the same 21 m has to be
     // launched higher to get there, so slowing the rally ball down loops it. A real rally ball clears
     // the tape by roughly 0.4 m flat to 1.5 m with heavy spin, and that only holds at real pace.
-    baseT = (deep ? 0.86 : 0.96) - Math.random() * 0.16;
+    baseT = (deep ? 0.70 : 0.78) - Math.random() * 0.13;   // an ATP forehand leaves at ~117 km/h
     // ...and then by the one thing the model was ignoring: how HIGH the ball was when you hit it.
     // This is not a preference, it is geometry. Meet the ball at 0.35 m and the net is above your
     // contact point: the only ball that gets over is one you lift, so it leaves slower, climbs, and
@@ -4717,20 +4761,16 @@ function shotVel(aim, idx, b, stroke, gAcc, speedFactor, exec) {
     tz = idx === 0 ? Math.max(tz, HALF_L + 0.25) : Math.min(tz, HALF_L - 0.25);   // never onto our own side
   }
   // pick the fastest flight time whose (spin-affected) arc still clears the net by `margin`
-  let T = baseT;
+  let T = baseT, sol = null;
   // the search has to be able to REACH the clearance now being asked for: a heavily-lifted defensive
   // ball wants close to a second of extra hang time, and stopping short of it silently flattened the
   // very shots the arc model exists to make visible
-  for (let k = 0; k < 30; k++) {
-    T = baseT + k*0.05;
-    const vy = (-y0)/T + 0.5*gAcc*T, vz = (tz-b.z)/T;
-    if (Math.abs(vz) < 1e-3) break;
-    const tNet = (HALF_L - b.z)/vz;
-    if (tNet <= 0 || tNet >= T) break;            // net isn't ahead of this shot
-    const yNet = y0 + vy*tNet - 0.5*gAcc*tNet*tNet;
-    if (yNet >= NET_H + margin) break;            // clears with margin
+  for (let k = 0; k < 16; k++) {
+    T = baseT + k*0.06;
+    sol = launchThroughAir(b.x, y0, b.z, tx, tz, T, gAcc, 0, dir);
+    if (sol.netY === null || sol.netY >= NET_H + margin) break;   // clears with margin
   }
-  return { vx: (tx-b.x)/T, vz: (tz-b.z)/T, vy: (-y0)/T + 0.5*gAcc*T };
+  return { vx: sol.vx, vz: sol.vz, vy: sol.vy };
 }
 // high, slow, deep arc — automatically lifted over an opponent who has come to the net
 function lobVel(aim, idx, b, q) {
@@ -4749,7 +4789,8 @@ function lobVel(aim, idx, b, q) {
   // forward opponent → a HIGH arc, well above anything a net player can reach, that still dips in hard
   // behind them. It used to peak around 5.3 m, which reads as a deep drive rather than a lob.
   const T = SHOT.lobT, gLob = G * lerp(SHOT.lobG0, SHOT.lobG1, fwd);
-  return { vx: (tx-b.x)/T, vz: (tz-b.z)/T, vy: (-y0)/T + 0.5*gLob*T, gAcc: gLob };
+  const lS = launchThroughAir(b.x, y0, b.z, tx, tz, T, gLob, 0, dir);
+  return { vx: lS.vx, vz: lS.vz, vy: lS.vy, gAcc: gLob };
 }
 // CPU "feeder": a high ball aimed PAST your baseline, so it arrives at you around head height —
 // you can smash it on the spot (miss it and it sails long anyway). This is what makes smashes happen.
@@ -4759,7 +4800,8 @@ function feederVel(idx, b) {
   const tz = idx === 0 ? L + 2.5 : -2.5;           // beyond the opponent's baseline
   const dx = tx - b.x, dz = tz - b.z;
   const T = Math.hypot(dx, dz) / 18;               // ~18 m/s carry
-  return { vx: dx / T, vz: dz / T, vy: 6.9 };      // fixed loft → ~2 m high at their baseline (smashable)
+  const fK = dragBoost(Math.hypot(dx, dz));         // the loft is fixed by design; only the carry needs the air
+  return { vx: dx / T * fK, vz: dz / T * fK, vy: 6.9 };      // fixed loft → ~2 m high at their baseline (smashable)
 }
 // ---- shared contact-quality model ----
 // ONE source of truth for how compromised a contact is. doHit scores the REAL contact with it, and
@@ -4815,7 +4857,8 @@ function moonVel(idx, b) {
   tz = idx === 0 ? clamp(tz, HALF_L + 3.0, L + 0.8) : clamp(tz, -0.8, HALF_L - 3.0);   // CAN sail long — that's the gamble
   const tx = clamp(gauss() * 1.4, -(SINGLES_HALF + 0.6), SINGLES_HALF + 0.6);          // ...or wide
   const y0 = Math.max(b.y, 0.35), T = SHOT.moonT, g = G * SHOT.moonG;
-  return { vx: (tx - b.x) / T, vz: (tz - b.z) / T, vy: (-y0) / T + 0.5 * g * T, gAcc: g, spin: 0.35 };
+  const mS = launchThroughAir(b.x, y0, b.z, tx, tz, T, g, 0, dir);   // through air, like every other shot
+  return { vx: mS.vx, vz: mS.vz, vy: mS.vy, gAcc: g, spin: 0.35 };
 }
 // The BLOCK: pace arriving faster than there is time to organise for. The one shot in tennis that
 // cannot be hit hard — the racket is put in the way and the ball comes off it, so what goes back is a
@@ -4841,7 +4884,8 @@ function blockVel(idx, b, qn, inSpeed) {
     if (tNet <= 0 || tNet >= T) break;
     if (y0 + vy * tNet - 0.5 * g * tNet * tNet >= NET_H + 0.22) break;
   }
-  return { vx: (tx - b.x) / T, vz: (tz - b.z) / T, vy: (-y0) / T + 0.5 * g * T, gAcc: g, spin: -0.15 };
+  const bS = launchThroughAir(b.x, y0, b.z, tx, tz, T, g, 0, dir);
+  return { vx: bS.vx, vz: bS.vz, vy: bS.vy, gAcc: g, spin: -0.15 };
 }
 function doHit(p) {
   const b = sim.ball;
@@ -5169,7 +5213,9 @@ function doServe() {
   // vx is solved WITH the swerve included, so the ball still lands exactly on tx --
   // the curve changes the path it takes there, not where it finishes.
   b.ax = ax;
-  b.vx = (tx - b.x)/T - 0.5*ax*T; b.vz = (tz - b.z)/T; b.vy = (-y0)/T + 0.5*G*T; b.gAcc = G; b.spin = 0.10;   // a serve is struck flat with a little slice; it skids rather than kicks
+  const srvDir = sim.server === 0 ? 1 : -1;
+  const sSol = launchThroughAir(b.x, y0, b.z, tx, tz, T, G, ax, srvDir);
+  b.vx = sSol.vx; b.vz = sSol.vz; b.vy = sSol.vy; b.gAcc = G; b.spin = 0.10;   // a serve is struck flat with a little slice; it skids rather than kicks
   if (y0 < 1.5) { b.vy *= 0.55; b.vz *= 0.8; }     // only a really early/low jab dies in the net (fault)
   // ...and the serve that misses INTO THE NET. Every fault in this game went long or wide, because the
   // only way to net a serve was to catch the toss under 1.5 m, which nobody does. In real tennis the
@@ -5685,6 +5731,8 @@ function aiPredictContact() {
   let x=b.x, y=b.y, z=b.z, vx=b.vx, vy=b.vy, vz=b.vz, bounced = sim.bouncesSinceHit >= 1;
   let cut = null;
   for (let i = 0; i < 240; i++) {
+    const spP = Math.hypot(vx, vy, vz), kdP = DRAG * spP * STEP;   // same air as the real ball
+    vx -= vx*kdP; vy -= vy*kdP; vz -= vz*kdP;
     vy -= g*STEP; x += vx*STEP; y += vy*STEP; z += vz*STEP;
     if (y <= 0) {
       if (bounced) break;
