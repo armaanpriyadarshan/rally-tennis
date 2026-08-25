@@ -508,25 +508,9 @@ function launchThroughAir(x0, y0, z0, tx, tz, T, gAcc, ax, dir) {
   }
   return { vx: vx0, vy, vz: vz0, netY, landZ };
 }
-// Top speed, which a player only actually reaches when he has time to run. Tracking a real rally
-// gives peaks of 6.9-7.9 m/s but a MEAN of only 2.5-2.9 -- a tennis player is quick in bursts and
-// slow the rest of the time. This game had it backwards: a low top speed that everyone sat at
-// permanently, because movement had no acceleration. Raising the ceiling and making them earn it
-// is what lets a good shot beat a man who guessed wrong.
-const PLAYER_SPEED = 5.85, REACH = 1.6;             // realistic on-court footspeed; REACH only gates the joiner's cosmetic hit prediction
+const PLAYER_SPEED = 4.4, REACH = 1.6;              // realistic on-court footspeed; REACH only gates the joiner's cosmetic hit prediction
 // tighter reach so positioning matters — you can no longer cover the whole court
 const SWING_TIME = 0.28, START_REACH = 2.8, CONTACT_REACH = 1.6, HIT_HEIGHT = 3.9, BUFFER_TIME = 0.22;
-// Players did not accelerate: a key going down put them at top speed on that very frame, and letting
-// go stopped them dead. That single missing half-second is why a clean groundstroke winner was
-// impossible in either direction. Work it out: a defender at 5.3 m/s with 1.6 m of reach covers
-// 7.0 m in the second a rally ball is in the air, and the court is 4.27 m wide from the middle -- he
-// covered it one and a half times over, so nothing could ever be hit past him, and nothing could be
-// hit past you either. Reach was never the binding constraint; speed x time was.
-// At 6 m/s^2 an ordinary rally ball is still run down, a corner from a neutral position is still
-// just reached, and a ball hit behind a player already moving the other way is gone -- which is how
-// points are actually won. Changing direction now costs what it costs a real player.
-const MOVE_ACC = 11.0;                // m/s^2, and it brakes at the same rate
-const moveVel = [{ x: 0, z: 0 }, { x: 0, z: 0 }];
 const STEP = 1 / 60;
 // ---- Shot-execution model: how contact quality (q, from shotQuality) becomes placement/pace/error ----
 // One dials block for the whole feel: intended shots are EXECUTED with scatter, regression toward the
@@ -4530,7 +4514,6 @@ function startMatch() {
 }
 
 function setupPoint() {
-  moveVel[0].x = moveVel[0].z = moveVel[1].x = moveVel[1].z = 0;   // nobody starts a point already running
   sim.serveNum = 1;
   sim.tiebreak = (sim.gamesWon[0] === 2 && sim.gamesWon[1] === 2);   // 2-2 → a deciding tiebreak, not more games
   let server = sim.curServer;
@@ -4636,18 +4619,12 @@ function applyMove(pl, inp, idx, dt) {
   const len = Math.hypot(dx, dz); if (len > 0) { dx/=len; dz/=len; }
   let spd = PLAYER_SPEED * (PLAYERS[idx] ? PLAYERS[idx].speed : 1);     // Nadal moves quicker than Federer
   if (soloMode && idx === 1) spd *= aiScramble ? AI.scramble : AI.speed;   // solo CPU covers the court like a top pro — but scrambles, not sprints, under a lob
-  // Ramp toward the speed being asked for rather than snapping to it. Braking uses the same rate, so
-  // a change of direction has to spend the run-up twice: once to stop, once to go the other way.
-  const v = moveVel[idx] || (moveVel[idx] = { x: 0, z: 0 }), acc = MOVE_ACC * dt;
-  v.x += clamp(dx*spd - v.x, -acc, acc);
-  v.z += clamp(dz*spd - v.z, -acc, acc);
-  const actual = Math.hypot(v.x, v.z);
   if (sim && sim.runSpd)                                                   // recent-footspeed EMA (movement locks mid-swing, so this freezes at the pre-swing value)
-    sim.runSpd[idx] += (actual - sim.runSpd[idx]) * Math.min(1, dt / 0.12);
-  pl.x = clamp(pl.x + v.x*dt, -PLAY_X, PLAY_X);
+    sim.runSpd[idx] += ((len > 0 ? spd : 0) - sim.runSpd[idx]) * Math.min(1, dt / 0.12);
+  pl.x = clamp(pl.x + dx*spd*dt, -PLAY_X, PLAY_X);
   // Room to stand behind your own baseline -- as much as the camera can still show you.
-  if (idx === 0) pl.z = clamp(pl.z + v.z*dt, PLAY_Z_NEAR, HALF_L-0.3);
-  else           pl.z = clamp(pl.z + v.z*dt, HALF_L+0.3, L+1.5);
+  if (idx === 0) pl.z = clamp(pl.z + dz*spd*dt, PLAY_Z_NEAR, HALF_L-0.3);
+  else           pl.z = clamp(pl.z + dz*spd*dt, HALF_L+0.3, L+1.5);
 }
 // pre-serve shuffle: the server moves left/right (and a little depth) but stays BEHIND the baseline
 // and within their own half of the court (the correct service rectangle), no foot-faulting forward
@@ -5764,9 +5741,7 @@ function aiPredictContact() {
       else { const o = bounceBall({ vx, vy, vz, spin: b.spin, gAcc: g }); vx = o.vx; vy = o.vy; vz = o.vz; g = o.gAcc; }   // ...and the shared bounce for everything else
     }
     if (z > HALF_L + 0.3) {
-      const tt = (i + 1) * STEP, tv = spd / MOVE_ACC;      // it has to get up to speed like everyone else
-      const run = tt < tv ? 0.5 * MOVE_ACC * tt * tt : spd * tt - spd * spd / (2 * MOVE_ACC);
-      const reachable = Math.hypot(x - pl.x, z - pl.z) <= run + CONTACT_REACH;
+      const reachable = Math.hypot(x - pl.x, z - pl.z) <= spd * (i + 1) * STEP + CONTACT_REACH;
       // A groundstroke is played OFF THE BOUNCE. Hunting the first comfortable point in the flight
       // meant taking every ball out of the air, because a descending ball passes through the strike
       // zone BEFORE it bounces -- "first comfortable point" and "before the bounce" are the same
