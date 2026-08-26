@@ -517,7 +517,11 @@ const STEP = 1 / 60;
 // middle, and defensive reflexes that all scale with how compromised the contact was.
 const SHOT = {
   rxScale: 0.82, rxNetShrink: 0.16,   // lateral reach: ×0.82, extra −0.16 m per metre inside 2.5 m of the net (→ ~1.20 m at the tape)
-  sigX0: 1.1, sigX1: 0.25,            // executed-placement scatter σx (metres) at q=0 → q=1
+  // Lateral scatter at q=0 -> q=1. The clean end is what decides whether a well-struck ball can find
+  // a line at all: at 0.25 m of spread, on top of a 0.40 m safety pull-in and the ambition
+  // regression, the best shot in the game landed a metre inside the sideline and nothing was ever
+  // precise. Struck properly it should paint; struck badly it should still spray.
+  sigX0: 1.15, sigX1: 0.15,            // executed-placement scatter σx (metres) at q=0 → q=1
   sigZ0: 1.9, sigZ1: 0.40,            // depth scatter σz; a separate short bias of 1.35·(1−q) drags poor contacts shorter
                                       // (a real rally is not uniformly deep -- a quarter of tour returns land inside the service line)
   regress0: 0.62,                     // ambition regression: the aim itself shrinks toward the middle at q=0 (×1 at q=1)
@@ -4754,11 +4758,11 @@ function shotVel(aim, idx, b, stroke, gAcc, speedFactor, exec) {
   // before the shot was even struck and the execution scatter decided the rest. A player going for a
   // corner aims a comfortable margin INSIDE it and lets the spread paint the line -- the risk then
   // comes out of the geometry, which is where it belongs, instead of out of a penalty.
-  tx = clamp(tx, -(SINGLES_HALF-0.35), SINGLES_HALF-0.35);
+  tx = clamp(tx, -(SINGLES_HALF-0.08), SINGLES_HALF-0.08);
   if (exec) {   // EXECUTED shot: ambition regresses toward the middle, the aim keeps a pro margin of
     // ~1σ of its own scatter inside the lines, and the noise lands AFTER the clamps — real misses.
     tx *= exec.latMul;
-    tx = Math.sign(tx) * Math.max(0, Math.abs(tx) - exec.sx * (drop ? 0.55 : 1) * 1.05);
+    tx = Math.sign(tx) * Math.max(0, Math.abs(tx) - exec.sx * (drop ? 0.55 : 1) * 0.45);
     tx += exec.nx * (drop ? 0.55 : 1);
     const nearBase = idx === 0 ? (tz - (L - 2.2)) / 2.2 : (2.2 - tz) / 2.2;       // depth margin only matters near the baseline
     tz -= clamp(nearBase, 0, 1) * exec.sz * 0.55 * dir;   // a smaller depth cushion: 33% of tour misses are long, and this cushion is why almost none were
@@ -5148,10 +5152,10 @@ function doHit(p) {
   // The board only ever lit up for serves. It wanted 125 km/h and, measured across 2,700 rally balls,
   // a drive clears that once in sixty -- the median leaves at 89 and the 85th percentile at 106. The
   // number was set when displayed speed was the ball's velocity times a fudge factor; on the honest
-  // scale it had quietly become unreachable. 105 lights it for a genuinely big shot without lighting
-  // it for every rally ball.
+  // scale it had quietly become unreachable. Measured across 2,700 drives: 125 fires on 1.6% (never),
+  // 105 on 13.4% (every other good shot). 120 keeps it for the genuine outlier, ~3%.
   const kmh = Math.round(Math.hypot(b.vx, b.vy, b.vz) * SPEED_KMH);
-  if (kmh >= 105) { sim.serveSpeedKmh = kmh; sim.servePowerShown = clamp((kmh - 70) / 110, 0.1, 1); sim.serveMeterTimer = 1.2; }
+  if (kmh >= 120) { sim.serveSpeedKmh = kmh; sim.servePowerShown = clamp((kmh - 70) / 110, 0.1, 1); sim.serveMeterTimer = 1.2; }
 }
 // flight time for a serve struck at y0 toward (tx,tz): a straight ballistic at pace s, stretched in
 // small steps just enough to clear the tape — a mid-power serve arrives a touch slower, not netted.
@@ -5642,8 +5646,8 @@ const AI = {
   // 1.17 on top of the base put the CPU's SUSTAINED speed at 6.2 m/s, which is a real player's
   // sprint peak, held all point. Tracked tour movement averages 2.5-2.9 m/s with peaks near 7. A
   // defender who covers everything is also why the game could not produce a winner at the tour rate.
-  speed:      1.06,   // footspeed multiplier — runs down wide balls and big serves
-  reach:      0.18,   // extra metres of contact / swing-start reach — gets a racket on more (rz full, rx half)
+  speed:      0.94,   // footspeed multiplier — runs down wide balls and big serves
+  reach:      0.05,   // extra metres of contact / swing-start reach — gets a racket on more (rz full, rx half)
   qFloor:     0.62,   // minimum shot quality (its errors and safe balls under pressure are now REAL openings)
   errMul:     0.45,   // unforced-error probability multiplier
   skillFloor: 0.90,   // decision-making floor: open-court placement, net play, serve corners
