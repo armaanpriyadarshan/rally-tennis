@@ -561,7 +561,13 @@ const SHOT = {
   // old numbers were set against a drag-free flight where the solver overshot its own margin and the
   // ball ended up crossing a metre and a half above the tape. Solved honestly, the same numbers gave
   // a third of that. These put the real clearance back at the 0.8-1.4 m a topspin rally ball has.
-  arcBad: 1.70, arcGood: 0.66,
+  // A rally ball has to ARRIVE before the other man can walk to it, and that is a race the ball was
+  // losing. Measured: at the old arc it reached him in 1.02 s, in which time he covers 6.97 m -- more
+  // than the 6.8 m of open court you get after dragging him off the side. Nothing could be hit past
+  // him, so baseline rallies simply never ended. Flatter and faster gets it there in 0.83 s, which
+  // still lets him run down a corner from a neutral position but not a ball into the space behind
+  // him. That is the difference between a rally and a rally that goes somewhere.
+  arcBad: 1.15, arcGood: 0.36,
   arcVolBad: 1.05, arcVolGood: 0.20,  // the same for a volley: a stretched stab pops up
   arcSmashBad: 0.70, arcSmashGood: 0.06,   // and for an overhead, which is otherwise struck flat at the feet
   spinArc0: 0.75, spinArc1: 1.55,     // clearance multiplier from flat (topspinG 1.0) to heavy (1.62)
@@ -4721,7 +4727,7 @@ function shotVel(aim, idx, b, stroke, gAcc, speedFactor, exec) {
     // Flight time IS pace, and pace IS arc: a ball that takes longer to cover the same 21 m has to be
     // launched higher to get there, so slowing the rally ball down loops it. A real rally ball clears
     // the tape by roughly 0.4 m flat to 1.5 m with heavy spin, and that only holds at real pace.
-    baseT = (deep ? 0.70 : 0.78) - Math.random() * 0.13;   // an ATP forehand leaves at ~117 km/h
+    baseT = (deep ? 0.54 : 0.60) - Math.random() * 0.10;   // ~133 km/h off the racket, a shade above an ATP forehand
     // ...and then by the one thing the model was ignoring: how HIGH the ball was when you hit it.
     // This is not a preference, it is geometry. Meet the ball at 0.35 m and the net is above your
     // contact point: the only ball that gets over is one you lift, so it leaves slower, climbs, and
