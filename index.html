@@ -516,6 +516,7 @@ const STEP = 1 / 60;
 // One dials block for the whole feel: intended shots are EXECUTED with scatter, regression toward the
 // middle, and defensive reflexes that all scale with how compromised the contact was.
 const SHOT = {
+  rzFront: 0.70,                      // depth reach toward the incoming ball, as a share of reach behind
   rxScale: 0.82, rxNetShrink: 0.16,   // lateral reach: ×0.82, extra −0.16 m per metre inside 2.5 m of the net (→ ~1.20 m at the tape)
   // Lateral scatter at q=0 -> q=1. The clean end is what decides whether a well-struck ball can find
   // a line at all: at 0.25 m of spread, on top of a 0.40 m safety pull-in and the ambition
@@ -571,10 +572,32 @@ const SHOT = {
   // him, so baseline rallies simply never ended. Flatter and faster gets it there in 0.83 s, which
   // still lets him run down a corner from a neutral position but not a ball into the space behind
   // him. That is the difference between a rally and a rally that goes somewhere.
-  arcBad: 1.15, arcGood: 0.36,
+  arcBad: 1.22, arcGood: 0.42,
+  // Flight time for a rally ball, which IS its pace: shorter = faster and flatter.
+  baseTDeep: 0.54, baseTRally: 0.60, baseTJit: 0.10,
+  // How hard a topspin ball is pulled DOWN, as a multiple of g. This is the Magnus force and it is
+  // not a stylistic dial -- it is why a tennis ball can be hit at 120 km/h and still land inside a
+  // 23 m court. F = 0.5*rho*A*Cl*v^2 with Cl = 1/(2 + v/vspin): at 33 m/s an ATP forehand's 2800 rpm
+  // gives 7.6 m/s^2 of downforce, or 1.78 g in total; Nadal's 3600 reaches 1.90 and a flat 1500 rpm
+  // ball still carries 1.50. This game ran 1.00 to 1.62 -- a flat hitter had literally no dip at all
+  // and the heaviest spin in the game fell slower than a real flat drive. With half the downforce a
+  // hard ball sails long, so the flight solver had to slow every shot down to keep it in: the median
+  // rally ball left at 87 km/h against a real 110-125. Pace was never the thing that was broken.
+  spinG0: 1.50, spinG1: 1.95,         // topspinG at zero spin rating → maximum
+  spinGSpan: 0.45,                    // ...and the span, for normalising a player's spin back to 0..1
+  // Where in the bounce a groundstroke is actually MET. Measured, this game struck the median ball
+  // 0.8 m past the bounce at 0.29 m off the court -- off the shoelaces, below the top of the net, on
+  // every single shot. A tour player meets it 2-3 m past the bounce at 0.8-1.2 m, and the difference
+  // is the whole ball game: from under the net cord the only shot available is a lifted one, so the
+  // flight solver had to loop every ball to clear the tape and the rally ball came out at 87 km/h.
+  riseLo: 1.00, riseHi: 1.50,         // the comfortable strike window off the bounce (metres)
+  cutMinY: 0.25,                      // ...and how low the CUT-OFF fallback will stoop when that window is unreachable
+  onHimY: 0.15,                       // ...and the height below which a ball on top of you is not yet worth swinging at
+  strikeBack: 2.2,                    // how far behind your own baseline a strike point may be looked for
+  dropDepth: 2.5, dropT: 0.34,        // the drop shot's landing distance past the net and its flight time
   arcVolBad: 1.05, arcVolGood: 0.20,  // the same for a volley: a stretched stab pops up
   arcSmashBad: 0.70, arcSmashGood: 0.06,   // and for an overhead, which is otherwise struck flat at the feet
-  spinArc0: 0.75, spinArc1: 1.55,     // clearance multiplier from flat (topspinG 1.0) to heavy (1.62)
+  spinArc0: 0.75, spinArc1: 1.55,     // clearance multiplier from flat to heavy topspin
   // Off the shoetops you must lift it: the arc climbs, the ball lands shorter and comes off slower.
   // Tuned against where contact ACTUALLY lands in play (a median around 0.4-0.5 m) -- calibrated for
   // a higher contact than that, this fires on every ball in the rally and turns the whole match into
@@ -583,6 +606,7 @@ const SHOT = {
   liftPace: 0.965,
   spinPace0: 1.05, spinPace1: 0.95,   // ...and the pace trade that comes with it: flat drives through, spin loops
   bounceSpin: 0.46, bounceSkid: 0.08, // topspin kicks up off the bounce, slice skids through low
+  bounceKickMax: 1.20,                // ...and the ceiling on that kick
   bounceFade: 70,                     // restitution falls off with impact speed — a ball hammered into the court deforms and keeps less
   volleyZone: 5.0,                    // metres from the net inside which a ball taken on the full is a volley
   qLo: 0.10, qHi: 0.58,               // the band raw q actually occupies in play — see qNorm
@@ -824,7 +848,7 @@ function build(rIdx, tourIdx, form) {
            fhPace: L1(0.86, 1.2, N(r.forehand)) * boost,
            bhPace: L1(0.86, 1.2, N(r.backhand)) * boost,
            retSkill: C1(N(r.ret) * adv, 0, 1.08),
-           topspinG: L1(1.0, 1.62, N(r.spin)),
+           topspinG: L1(SHOT.spinG0, SHOT.spinG1, N(r.spin)),
            faultRisk: C1(L1(0.22, 0.04, N(r.cons)) / adv, 0.02, 0.34) };
 }
 let PLAYERS = [build(0, 0), build(1, 0)];   // [you, opponent] — resolved from roster + tournament before each match
@@ -4713,12 +4737,12 @@ function shotVel(aim, idx, b, stroke, gAcc, speedFactor, exec) {
   // rally ball loops over the net where McEnroe's does not.
   const q = qNorm((exec && exec.q != null) ? exec.q : 0.35);
   const pst = PLAYERS[idx] || PLAYERS[0];
-  const spinT = clamp(((pst && pst.topspinG || 1) - 1) / 0.62, 0, 1);            // 0 = flat hitter … 1 = heavy topspin
+  const spinT = clamp((((pst && pst.topspinG) || SHOT.spinG0) - SHOT.spinG0) / SHOT.spinGSpan, 0, 1);   // 0 = flat hitter … 1 = heavy topspin
   const spinArc = lerp(SHOT.spinArc0, SHOT.spinArc1, spinT);
   const y0 = Math.max(b.y, 0.35);                              // contact height: the arc and the pace both key off it
   let depth, baseT, margin;
   if (stroke === 'smash')       { const nd = Math.abs(sim.players[idx].z - HALF_L); depth = 9.0; baseT = clamp(0.30 + nd*0.05, 0.30, 0.60); margin = lerp(SHOT.arcSmashBad, SHOT.arcSmashGood, q); }   // forecourt = flat & fast; deeper = controlled; a mistimed one is lifted
-  else if (drop)                { depth = 2.4; baseT = 0.42; margin = 0.12; }   // dropshot: quicker over the net & shorter (still arcs enough to bounce)
+  else if (drop)                { depth = SHOT.dropDepth; baseT = SHOT.dropT; margin = 0.12; }   // dropshot: quicker over the net & shorter (still arcs enough to bounce)
   else if (stroke === 'volley') { depth = 5.0 + aim.fwd*2.8; baseT = 0.55; margin = lerp(SHOT.arcVolBad, SHOT.arcVolGood, q); }   // a stretched stab pops up
   else {                                                                         // topspin drive — varied pace & depth shot to shot
     // A neutral rally ball belongs near the baseline. Landing it 9 m past the net puts it a full three
@@ -4731,7 +4755,7 @@ function shotVel(aim, idx, b, stroke, gAcc, speedFactor, exec) {
     // Flight time IS pace, and pace IS arc: a ball that takes longer to cover the same 21 m has to be
     // launched higher to get there, so slowing the rally ball down loops it. A real rally ball clears
     // the tape by roughly 0.4 m flat to 1.5 m with heavy spin, and that only holds at real pace.
-    baseT = (deep ? 0.54 : 0.60) - Math.random() * 0.10;   // ~133 km/h off the racket, a shade above an ATP forehand
+    baseT = (deep ? SHOT.baseTDeep : SHOT.baseTRally) - Math.random() * SHOT.baseTJit;
     // ...and then by the one thing the model was ignoring: how HIGH the ball was when you hit it.
     // This is not a preference, it is geometry. Meet the ball at 0.35 m and the net is above your
     // contact point: the only ball that gets over is one you lift, so it leaves slower, climbs, and
@@ -4958,7 +4982,7 @@ function doHit(p) {
   const paceCap = lerp(1.34, lerp(0.66, 1.20, setq), hard);
   // A flat hitter drives THROUGH the court; a heavy topspin player trades that pace for the arc and the
   // kick. Same rating, different ball -- which is the whole point of picking a player.
-  const spinT = clamp(((st.topspinG || 1) - 1) / 0.62, 0, 1);
+  const spinT = clamp(((st.topspinG || SHOT.spinG0) - SHOT.spinG0) / SHOT.spinGSpan, 0, 1);
   const spinPace = lerp(SHOT.spinPace0, SHOT.spinPace1, spinT);
   const qn = qNorm(q);
   // Pace is limited by the same geometry: you cannot drive a ball you are lifting over the net.
@@ -5152,10 +5176,12 @@ function doHit(p) {
   // The board only ever lit up for serves. It wanted 125 km/h and, measured across 2,700 rally balls,
   // a drive clears that once in sixty -- the median leaves at 89 and the 85th percentile at 106. The
   // number was set when displayed speed was the ball's velocity times a fudge factor; on the honest
-  // scale it had quietly become unreachable. Measured across 2,700 drives: 125 fires on 1.6% (never),
-  // 105 on 13.4% (every other good shot). 120 keeps it for the genuine outlier, ~3%.
+  // scale it had quietly become unreachable. Re-measured once the rally ball got its real pace back
+  // (median 113 km/h, p90 133): 120 now fires on a third of all drives, 130 on one in seven, and 140
+  // on 3.4% -- which is both the outlier and a genuinely big groundstroke, the 140-160 band a tour
+  // forehand lives in when it is being hit hard.
   const kmh = Math.round(Math.hypot(b.vx, b.vy, b.vz) * SPEED_KMH);
-  if (kmh >= 120) { sim.serveSpeedKmh = kmh; sim.servePowerShown = clamp((kmh - 70) / 110, 0.1, 1); sim.serveMeterTimer = 1.2; }
+  if (kmh >= 140) { sim.serveSpeedKmh = kmh; sim.servePowerShown = clamp((kmh - 70) / 110, 0.1, 1); sim.serveMeterTimer = 1.2; }
 }
 // flight time for a serve struck at y0 toward (tx,tz): a straight ballistic at pace s, stretched in
 // small steps just enough to clear the tape — a mid-power serve arrives a touch slower, not netted.
@@ -5288,7 +5314,7 @@ function bounceBall(o) {
   // Topspin's real work off the court is FORWARD, not upward — the kick into the strike zone is a
   // modest lift on top of a ball that suddenly comes on quicker. Slice is the mirror: it stays down
   // and skids. Treating spin as a big multiplier on bounce height is what sent balls to the moon.
-  o.vy = -o.vy * rest * clamp(1 + sp * SHOT.bounceSpin, 0.72, 1.20);
+  o.vy = -o.vy * rest * clamp(1 + sp * SHOT.bounceSpin, 0.72, SHOT.bounceKickMax);
   o.vx *= FRICT;
   o.vz *= FRICT * clamp(1 + sp * SHOT.bounceSkid, 0.94, 1.12);
   return o;
@@ -5493,7 +5519,15 @@ function tryContact(p) {   // merciful: connect on any frame the ball is within 
       rz = Math.max(rz, lerp(2.8, 2.2, clamp(netDist/5, 0, 1)) * fastPen);   // step forward/back under the ball
     }
   }
-  const ex = (b.x-pl.x)/rx, ez = (b.z-pl.z)/rz;                              // elliptical window: overheads are covered by footwork, not a sideways lunge
+  // Reach FORWARD, up the flight path, is not the same as reach back. Stepping back to let a ball
+  // come to you is footwork; stabbing two metres out in front of you at a ball still climbing off
+  // the court is not a shot anyone plays. The window was symmetric in depth, so contact was made
+  // 1.95 m up the incoming path -- which for a ball coming off the bounce is 1.95 m EARLIER in its
+  // climb, and is most of why the median ball in this game was struck at ankle height. A tour
+  // player meets it around 0.8-1.0 m in front of himself.
+  const front = p === 0 ? (b.z > pl.z) : (b.z < pl.z);
+  const rzUse = front ? rz * SHOT.rzFront : rz;
+  const ex = (b.x-pl.x)/rx, ez = (b.z-pl.z)/rzUse;                          // elliptical window: overheads are covered by footwork, not a sideways lunge
   const r2 = ex*ex + ez*ez;
   if (r2 <= 1 && b.y <= HIT_HEIGHT && b.y >= 0) {
     // Contact can land on ANY frame of the 0.28 s swing window, so remember how far in
@@ -5646,8 +5680,13 @@ const AI = {
   // 1.17 on top of the base put the CPU's SUSTAINED speed at 6.2 m/s, which is a real player's
   // sprint peak, held all point. Tracked tour movement averages 2.5-2.9 m/s with peaks near 7. A
   // defender who covers everything is also why the game could not produce a winner at the tour rate.
-  speed:      0.94,   // footspeed multiplier — runs down wide balls and big serves
-  reach:      0.05,   // extra metres of contact / swing-start reach — gets a racket on more (rz full, rx half)
+  // These came down to 0.94/0.05 to make winners possible against a ball that was travelling at
+  // 87 km/h -- cutting the defender's legs was the only lever left when the ball itself was too slow
+  // to beat anybody. With the rally ball back at a real 113 km/h that trade is off: the CPU can have
+  // its coverage back AND be passed, because the race is now decided by the ball's pace rather than
+  // by how far the defender is allowed to run.
+  speed:      1.12,   // footspeed multiplier — runs down wide balls and big serves
+  reach:      0.22,   // extra metres of contact / swing-start reach — gets a racket on more (rz full, rx half)
   qFloor:     0.62,   // minimum shot quality (its errors and safe balls under pressure are now REAL openings)
   errMul:     0.45,   // unforced-error probability multiplier
   skillFloor: 0.90,   // decision-making floor: open-court placement, net play, serve corners
@@ -5700,20 +5739,24 @@ function aiDecideShot() {
   if (qEst < 0.42)          want = 0;                                     // in trouble: middle, deep, live another shot
   else if (isReturn)        want = rr < 0.53 ? 0 : (rr < 0.77 ? bhSide : -bhSide);   // the return goes back through the middle over half the time
   else if (isServePlus1)    want = rr < 0.45 ? bhSide : (rr < 0.68 ? -bhSide : 0);   // serve+1 hunts the backhand
-  else if (rr < 0.47)       want = -(srcSide || fallback);                // keep the cross-court exchange going
-  else if (rr < 0.73)       want = 0;                                     // the neutral ball back through the middle
+  else if (rr < 0.56)       want = -(srcSide || fallback);                // keep the cross-court exchange going
+  else if (rr < 0.86)       want = 0;                                     // the neutral ball back through the middle
   else                      want = (srcSide || fallback);                 // change of direction: down the line
   // ...and when they are genuinely out of position off a ball we are set for, go and get them.
-  if (!isReturn && qEst > 0.62 && Math.abs(aheadX) > 0.45 && Math.random() < lerp(0.30, 0.60, skill))
+  if (!isReturn && qEst > 0.62 && Math.abs(aheadX) > 0.45 && Math.random() < lerp(0.20, 0.40, skill))
     want = aheadX >= 0 ? -1 : 1;
   // How close to the line that ball is played. A rally ball is not a corner: it is three-quarters of
   // the way out, and only a ball struck from an attacking position goes looking for the paint. A
   // return is played safer again -- it is the shot with the least time behind it.
   const attacking = qEst > 0.60 && want !== 0 && want === (srcSide || fallback);
+  // A rally ball is not a corner. Measured at the old ambition, half of every drive in the game
+  // landed within a metre of a sideline and 19% within half a metre, against a charted 8-12% -- the
+  // whole match was played on the paint. A neutral ball is struck comfortably inside the line and it
+  // is the ATTACKING one, off a contact you have earned, that goes looking for it.
   let amb = want === 0 ? 0
-          : (attacking ? lerp(0.55, 0.95, qEst) : lerp(0.30, 0.64, qEst)) + gauss() * 0.10;
+          : (attacking ? lerp(0.42, 0.82, qEst) : lerp(0.20, 0.46, qEst)) + gauss() * 0.10;
   if (isReturn) amb *= 0.72;
-  aiAimLat = want === 0 ? gauss() * 0.15 : (want > 0 ? -1 : 1) * clamp(amb, 0.15, 1.1);   // ball to +x ⇒ aim.lat −1 (idx1: tx = −aim.lat·7)
+  aiAimLat = want === 0 ? gauss() * 0.09 : (want > 0 ? -1 : 1) * clamp(amb, 0.15, 1.1);   // ball to +x ⇒ aim.lat −1 (idx1: tx = −aim.lat·7)
   sim._aiHitSide = want;
   aiApproachT = (qEst > 0.6 && Math.random() < lerp(0.05, 0.15, skill)) ? 2.6 : 0;  // follow a GOOD ball in to the net — never a stretched one (charted: 3.9% of tour shots are approaches)
   // Facing a net-rusher the CPU now makes the same call the player has to: pass, or lob. Pinned or
@@ -5783,10 +5826,24 @@ function aiPredictContact() {
       // meets it about 0.25 s later -- still rising, around chest height. Waiting for the DESCENT
       // instead put the strike zone 16 m past the bounce, i.e. off the back of the court, so the
       // window was never reachable and every ball fell through to the half-volley fallback below.
-      if (z < L + 2.2 && ((bounced && y >= 1.00 && y <= 1.50)
+      if (z < L + SHOT.strikeBack && ((bounced && y >= SHOT.riseLo && y <= SHOT.riseHi)
                           || (!bounced && upFront && y >= 0.75 && y <= 1.45 && vy <= 0.6)) && reachable)
         return { x, z, t: (i + 1) * STEP };                                                            // comfortable strike off the bounce
-      if (!cut && bounced && y >= 0.25 && y <= HIT_HEIGHT && reachable) cut = { x, z, t: (i + 1) * STEP };    // earliest CUT-OFF point — step in and take a big/wide serve on the rise
+      // Fallback when the comfortable window is out of range. This used to latch the EARLIEST
+      // reachable point at any height down to 0.25 m, which for a ball coming off the court is the
+      // very bottom of the bounce -- and because the CPU then walks to whatever point this returns,
+      // it spent every rally running FORWARD to meet the ball on its shoelaces. Measured: the median
+      // contact in this game happened 0.8 m past the bounce at 0.29 m off the court, a metre inside
+      // its own baseline, where a tour player meets it 2-3 m past the bounce at 0.8-1.2 m standing
+      // 1.3 m behind the line. Hitting from under the net cord is why every ball had to be lifted and
+      // why the rally ball came out at 87 km/h.
+      // So: take the reachable point nearest a real strike height, not the first one going. A player
+      // with time lets the ball come UP to him; only one who is out of time takes it off the deck,
+      // which is what `cut` still is when nothing better is in range.
+      if (bounced && y >= SHOT.cutMinY && y <= HIT_HEIGHT && reachable) {
+        const ideal = (SHOT.riseLo + SHOT.riseHi) / 2, err = Math.abs(y - ideal);
+        if (!cut || err < cut.err - 0.02) cut = { x, z, t: (i + 1) * STEP, err, y };
+      }
     }
   }
   if (cut) return cut;
@@ -5905,7 +5962,7 @@ function aiThink() {
     } else if (incoming) { tx = pl.x; tz = pl.z; }                                         // caught flat-footed by the drop — frozen for a beat
     else {
       tx = clamp(-(sim._aiHitSide || 0) * 0.9, -1.3, 1.3);                                 // recover shading the likely cross-court reply
-      tz = aiApproachT > 0 ? HALF_L + 2.2 : L + 1.1;                                       // step in to the net, or recover BEHIND the baseline (tracked tour mean: 1.3 m behind)
+      tz = aiApproachT > 0 ? HALF_L + 2.2 : L + AI.restZ;                                       // step in to the net, or recover BEHIND the baseline (tracked tour mean: 1.3 m behind)
     }
     if (tx > pl.x + 0.22) l = true; else if (tx < pl.x - 0.22) r = true;                   // idx 1: +x ← press left (wide deadzone — no jitter when the target wobbles)
     if (tz > pl.z + 0.18) bk = true; else if (tz < pl.z - 0.18) f = true;                  // idx 1: +z ← press back
@@ -5933,7 +5990,7 @@ function aiThink() {
       // stops the flailing is the attempt cap below, so this can be generous.
       // ...but not at a ball that has not bounced yet while we are stood on the baseline: that is the
       // ball you WAIT for, and swinging at it is how three quarters of the game's shots became volleys.
-      const onHim = d <= CONTACT_REACH + 0.7 && b.y >= 0.15
+      const onHim = d <= CONTACT_REACH + 0.7 && b.y >= SHOT.onHimY
                     && (sim.bouncesSinceHit > 0 || Math.abs(pl.z - HALF_L) < SHOT.volleyZone);
       const reachable = b.z > HALF_L && b.y <= HIT_HEIGHT && b.y >= 0 && d <= START_REACH + 0.5;
       if (reachable && (imminent || onHim) && aiSwingTries < 2 && sim.swingTimer[1] <= 0) {
