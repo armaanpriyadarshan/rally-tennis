@@ -282,8 +282,15 @@ export class Figure {
     return blendPose(bounce, { ...SERVE.keys[0], head: 0.05, set: 1 }, set);
   }
   stroll(t, speed) {
-    const sw = Math.sin(this.gait * Math.PI * 2) * 0.12 * Math.min(1, speed / 1.4);
-    return { R: [0.27, 0.80, 0.05 + sw], L: [-0.27, 0.84, 0.02 - sw], dir: [0.05, -0.55, 0.83], nrm: [1, 0, 0], twist: 0, lean: 0.06, crouch: 0.02, stance: 0.14, lgrip: 0, head: this.lookUp ? 0.02 : -0.25 };
+    let sw = Math.sin(this.gait * Math.PI * 2) * 0.12 * Math.min(1, speed / 1.4), swL = -sw;
+    // (the arms swing as the filmed walker's do, each against the opposite leg and in time with the feet: swung by a sine of
+    // the step's clock they went their own way, in places with the leg on the same side, the pacing walk of a camel; the
+    // filmed walker swings his little, about a sixth of a metre from front to back, and a stroll swings a quarter: so a little
+    // more than his, the racket hand, carrying the racket, less than the free one)
+    const F = this.loco && this.loco.FW;
+    if (!globalThis.__strollArmOld && F) { const k = Math.min(1, speed / 1.0) * (this.loco.w.go || 0), rk = this.hs > 0 ? [J.rwri, J.rsho] : [J.lwri, J.lsho], fr = this.hs > 0 ? [J.lwri, J.lsho] : [J.rwri, J.rsho];
+      sw = (F[rk[0] * 3 + 2] - F[rk[1] * 3 + 2] - 0.075) * (globalThis.__strollSwR ?? 1.15) * k; swL = (F[fr[0] * 3 + 2] - F[fr[1] * 3 + 2] - 0.065) * (globalThis.__strollSwL ?? 1.6) * k; }
+    return { R: [0.27, 0.80, 0.05 + sw], L: [-0.27, 0.84, 0.02 + swL], dir: [0.05, -0.55, 0.83], nrm: [1, 0, 0], twist: 0, lean: 0.06, crouch: 0.02, stance: 0.14, lgrip: 0, head: this.lookUp ? 0.02 : -0.25 };
   }
   runPose(t, speed) {
     const ph = this.gait * Math.PI * 2, sw = Math.sin(ph) * 0.07 * Math.min(1, speed / 4), up = Math.cos(ph * 2) * 0.012;
@@ -541,7 +548,11 @@ export class Figure {
     let basePose;
     if (this.posed) basePose = this.posed;
     else if (between || !live) basePose = this.stroll(t, speed);
-    else if (serverWait) basePose = this.preServe(m.phaseT, m.ritual);
+    else if (serverWait) { basePose = this.preServe(m.phaseT, m.ritual);
+      // walking to his mark to serve he walks as anyone does between points, arms down, racket hanging in his hand, ball in the
+      // other; the set-up's turn of the chest and its stance come on only as he stops (walked in the set-up pose, the chest was
+      // turned well round to the racket side and the feet kept the serving stance as he walked along the line)
+      if (!globalThis.__srvStrollOld && srvWalkK > 0.001) basePose = blendPose(basePose, this.stroll(t, speed), srvWalkK); }
     else {
       // the racket stays in front in both hands until he is flat out; only then do the arms pump
       basePose = this.ready(t, { live: m.phase === 'live', wait: m.phase !== 'live' });
@@ -1075,7 +1086,10 @@ export class Figure {
     }
     const upW = this.loco.w.up * (1 - strokeK) * (1 - clipW);
     if (upW > 0.01) {
-      let cap = 1e9; const L = (D.thigh + D.shank) * 0.982;
+      // (the knee under the weight all but straight: at 0.982 of the leg's length it stayed bent twenty-two degrees, and every
+      // player walked back to the line, and stood at it, in a crouch, like a man creeping; a walker's knee is near straight but for
+      // the moment the weight comes on, which the foot landing ahead gives him here, the hips coming down to reach it)
+      let cap = 1e9; const L = (D.thigh + D.shank) * (globalThis.__walkStraightOld ? 0.982 : (globalThis.__walkReach ?? 0.995));
       for (let i = 0; i < 2; i++) { if (this.feet[i].lift > 0.035 * H) continue; const jh = LEG_J[i][0], hx = px + right.x * LP[jh * 3] * r + fwd.x * LP[jh * 3 + 2] * r, hz = pz + right.z * LP[jh * 3] * r + fwd.z * LP[jh * 3 + 2] * r, dh = Math.hypot(_an[i].x - hx, _an[i].z - hz); if (dh < L) cap = Math.min(cap, _an[i].y + Math.sqrt(L * L - dh * dh)); }
       if (cap < 1e8) wantY = lerp(wantY, Math.min(cap, D.hipY + 0.012 * H), upW);
     }
@@ -1193,7 +1207,8 @@ export class Figure {
     // steps to a volley is made with the racket held up in front in both hands, and pumping for each dart, the arms flicked
     // between the two at every step)
     const sustain = this.pumpSus;
-    const free = ease(this, 'armFree', strolling ? 1 - Math.max(this.reactK || 0, this.touchK || 0) : sm((speed - GAIT.pump0) / (GAIT.pump1 - GAIT.pump0)) * sustain * (1 - sm(sw / 0.4)), strolling ? 7 : this.sinceSw < 0.5 ? 8 : 19, dt);   /* (after a point the arms loosen slowly) */
+    const walkSv = serverWait && !globalThis.__srvStrollOld ? (this.srvWalkK || 0) : 0;   /* (walking to serve: the arms swing as they do strolling between points) */
+    const free = ease(this, 'armFree', strolling ? 1 - Math.max(this.reactK || 0, this.touchK || 0) : lerp(sm((speed - GAIT.pump0) / (GAIT.pump1 - GAIT.pump0)) * sustain * (1 - sm(sw / 0.4)), 1, walkSv), strolling || walkSv > 0.5 ? 7 : this.sinceSw < 0.5 ? 8 : 19, dt);   /* (after a point the arms loosen slowly) */
     const sh = [shL, shR], cEl = _el2, cWr = _wr2, CJ = ARM_J;
     // the way each knee bends (see below): a function, so either leg's can be had while the other is solved
     const kpFor = (i, out) => { const jh = LEG_J[i][0], jk = LEG_J[i][1], ja = LEG_J[i][2];
@@ -1226,10 +1241,10 @@ export class Figure {
       if (trunkE(_stQ.copy(h).add(mv)) >= need - 1e-4) return; let lo = 0, hi = 1; for (let it = 0; it < 7; it++) { const sv = (lo + hi) / 2; if (trunkE(_stQ.copy(h).addScaledVector(mv, sv)) < need - 1e-4) hi = sv; else lo = sv; } mv.multiplyScalar(lo); };
     // how much of the runner's arm swing the racket arm takes: all of it strolling, about half flat out
     // (eased: from strolling between points to the ready position it went from all of it to half in a frame)
-    const carry = this.posed ? 0 : clamp(ease(this, 'carryE', strolling ? 1 : 0.12 + 0.38 * free, 12, dt), 0, 1);
+    const carry = this.posed ? 0 : clamp(ease(this, 'carryE', strolling ? 1 : lerp(0.12 + 0.38 * free, 1, walkSv), 12, dt), 0, 1);
     // waiting to serve, the ball hand works in front of him at the waist (the keyed bounce), not where his tracked
     // address clip lets it hang at his side, where the ball is lost against his leg
-    this.addrHandW = damp(this.addrHandW || 0, serverWait && m.ball && m.ball.held === p.i ? 1 - 0.7 * (this.srvWalkK || 0) : 0, 10, dt);
+    this.addrHandW = damp(this.addrHandW || 0, serverWait && m.ball && m.ball.held === p.i ? 1 - (globalThis.__srvStrollOld ? 0.7 : 1) * (this.srvWalkK || 0) : 0, 10, dt);   /* (walking, the ball hand hangs at his side with the ball in it) */
     // and the racket arm holds the racket in front of him (head down while he bounces, then pointing at the box at the
     // address), not hanging at his side as the tracked serve starts; it gives way to the clip as the toss begins
     this.addrArmW = damp(this.addrArmW || 0, serverWait ? 1 - (this.srvWalkK || 0) : 0, serverWait ? 10 : 5, dt);

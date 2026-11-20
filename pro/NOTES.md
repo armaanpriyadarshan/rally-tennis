@@ -366,7 +366,7 @@ Wilander, Kuerten and Hewitt are playable (`ROSTER` in `js/data.js`, appended so
   `tools/face_bake.py`, all sixteen. Kuerten (Agência Brasil, CC BY 3.0 BR) and Edberg (a 2012 press portrait, CC BY 3.0)
   are from Commons; the rest from Flickr originals. Most are si.robi's tournament photographs (CC BY-SA 2.0), taken from his Flickr originals because Wikimedia's
   file server was refusing this machine; each is also on Commons. Heads were chosen by matching the face's landmarks and
-  skin to every library head; Monfils wears `heads/Male_Adult_18` (cut by `tools/rb_head.py` with its normal map), the
+  skin to every library head; Monfils wears `heads/Male_Adult_12` (cut by `tools/rb_head.py` with its normal map; see 2026-11-20 below), the
   rest share the nine heads already shipped. Eye colours were judged by eye from the photographs, not measured (squinting
   in sunlight, the measured irises came out near black). `face_bake.py` gained `--mouthw` (how far past an open mouth's
   corners the head keeps its own lips) and `--crease` (the size of the shadows closed over at the mouth's corners: the
@@ -517,3 +517,88 @@ Wilander, Kuerten and Hewitt are playable (`ROSTER` in `js/data.js`, appended so
   spike away but his legs came within 9 cm of each other four times as often (0.10% to 0.37%), his back foot swung through
   across the front; taken out.)
 
+
+## 2026-11-20: walking to serve
+
+- **The walk along the baseline to his mark** (`js/figure.js`): the server moving sideways before his serve kept the
+  ready-to-serve pose (ball held up in front, racket across the body) on legs that walked, which looked like a man shuffling
+  with his arms set. Now, as his walking speed comes up, the pose blends into the ordinary walk between points: arms down,
+  swinging a little, the racket carried in his hitting hand and the ball in the other; standing still at the mark he is back
+  in his routine. `__srvStrollOld` for the old one. Lab film: `tools/steps_labsrvwalk.mjs`. Across the roster's audit
+  nothing moved beyond noise.
+
+## 2026-11-20: drop shots and short balls
+
+Measured with a stand-in for a person on the classic controls (Space on time, ↓ held for a drop shot on a quarter of
+balls, WASD toward the ball 0.4 s after the other man's hit), 400 points at Challenger, against the tour: the Match
+Charting Project's 41,400 men's drop shots since 2015 are about half returned, a third winners or forced errors, 18% the
+dropper's own misses, and the dropper wins 55% of those points (5 more than his average).
+
+- **The swing the assist times** (`js/human.js`): the assist's legs ran a person up to a drop shot, but his swing was only
+  timed to the game's plan if four-fifths of his top speed could get him there; a drop shot he was being run to failed that
+  test, the swing was timed to the ball crossing just in front of where he stood, went off at once into the air, and the
+  drop shot bounced twice. Now the plan is trusted wherever it says the ball can be reached, as the computer's swing is.
+- **Assist footwork runs down short balls** (`js/human.js`): with Assist the game's legs only took over in the last five
+  metres. A drop shot is a nine or ten metre run up from the baseline, and by the time a person has seen it and pressed a
+  key (three or four tenths of a second) the legs that take over at five metres can no longer make it up: he returned 1 of
+  23 of the computer's drop shots. A ball that will be met more than three metres in front of him is now the game's to run
+  down from his reaction time, as with Auto: 48-60% returned.
+- **Drop shots from the back are played flatter** (`js/sim.js`): sent up at the same 30-36° from the baseline as from the
+  service line, the ball looped and sat up a metre and a half after its bounce. Now up to 0.25 rad lower from twelve metres
+  back, but never lower than clears the net by 30 cm, so a usual miss still finds the tape some of the time.
+- **A drop shot is read later** (`js/ai.js`): it starts out looking like the drive it is not. The computer read it like any
+  other ball and returned 84% of the baseline drop shots it was sent. Now he sees it for what it is 0.02-0.22 s later than a
+  drive (random each time, longer against better hands, 0.12 s on average). Yours against him: 58% returned, 29% outright,
+  13% your own errors, and you win 60% of those points against 58% overall (before: 86% returned, 5% outright, 37% of points).
+  The computer against the computer is now on the strong side (40-46% returned) as he picks his moments better than the
+  stand-in does.
+- Across the roster's animation audit (one seeded match per pair, human against computer): nothing else moved beyond noise;
+  one more crossover in a forehand's finish after the assist ran Djokovic in to a short ball (the feet shuffling past each
+  other at a standstill, the kind the crossover work is about).
+- Switches for before/after: `__canMakeOld`, `__shortRunOld`, `__dropElOld`, `__dropRead=0`.
+
+## 2026-11-20: heads from behind, caps, the walk between points
+
+- **Monfils had no back to his head** (`assets/people/heads/Male_Adult_12.glb`, `js/facedata.js`): the library man he was
+  painted on, Male_Adult_18, keeps his skull and scalp in the body's material, not the head's, so the head cut out of him was
+  a face and nothing behind it: from behind or the side the hair floated over an open shell and the inside of the face showed.
+  Every head now shipped was checked for a whole skull (depth back to about -0.1 m and the crown up to 1.8 m). He is painted
+  again on Male_Adult_12 (the nearest dark-skinned head with a whole skull by the same landmark and skin measure: shape
+  0.046, colour difference 8, against 0.037 and 7), cut with its normal map from the Rocketbox repository's own files. The
+  old head file is no longer used and is removed.
+- **Kyrgios's back of the head** (`js/looks.js`): hair a third of a centimetre at the sides and half at the back faded the
+  head's own painted hair to bare skin in a band right under his cap, with the cap's ragged edge of strands over it; from the
+  behind-the-player camera it read as a bald ring. 1 cm at the sides and 1.4 at the back: short dark hair under the cap,
+  thinning to skin only at the neck, as a fade does.
+- **Caps** (`js/hair.js`): locks rooted just inside a cap's edge stand two centimetres off the scalp and the cap only one,
+  and came out through its crown as dark flecks above the peak (Kyrgios, Hewitt, Roddick, Sinner): no lock grows under a cap
+  now, and the hair's own surface is cut off a couple of degrees below the cap's line. `__capCutOld` for the old.
+- **The walk between points** (`js/figure.js`): the hips between points are carried on the planted leg, and that leg was
+  held to 0.982 of its length: the knee stayed bent about twenty degrees under the weight, and every player walked back to
+  the line on bent knees, like a man creeping (the filmed walk itself is on 21-30 degree knees throughout). At 0.995 the knee
+  under the weight is about seven degrees, the hips rising and falling over it as the other foot lands ahead. The arms swing
+  as the filmed walker's do, each against the opposite leg, a little wider than his (he swings about a sixth of a metre front
+  to back), the racket hand less than the free one: driven by a sine of the step's clock they had kept their own time. Old:
+  `__walkStraightOld`, `__strollArmOld`.
+- (Tried and taken out: leaving a stroke's own crossed feet alone. The stance-widening and the soft separation measure across
+  the body's frame, which does not turn with the hips in a stroke, so a closed-stance backhand reads as a deep crossing and
+  both pull the feet back toward "their" sides, in Djokovic's backhand finish through each other. Left alone in or just out of
+  a stroke, that finish was clean, but the figure's hips do not turn as far as the tracked player's did, the legs stood in an
+  X instead: across six pairs McEnroe's legs crossed by more than 8 cm in 61 frames against none, Alcaraz's 9 against 3, and
+  the feet then swapped sides through each other on the way out of it. The crossing belongs to the crossover-step work.)
+- **Kits for the sixteen** (`js/looks.js`): they had an ordinary kit and Wimbledon whites (Zverev and Roddick one more), six of
+  the ordinary ones plain white, so at most events they looked alike. Each now has the five the original twelve have
+  (ordinary events, and each major), each the outfit he wore at that event in a dated year, from fashion round-ups of the
+  event, the makers' own announcements, retailer listings of the player's match kit, auction descriptions, contemporary
+  reports and, for some, the colours read off event photographs. Low-confidence pieces, as the research had them: Murray's
+  ordinary and Australian kits (colours from text, panel layout guessed), Wawrinka's ordinary kit layout, Thiem's ordinary kit
+  (inferred from the range), Tsitsipas's ordinary and US kits, del Potro's US trim, Roddick's except Roland Garros and
+  Wimbledon, Wilander's Roland Garros, Kuerten's US shorts, Hewitt's ordinary and Roland Garros kits. Kuerten's Roland Garros
+  kit is his 1997 blue-and-yellow one (his 2000 and 2001 ones were white); Hewitt won Wimbledon 2002 in a headband, not his
+  cap; Wawrinka's Roland Garros is the 2015 grey-and-red polo with the checked shorts.
+  Kyrgios plays in a basketball singlet over a tee (red over black at Miami and Melbourne 2022, the same season's kit; his
+  own navy jersey with red borders at the US Open), bare-headed early in 2022 and in a white cap worn backwards from the grass
+  on (the red cap at Wimbledon was only for walking on). Becker's ordinary, Australian and Roland Garros kits, and Edberg's
+  ordinary, Roland Garros and US kits, are placeholders drawn from their makers' documented colours for them that season (no
+  description of those shirts was found); Becker's Wimbledon 1989 colours and US Open sleeve stripe, and Edberg's 1990
+  Australian Open shirt (white below, marbled grey with lightning streaks above), are from descriptions of those events.
