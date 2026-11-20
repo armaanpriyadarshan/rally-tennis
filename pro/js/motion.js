@@ -483,7 +483,7 @@ function lowLift(P, k) {
 export class Loco {
   constructor() {
     this.P = new Float32Array(N3); this.A = new Float32Array(N3); this.B = new Float32Array(N3);
-    this.FW = new Float32Array(N3);                      // the forward gait alone (a run's arms pump; a shuffle's hang)
+    this.FW = new Float32Array(N3); this.FW2 = new Float32Array(N3);   /* FW2: the same half a stride on (a left-hander's racket arm swings with the other leg) */                      // the forward gait alone (a run's arms pump; a shuffle's hang)
     this.phF = Math.random(); this.phS = Math.random();
     this.w = { go: 0, f: 1, b: 0, r: 0, l: 0, up: 0 };
   }
@@ -510,7 +510,11 @@ export class Loco {
     // pace is a quick shuffle of quarter-metre steps, the legs reaching for a full stride and caught by the planted feet. The
     // stride shortens with the pace (to about four-fifths at 0.8 m/s, at a person's one and a half steps a second) and the
     // legs' reach is drawn in to match it (below), so the feet still cover the ground they stand on.
-    const upF = globalThis.__walkStrideOld ? 0 : c01(w.up) * w.f * (fa === CL.walk ? 1 - t : 0), kSa = globalThis.__walkKSa ?? 1, kS = 1 + (Math.min(1, Math.max(0.5, kSa + (1 - kSa) * speed / CL.walk.speed)) - 1) * upF;
+    const upF = globalThis.__walkStrideOld ? 0 : c01(w.up) * w.f * (fa === CL.walk ? 1 - t : 0), kSa = globalThis.__walkKSa ?? 1, kS = 1 + (Math.min(1, Math.max(0.5, kSa + (1 - kSa) * speed / CL.walk.speed)) - 1) * upF
+      // (and faster than the filmed walkers walk, longer steps, not quicker ones, as a person's are: their stride, a little over a
+      // metre and a fifth at a metre and a seventh a second, played at the game's walk of nearly a metre and a half a second was a
+      // march of a hundred and thirty steps a minute)
+      + (globalThis.__walkLongOld ? 0 : (Math.min(1.25, Math.pow(Math.max(1, speed / CL.walk.speed), 0.6)) - 1) * upF);
     const strideM = (w.f * strideF * kS + w.b * CL.back.stride + (w.r + w.l) * CL.shuffleR.stride) / sum, rateF = speed / Math.max(0.3, strideM);
     if (globalThis.__noSync) { this.phF = (this.phF + dt * Math.min(3.2, speed * ((w.f / strideF) + (w.b / CL.back.stride)) / Math.max(1e-6, w.f + w.b))) % 1; this.phS = (this.phS + dt * Math.min(3.4, speed / CL.shuffleR.stride)) % 1; }
     // (and never slower than a little over three steps a second while he is moving at all: slowing in proportion to his speed,
@@ -524,8 +528,9 @@ export class Loco {
       const ph = this.phF;
       sampleLoop(fa, at(fa, ph), A); if (t > 0.001) mix(A, sampleLoop(fb, at(fb, ph), B), t);
       if (w.up > 0.001 && fa !== CL.walk) mix(A, sampleLoop(CL.walk, at(CL.walk, ph), B), w.up * 0.7);
-      if (kS < 0.999) for (const j of [J.lknee, J.rknee, J.lankle, J.rankle, J.ltoe, J.rtoe]) A[j * 3 + 2] *= kS;
+      if (kS < 0.999 || kS > 1.001) for (const j of [J.lknee, J.rknee, J.lankle, J.rankle, J.ltoe, J.rtoe]) A[j * 3 + 2] *= kS;
       this.FW.set(A);
+      if (!globalThis.__strollClipOld && w.up > 0.3) { const p2 = (ph + 0.5) % 1; sampleLoop(fa, at(fa, p2), this.FW2); if (t > 0.001) mix(this.FW2, sampleLoop(fb, at(fb, p2), B), t); }
       let acc = w.f;
       if (w.b > 0.001) { acc += w.b; mix(A, lowLift(sampleLoop(CL.back, at(CL.back, ph), B), globalThis.__backLift ?? 0.7), w.b / acc); }
       const phS = globalThis.__noSync ? this.phS : ph;

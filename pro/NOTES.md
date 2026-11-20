@@ -676,3 +676,49 @@ still in the air, both in a stroke's finish, for two or three frames.
 - The hips' clamp against the line of the feet now counts the turn the shoulders' twist adds to the hips (it was added after
   the clamp): a drop shot's take-back, its twist large, still turned the hips past the feet and crossed del Potro's legs (14
   frames) and Kyrgios's (5). Both to none, nothing else moved in four pairs. `__hipTwLateOld`.
+
+## 2026-11-20 (night): the walk from the players' own footage, moving with the arrows, the elbow in a wide forehand
+
+- **The walk between points is now the players' own** (`js/locodata.js` clip `walk`, `tools/walk_footage.py`,
+  `tools/walk_into_loco.py`). It was a motion-capture lab walk (CMU 16_15). Court-level footage of tour players walking back
+  to the line was scanned with the pose tracker (`tools/track.py --big`, 10 Hz), the stretches where a player crosses the
+  picture side-on at a walking pace with the nose leading picked out, tracked again at 30 Hz, cut at each left heel strike
+  into strides, and the strides at a walking pace (0.7-1.6 m/s) that agree averaged per phase: 29 strides from five videos
+  (Djokovic and Medvedev, Kyrgios and Dzumhur, Alcaraz and Ruud, Sinner and his practice partner, Fognini and Wawrinka;
+  the tracker follows whichever of the two is walking, all right-handed). Measured: a stride of 1.07 s at 1.12 m/s (the
+  lab walker's 1.17 s at 1.22 m/s), the standing knee at 173°, the hips rising and falling 5 cm, the racket elbow bent 27°
+  and the free elbow 42° (a lab walker's 20-30°), the racket hand carried a little in front of the thigh.
+  - The way he walks is read from the feet, not the hips: the axis the ankles swing along about the hips, signed by the
+    swinging foot travelling forward. The tracker's line through the hips is unsure of its depth and turned with it.
+  - What the footage cannot say is set, not guessed: side-on, a foot's distance across the body is the tracker's guess at
+    depth (0.26-0.28 m step width), so the legs' sideways places are scaled to a 14 cm step width; the elbows are bent as
+    much as the picture shows side-on (the free elbow 42° in the picture, 56° in the 3D guess); each arm is taken from the
+    strides where it was clearly visible; the far shoulder, guessed 10 cm low, is levelled with the near one.
+- **The hands while strolling** come from that cycle at the legs' phase (`stroll` in `js/figure.js`; a left-hander's half a
+  stride on, so his racket arm too swings with the other leg); the elbows go back as the players' do, not out to the side
+  (from behind, the free hand at the waist was a hand on the hip); the racket hangs head down. `__strollClipOld`,
+  `__strollElbOld`.
+- **Faster than the filmed walkers** (the game walks back at about 1.45 m/s) the stride lengthens, as a person's does,
+  instead of the same steps going quicker (stride ∝ speed^0.6, at most a quarter longer; it was 130 steps a minute).
+  `__walkLongOld`.
+- **Moved with the arrows** (`js/figure.js`; checked with `tools/steps_manfilm.mjs` and `MANUAL=1|2` in
+  `tools/steps_audit.mjs`, which moves the human with the arrows as a person does: eight ways, a reaction time late,
+  overshooting, back to the middle after each shot). The turn to run waited for a steady 0.14 s above 2.5 m/s, and a person
+  changes arrow every third of a second: he went sideways and back at 3-4 m/s square to the net, the legs a jumping jack with
+  both feet off the court. He now turns on speed alone from 3 m/s (it was 4.2), and going straight back faster than 2.6 m/s
+  he drops a foot back and turns side-on to run (to his forehand side unless already going across). `__keyTurnOld`.
+  - Tried and taken out: under a stroke's take-back (which holds the body square to the net) the gait chosen against a leg
+    heading turned toward the run, so a run round the ball is a running stride and not a gallop. It looked right in the film
+    of the human, but across four pairs legs through each other went from 0.005% to 0.022% (computer strokes taken at
+    3.5-5.8 m/s), with the whole lower body committed to the turn as well. The gallop under a held take-back at speed remains.
+- **The elbow in a wide forehand** (`js/figure.js`): the clip's elbow was followed as measured against the clip's own arm,
+  from shoulder to the clip's hand; where the stroke had brought the hand in front of the stomach and the clip's was still
+  out at the side, that elbow lay on the inside of this arm and went through the stomach (Zverev, Medvedev, Kyrgios,
+  Monfils, Becker, Kuerten, del Potro, all a drive's forward swing). It is now aimed from the middle of this arm at where the
+  clip's elbow is. Arm inside the trunk 0.012% to 0.003% across the roster, none deeper than 8 cm. `__elClipOld`.
+- **Footage for the walk** (YouTube, analysed locally to derive joint motion only; nothing of it is kept in or shipped with
+  the game): "Djokovic vs. Medvedev | 2026 Indian Wells Court Level Practice Match | 4K" (watch?v=NsZUdm4O94o); "Nick
+  Kyrgios v. Damir Dzumhur (Court Level View) 60FPS HD | Miami Open 2017 R2" (watch?v=KPQbQOHFlKs); "Carlos Alcaraz & Casper
+  Ruud Court Level Practice | Pointplay 2024" (watch?v=EjHCdOpGBgc); "Jannik Sinner Returns to Indian Wells | 2026 Court
+  Level Practice Match | 4K" (watch?v=B2gE3TZSCB8); "[TRAINING] Fognini - Wawrinka (COURT LEVEL VIEW)" (watch?v=9BHPLO-4PM0).
+  Also scanned, no walking stride kept: "Roland-Garros 2019 : Federer - Schwartzman practice points" (watch?v=vkGwyke5jDU).

@@ -293,7 +293,15 @@ export class Figure {
     // (and the hands hang a little in front of the hips, where a relaxed arm hangs, the racket hand swinging back only half as
     // far as forward: about the hips' line, both hands spent half of each step behind the body, the racket trailing behind him)
     const fwdR = globalThis.__strollFwdOld ? 0.05 : 0.11, fwdL = globalThis.__strollFwdOld ? 0.02 : 0.09; if (!globalThis.__strollFwdOld && sw < 0) sw *= 0.5;
-    return { R: [0.27, 0.80, fwdR + sw], L: [-0.27, 0.84, fwdL + swL], dir: [0.05, -0.55, 0.83], nrm: [1, 0, 0], twist: 0, lean: 0.06, crouch: 0.02, stance: 0.14, lgrip: 0, head: this.lookUp ? 0.02 : -0.25 };
+    let R = [0.27, 0.80, fwdR + sw], L = [-0.27, 0.84, fwdL + swL];
+    // (the hands where the players' are as they walk between points, tracked from footage of them: the racket hand carried a
+    // little forward and in, the elbow bent, swinging little; the free hand swinging against the opposite leg. A left-hander's
+    // are the same half a stride on, so his racket arm too swings with the other leg)
+    if (!globalThis.__strollClipOld && F) { const k = Math.min(1, speed / 0.6) * (this.loco.w.go || 0), G = this.hs > 0 ? F : (this.loco.FW2 || F);
+      if (k > 0.001) { const cR = [G[J.rhand * 3], G[J.rhand * 3 + 1], G[J.rhand * 3 + 2]], cL = [G[J.lhand * 3], G[J.lhand * 3 + 1], G[J.lhand * 3 + 2]];
+        R = R.map((v, q) => v + (cR[q] - v) * k); L = L.map((v, q) => v + (cL[q] - v) * k); } }
+    // (the racket hangs from the hand, its head toward the court and a little forward, as the players carry it walking back)
+    return { R, L, dir: globalThis.__strollClipOld ? [0.05, -0.55, 0.83] : [0.08, -0.86, 0.5], nrm: [1, 0, 0], twist: 0, lean: 0.06, crouch: 0.02, stance: 0.14, lgrip: 0, head: this.lookUp ? 0.02 : -0.25 };
   }
   runPose(t, speed) {
     const ph = this.gait * Math.PI * 2, sw = Math.sin(ph) * 0.07 * Math.min(1, speed / 4), up = Math.cos(ph * 2) * 0.012;
@@ -658,11 +666,15 @@ export class Figure {
       // (only once he has been going that fast for a moment: a step or two across to a ball near him is shuffled facing the net,
       // as a player does; turned at once at the peak of every quick shuffle, the body swung side-on and back in half a second
       // and the legs ran a crossover under a body still shuffling)
-      const turnSus = globalThis.__turnSusOld ? 1 : Math.max(sm(((this.turnT || 0) - 0.14) / 0.22), globalThis.__turnFastOld ? 0 : sm((speed - 4.2) / 0.8));   /* (but nobody shuffles at a sprint: above four and a half metres a second he turns at once) */
+      const fT0 = globalThis.__keyTurnOld ? 4.2 : (globalThis.__fastTurn0 ?? 3.0);
+      const turnSus = globalThis.__turnSusOld ? 1 : Math.max(sm(((this.turnT || 0) - 0.14) / 0.22), globalThis.__turnFastOld ? 0 : sm((speed - fT0) / 0.8));   /* (but nobody shuffles at a sprint: above about three and a half metres a second he turns at once) */   /* (from three metres a second, not four and a bit: moved with the arrows, a new way every third of a second, the wait for a steady run never ran out, and he went sideways and back at three or four metres a second square to the net, the legs a jumping jack, both feet off the court) */
       yawT = clamp(Math.atan2(lx, Math.max(0.2, Math.abs(lf)) * Math.sign(lf || 1)), -1.15, 1.15) * sm((speed - gT0) / (gT1 - gT0)) * (lf < -0.5 ? 0.35 : 1) * turnSus;
       // (going back and across fast, as for a deep ball wide of him, he turns to the side and runs, the shoulders to the sideline:
       // kept within a third of the turn going back, at five or six metres a second he galloped sideways with his chest to the net)
       if (!globalThis.__backRunOld && lf < -0.5 && Math.abs(lx) > 0.25 * speed) { const bk = sm((speed - 3.8) / 1.2); if (bk > 0.001) yawT = lerp(yawT, Math.sign(lx) * Math.min(1.6, Math.atan2(Math.abs(lx), lf)) * sm((speed - gT0) / (gT1 - gT0)) * turnSus, bk); }
+      // (and straight back, faster than a backpedal goes, he drops a foot back and turns side-on to run, to his forehand side unless
+      // he is already going a little across: the arrow held back sent him backpedalling at four metres a second, facing the net)
+      if (!globalThis.__keyTurnOld && lf < -0.5 && Math.abs(lx) <= 0.25 * speed) { const bk = sm((speed - 2.6) / 0.9); if (bk > 0.001) { if (!this.backSide || Math.abs(lx) > 0.12 * speed) this.backSide = Math.abs(lx) > 0.12 * speed ? Math.sign(lx) : (hs > 0 ? 1 : -1); yawT = lerp(yawT, this.backSide * 1.25 * turnSus, bk); } } else if (!(lf < -0.5)) this.backSide = 0;
     } else if ((between || (serverWait && !globalThis.__srvWalkOld)) && speed > (serverWait && !globalThis.__srvWalk2Old ? (this.srvWalking ? 0.08 : 0.15) : 0.5)) { yawT = Math.atan2(p.vx * s, -p.vz * s); }
     // (waiting to serve, any move along the line is a walk, turned to where he is going from a few steps a second and back into
     // his stance when he stops: held facing the net below half a metre a second, he slid along the line in his wide serving
@@ -2114,7 +2126,7 @@ export class Figure {
       const rel = _v9.copy(wrist[i]).sub(sh[i]), reach = rel.length() / (D.upper + D.fore); rel.normalize();
       poleFor(rel.dot(cRight) * sx, rel.dot(cUpW), rel.dot(cFwdW), reach, _pl);
       const pole = _v8.set(0, 0, 0).addScaledVector(cRight, _pl[0] * sx).addScaledVector(cUpW, _pl[1]).addScaledVector(cFwdW, _pl[2]);
-      if (pole.lengthSq() < 1e-6) pole.set(0, -1, 0); pole.normalize(); if (this.dbgOn) { const DP = this.dbgPole || (this.dbgPole = [{}, {}]); DP[i].p1 = pole.clone(); }
+      if (pole.lengthSq() < 1e-6) pole.set(0, -1, 0); pole.normalize(); if (this.dbgOn) { const DP = this.dbgPole || (this.dbgPole = [{}, {}]); DP[i].p1 = pole.clone(); DP[i].cR = cRight.clone(); }
       // a celebration that puts the free hand to the head says where its elbow goes (Wawrinka's finger to the temple: elbow low
       // and in front, the forearm pointing up at the temple; the tracked arms' elbow for a hand there is out at the side, which
       // laid the forearm across his face and put the finger in his eye)
@@ -2126,8 +2138,12 @@ export class Figure {
       // (with both hands on the handle the clip's own top arm says nothing: the tracker loses that hand behind the body, so
       // its elbow is not followed; the top elbow hangs down and a little out below the hands, as it does in a two-hander)
       { const fw = freeOf(i) * (i === off ? (1 - (this.tossArmW || 0)) * (1 - Math.max(this.twoHW || 0, this.oneHW || 0)) : 1);
+        // (toward where the clip's elbow is, from the middle of this arm, not the clip's: where the stroke has put the hand
+        // somewhere else (a wide forehand's hand brought in to the front of the stomach, the clip's still out at the side), the
+        // clip's elbow taken against its own arm's line lay on the inside of this one, and the elbow went through his stomach)
         if (fw > 0.001) { const mid = _a.copy(sh[i]).add(cWr[i]).multiplyScalar(0.5), off2 = _v9.copy(cEl[i]).sub(mid), ext = off2.length() / Math.max(1e-3, D.upper), bent = sm((ext - 0.06) / 0.22);
-          if (bent > 0.001) pole.lerp(off2.normalize(), fw * bent).normalize(); } } if (this.dbgOn) { const DP = this.dbgPole || (this.dbgPole = [{}, {}]); DP[i].p2 = pole.clone(); }
+          if (!globalThis.__elClipOld) { mid.copy(sh[i]).add(wrist[i]).multiplyScalar(0.5); off2.copy(cEl[i]).sub(mid); }
+          if (bent > 0.001 && off2.lengthSq() > 1e-8) pole.lerp(off2.normalize(), fw * bent).normalize(); } } if (this.dbgOn) { const DP = this.dbgPole || (this.dbgPole = [{}, {}]); DP[i].p2 = pole.clone(); }
       // a pole lying along the arm says nothing about where the elbow goes, and the least change in it would spin the elbow
       // round the arm: as it comes into line, the elbow is let hang down and a little out instead
       { const dS = _b.copy(wrist[i]).sub(sh[i]).normalize(), pd = pole.dot(dS), perp = Math.sqrt(Math.max(0, 1 - pd * pd));
@@ -2142,7 +2158,10 @@ export class Figure {
       // racket carried in to a volley, its elbow flared out to the side, read from behind as a hand on the hip)
       const hipZone = (() => { if (!inPlayE || (st && (st.kind === 'serve' || st.kind === 'smash'))) return 0; const r = _rc1.copy(wrist[i]).sub(sh[i]), hy = r.dot(cUpW), hz = r.dot(cFwdW), hx = r.dot(cRight) * sx;
         return sm((hy + 0.62) / 0.1) * (1 - sm((hy + 0.18) / 0.1)) * (1 - sm((hz - 0.05) / 0.12)) * sm((hx + 0.02) / 0.08); })();
-      { const runE = Math.max((i === off ? freeOf(off) : carry) * (1 - sm(swA / 0.4)) * sm((speed - 2.5) / 1.5) * (inPlayE ? 1 : 0), hipZone);
+      // (and walking between points, both elbows go back as the players' do, the arms bent forty degrees: let stand out to the
+      // side, from behind the free arm, its hand at the waist, was a hand on the hip at every step)
+      const strollE = !globalThis.__strollElbOld && strolling && !inPlayE ? Math.min(1, speed / 0.5) : 0;
+      { const runE = Math.max((i === off ? freeOf(off) : carry) * (1 - sm(swA / 0.4)) * sm((speed - 2.5) / 1.5) * (inPlayE ? 1 : 0), hipZone, strollE);
         if (runE > 0.001) { const oU = _rc1.copy(cRight).multiplyScalar(sx), xo = pole.dot(oU);
           if (xo > 0.2) { const pn = _rc2.copy(pole).addScaledVector(oU, (0.2 - xo) * runE), dS = _b.copy(wrist[i]).sub(sh[i]).normalize(); pn.addScaledVector(dS, -pn.dot(dS));
             if (pn.lengthSq() > 0.04) pole.copy(pn.normalize()); } } } if (this.dbgOn) { const DP = this.dbgPole || (this.dbgPole = [{}, {}]); DP[i].p5 = pole.clone(); }
