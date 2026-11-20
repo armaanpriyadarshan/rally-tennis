@@ -659,16 +659,30 @@ export class Figure {
     let yawT = 0;
     // (the stroke holds the body only until the ball has gone: running out of a finish he turns to run as anyone does; held
     // facing the net while the recovery played out, a third of his sprints back across the court were a sideways gallop)
-    const swTurn = globalThis.__turnRecOld || !(st && st.tc != null) ? sw : sw * (1 - sm((t - st.tc - 0.2) / 0.2));
+    let swTurn = globalThis.__turnRecOld || !(st && st.tc != null) ? sw : sw * (1 - sm((t - st.tc - 0.2) / 0.2));
+    // (running fast into a stroke on its own side, he runs turned and the take-back rides on the run, the hips coming round into the
+    // swing in its last few tenths: a forehand run down to his right is taken back with his chest already to the sideline, as a
+    // player's is. Held square to the net until the ball, he galloped sideways at three to six metres a second with the racket
+    // back, both feet off the court, in one frame in thirty of every match; and out of a finish at a run likewise)
+    if (!globalThis.__runHoldOld && st && st.kind !== 'serve' && st.kind !== 'smash' && live && speed > 2.6) {
+      const tcR = st.tc != null ? st.tc : st.tcPlan, ur = tcR != null ? t - tcR : null, lx = p.vx * s;
+      const own = !st.wing || Math.abs(lx) < 0.4 * speed || Math.sign(lx) === (st.wing === 'fh' ? 1 : -1) * Math.sign(hs || 1);
+      const timeK = ur == null ? 1 : ur < 0 ? (own ? sm((-0.3 - ur) / 0.15) : 0) : sm((ur - 0.15) / 0.1);
+      swTurn *= 1 - sm((speed - 2.8) / 0.8) * timeK; if (this.dbgOn) this.dbgTurn = { ur: ur == null ? null : +ur.toFixed(2), own, timeK: +timeK.toFixed(2), swTurn: +swTurn.toFixed(2), lx: +lx.toFixed(1) }; }
     this.turnT = live && speed > gT0 * 0.85 && !(swTurn > 0.3) ? (this.turnT || 0) + dt : 0;
-    if (speed > gT0 && !(swTurn > 0.3) && live) {
+    // (and going far, he turns as he sets off, a drop step and away: the game knows how far its legs are taking him, and a run of
+    // more than a few metres was shuffled sideways for its first third of a second, at up to five metres a second, before the
+    // turn had built up with the speed. A step or two across is still shuffled.)
+    const far = globalThis.__farTurnOld || p.goDist == null ? 0 : sm((p.goDist - 2.2) / 1.0) * sm((speed - 1.6) / 0.8);
+    if ((speed > gT0 || far > 0.01) && !(swTurn > 0.3) && live) {
       const lx = p.vx * s, lf = -p.vz * s;               // velocity in body space (x right, f forward)
       // (only once he has been going that fast for a moment: a step or two across to a ball near him is shuffled facing the net,
       // as a player does; turned at once at the peak of every quick shuffle, the body swung side-on and back in half a second
       // and the legs ran a crossover under a body still shuffling)
       const fT0 = globalThis.__keyTurnOld ? 4.2 : (globalThis.__fastTurn0 ?? 3.0);
       const turnSus = globalThis.__turnSusOld ? 1 : Math.max(sm(((this.turnT || 0) - 0.14) / 0.22), globalThis.__turnFastOld ? 0 : sm((speed - fT0) / 0.8));   /* (but nobody shuffles at a sprint: above about three and a half metres a second he turns at once) */   /* (from three metres a second, not four and a bit: moved with the arrows, a new way every third of a second, the wait for a steady run never ran out, and he went sideways and back at three or four metres a second square to the net, the legs a jumping jack, both feet off the court) */
-      yawT = clamp(Math.atan2(lx, Math.max(0.2, Math.abs(lf)) * Math.sign(lf || 1)), -1.15, 1.15) * sm((speed - gT0) / (gT1 - gT0)) * (lf < -0.5 ? 0.35 : 1) * turnSus;
+      const spK = Math.max(sm((speed - gT0) / (gT1 - gT0)), far);
+      yawT = clamp(Math.atan2(lx, Math.max(0.2, Math.abs(lf)) * Math.sign(lf || 1)), -1.15, 1.15) * spK * (lf < -0.5 ? 0.35 : 1) * Math.max(turnSus, far);
       // (going back and across fast, as for a deep ball wide of him, he turns to the side and runs, the shoulders to the sideline:
       // kept within a third of the turn going back, at five or six metres a second he galloped sideways with his chest to the net)
       if (!globalThis.__backRunOld && lf < -0.5 && Math.abs(lx) > 0.25 * speed) { const bk = sm((speed - 3.8) / 1.2); if (bk > 0.001) yawT = lerp(yawT, Math.sign(lx) * Math.min(1.6, Math.atan2(Math.abs(lx), lf)) * sm((speed - gT0) / (gT1 - gT0)) * turnSus, bk); }

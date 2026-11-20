@@ -494,8 +494,11 @@ export class Loco {
     // (springs, not first-order lags: a split step's burst or a sudden change of direction changes what the legs should
     // be doing at once, and a lag would start the change at full speed in one frame)
     w.go = c01(ease(w, 'go', sm((speed - 0.15) / 0.75), 30, dt));
-    w.f = c01(ease(w, 'f', mv ? Math.max(0, c) ** 2 : w.f, 19, dt)); w.b = c01(ease(w, 'b', mv ? Math.max(0, -c) ** 2 : w.b, 19, dt));
-    w.r = c01(ease(w, 'r', mv ? Math.max(0, s) ** 2 : w.r, 19, dt)); w.l = c01(ease(w, 'l', mv ? Math.max(0, -s) ** 2 : w.l, 19, dt));
+    // (quicker at a run: the body turns to run in a sixth of a second, and eased at the walking rate the legs went on shuffling
+    // sideways under a body already turned, three or four frames of a gallop at five metres a second)
+    const wr = globalThis.__gaitRateOld ? 19 : 19 + 14 * c01((speed - 2.6) / 1.2);
+    w.f = c01(ease(w, 'f', mv ? Math.max(0, c) ** 2 : w.f, wr, dt)); w.b = c01(ease(w, 'b', mv ? Math.max(0, -c) ** 2 : w.b, wr, dt));
+    w.r = c01(ease(w, 'r', mv ? Math.max(0, s) ** 2 : w.r, wr, dt)); w.l = c01(ease(w, 'l', mv ? Math.max(0, -s) ** 2 : w.l, wr, dt));
     // into the athletic stance quickly when a point starts; out of it slowly, as a player relaxes after one
     w.up = c01(ease(w, 'up', upright ? 1 : 0, upright ? 7 : 15, dt));   /* (up out of the crouch in about half a second once the point is over: at the slower rate he walked back to the line still half in his ready stance) */
     // the forward gait for this speed: the two measured gaits either side of it

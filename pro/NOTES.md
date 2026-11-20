@@ -722,3 +722,14 @@ still in the air, both in a stroke's finish, for two or three frames.
   Ruud Court Level Practice | Pointplay 2024" (watch?v=EjHCdOpGBgc); "Jannik Sinner Returns to Indian Wells | 2026 Court
   Level Practice Match | 4K" (watch?v=B2gE3TZSCB8); "[TRAINING] Fognini - Wawrinka (COURT LEVEL VIEW)" (watch?v=9BHPLO-4PM0).
   Also scanned, no walking stride kept: "Roland-Garros 2019 : Federer - Schwartzman practice points" (watch?v=vkGwyke5jDU).
+- **Sideways at speed** (`js/figure.js`, `js/ai.js`, `js/motion.js`; the audit now counts "sideways gallop": on the side
+  shuffle faster than 2.8 m/s with both feet off the court). It is 2-4.5% of every player's frames, mostly the take-back,
+  finish or recovery of a stroke holding the body square while he still runs. Three changes kept, each checked not to add
+  legs through each other: a run the game's legs know to be more than a few metres long turns as it sets off (`goDist` from
+  `goTo`, animation only; `__farTurnOld`); the gait follows the body's turn faster above 3 m/s (`__gaitRateOld`); running
+  faster than 2.8 m/s toward the side a stroke is played on, more than 0.3 s before contact, or from 0.15 s after it, the run's
+  turn overrides the stroke's hold and the turn-rate limit brings him round into the swing (`__runHoldOld`). Gallop frames
+  fell by about a tenth to a fifth. Tried and taken out, each adding legs through each other (0.002% to 0.010-0.012%): turning
+  from 2.6 m/s, and never holding square at a sprint (over 4.3 m/s). Looked at from the broadcast and behind cameras, the
+  computer's counted gallops at about 3 m/s are side steps out of a finish into a turn and read as such; the one that reads
+  as a jumping jack is the run round the ball with an arrow held, at 3-3.6 m/s, still there.

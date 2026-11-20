@@ -89,7 +89,7 @@ export class Human {
       const helped = coming && (shortRun || Math.hypot(plan.S.x - p.x, plan.S.z - p.z) < near); this.helpedNow = !!helped;
       const any = !committed && !helped && Math.abs(mv.x) + Math.abs(mv.y) > 0.01;
       if (any) {
-        p.move.x = mv.x * s; p.move.z = -mv.y * s;
+        p.move.x = mv.x * s; p.move.z = -mv.y * s; p.goDist = null;
         if (p.burstOK) m.burst(i, p.move.x, p.move.z);
       }
       // the legs that run for you still have to see the ball first: they start after his own

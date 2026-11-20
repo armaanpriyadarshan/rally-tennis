@@ -48,6 +48,7 @@ export class AI {
 
   goTo(p, tx, tz, eps) {
     const dx = tx - p.x, dz = tz - p.z, d = Math.hypot(dx, dz);
+    p.goDist = d;                                    // (for the figure only: a long run starts with a turn, a short move is shuffled)
     if (d < (eps || 0.06)) return;
     const top = p.prof.speed * (p.walk ? WALK_K : 1);
     const v = Math.min(top, Math.sqrt(2 * p.prof.accel * 0.85 * d) + 0.2);
