@@ -635,3 +635,6 @@ from the line between the feet, about as far as hips turn over planted feet, and
 together for their line to mean much. Across the roster (seeded audit, one match per pair): legs crossed by more than 8 cm
 0.085% of frames to 0.003%, legs through each other 0.035% to 0.016%, knees bent backwards 0.206% to 0.196%, foot jumps
 0.013% to 0.011%; nothing else moved. `__hipClampOld`, `__hipClampDeg`.
+(Also tried after it: keeping two feet that are both off the court at once at least 14 cm apart, the higher one moved. Feet
+through each other fell a little in three pairs (13 to 9, 18 to 15) but foot pops and jumps rose, the push being taken up in a
+frame; taken out.)
