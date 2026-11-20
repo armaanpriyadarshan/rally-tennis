@@ -637,4 +637,6 @@ together for their line to mean much. Across the roster (seeded audit, one match
 0.013% to 0.011%; nothing else moved. `__hipClampOld`, `__hipClampDeg`.
 (Also tried after it: keeping two feet that are both off the court at once at least 14 cm apart, the higher one moved. Feet
 through each other fell a little in three pairs (13 to 9, 18 to 15) but foot pops and jumps rose, the push being taken up in a
-frame; taken out.)
+frame; taken out.) Eased in at a step's pace instead (1 m/s), it did next to nothing (feet through each other 18 to 15 in one pair, none
+elsewhere) and still added a pop; also taken out. What is left of the feet passing close is a foot landing while the other is
+still in the air, both in a stroke's finish, for two or three frames.
