@@ -182,6 +182,16 @@ export class Human {
         // (and where it will be met, as the plan has it: the figure bends the wind-up toward that before he lets go, so the
         // swing he releases is already on its way to the ball and nothing jumps toward it in the frame he lets go)
         if (mine && !swinging && p.stroke && !p.stroke.done && p.stroke.tc == null) p.stroke.cpPlan = plan && !plan.leave && plan.cp ? plan.cp : (!plan || !plan.leave) && this.npCP ? this.npCP : null;
+        // (and a drop shot or a lob he is holding the key for is drawn as one from the start of the wind-up: decided only as he let
+        // go, a sixth of a second before contact, by which time the figure keeps the swing it has begun, his drop shots and lobs
+        // were played with the full swing of the drive the game had prepared, the ball dying over the net off a big forehand)
+        if (!globalThis.__ownKindOld && mine && !swinging && p.stroke && !p.stroke.done && p.stroke.tc == null) {
+          const bl = m.ball, cy = plan && plan.cp ? plan.cp.y : bl.y, vin = Math.hypot(bl.vx, bl.vy, bl.vz), oppUp = Math.abs(m.players[1 - i].z) < 4.2;
+          const vinC = bl.bounces > 0 || m.ball.isServe ? vin : vin * 0.68;   /* (as it will be when he meets it: it slows to about two-thirds at the bounce) */
+          const ownNow = fk < 0 && cy < 1.75 && vinC < 22 ? 'drop' : fk > 0 && oppUp ? 'lob' : null;
+          if (ownNow && p.stroke.kind !== ownNow && /^(drive|flat|loop|slice|drop|lob)$/.test(p.stroke.kind)) { if (!p.stroke.__kind0) p.stroke.__kind0 = p.stroke.kind; p.stroke.kind = ownNow; }
+          else if (!ownNow && p.stroke.__kind0) { p.stroke.kind = p.stroke.__kind0; p.stroke.__kind0 = null; }
+        }
         // (with no plan to time it by, by when the ball will be on him: timed from its own start instead, a wind-up begun late
         // was still near its beginning when he let go a sixth of a second before contact, and the rest of it was crammed into
         // that sixth of a second, the arms thrashing)

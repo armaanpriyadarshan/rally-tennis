@@ -299,6 +299,9 @@ export class Figure {
     const ph = this.gait * Math.PI * 2, sw = Math.sin(ph) * 0.07 * Math.min(1, speed / 4), up = Math.cos(ph * 2) * 0.012;
     // (the free hand carried in front of the stomach, as a tennis player runs with it, not beside the hip: the running arm's
     // swing is blended toward this, and held beside the hip, with the elbow swung back behind him, it read as a hand on the hip)
+    // (the racket carried low and pointing ahead, the hand by the waist, as a player runs with it: held at the chest pointing
+    // up, swung by the running arm, it rode up behind his head at a sprint, as if he were already taking it back)
+    if (!globalThis.__runCarryOld) return { R: [0.22, 0.98 + up, 0.30 + sw], L: [-0.14, 1.10, 0.30 - sw], dir: [-0.22, 0.42, 0.88], nrm: [0.7, 0.1, 0.7], twist: 0, lean: 0.22, crouch: 0.15, stance: 0.22, lgrip: 0, head: 0, elbows: 0.15 };
     return { R: [0.22, 1.06 + up, 0.40 + sw], L: [-0.14, 1.10, 0.30 - sw], dir: [-0.30, 0.78, 0.55], nrm: [0.7, 0.1, 0.7], twist: 0, lean: 0.22, crouch: 0.15, stance: 0.22, lgrip: 0, head: 0, elbows: 0.15 };
   }
 
@@ -530,6 +533,13 @@ export class Figure {
       // a person let go, a late press's fade-in was cut short and the body turned half its wind-up in one frame)
       if (this.xinSt !== st) { this.xinSt = st; const tcK = st.tc != null ? st.tc : st.tcPlan; this.xin = tcK != null ? clamp((tcK - st.t0) * 0.8, 0.2, 0.22) : 0.22;   /* (never under a sixth of a second: a swing begun at the last moment turned the body round in four frames, and at an eighth, sprinting to a ball, the arm still swung seventy degrees in a frame as the trunk came round under it; a late ball is met with the body still turning, as it is) */ }
       if (u < span[1] + 0.05) { const X = 0.3 + 0.22 * sm(speed / 3.5), Xin = this.xin; sw = sm((t - st.t0) / Xin) * (1 - sm5((u - (span[1] - X)) / X)) * cancelK * deferIn;   /* (in on a gentler curve: on the steeper one a swing begun at a sprint, a quarter of a second before the ball, turned the body and both arms sixty degrees in its steepest frame) */ void end; }   /* (in over at most a fifth of a second, and always well before contact on a late swing) */   /* (on the run the finish is cut shorter and let go of more slowly, as a player recovering does) */
+      // Running hard to a ball still well over half a second away, he runs: arms pumping, free to turn and run, the racket taken
+      // back only in the last steps. Booked nine-tenths of a second ahead, the stroke's take-back came in at once and held him
+      // facing the net with the racket out to the side for the whole run, shuffling sideways at a sprint to a ball far from him.
+      if (!globalThis.__prepLateOld && st.kind !== 'serve' && st.kind !== 'smash') { const tcL = st.tc != null ? st.tc : st.tcPlan, left = tcL != null ? tcL - t : 0.9;
+        const want = sm((speed - (globalThis.__prepRunV ?? 2.2)) / 1.2) * sm((left - (globalThis.__prepLead ?? 0.5)) / 0.25);
+        this.prepLate = this.inited && dt > 0 && this.prepLateSt === st ? this.prepLate + (want - this.prepLate) * (1 - Math.exp(-dt * (want < this.prepLate ? 9 : 14))) : want; this.prepLateSt = st;
+        sw *= 1 - this.prepLate; }
     }
     // the arms' share of the stroke: all of it from the first frame on the way in (see the hands' entry below), the same
     // as the body's on the way out
@@ -543,11 +553,15 @@ export class Figure {
     // stance only once he stops: held in the side-on serving stance and slid sideways, the legs ran a sideways gait under it,
     // lunging, scissoring and splaying into the splits as he changed direction)
     const srvWalkK = this.srvWalkK = serverWait && !globalThis.__srvWalkOld ? damp(this.srvWalkK || 0, globalThis.__srvWalk2Old ? sm((Math.hypot(p.vx, p.vz) - 0.25) / 0.5) : sm((Math.hypot(p.vx, p.vz) - 0.08) / 0.3), globalThis.__srvWalk2Old ? 8 : 10, dt) : 0;
-    this.fastT = speed > GAIT.pump0 ? (this.fastT || 0) + dt : 0;
+    // (he turns and runs from two and a half metres a second, not three and a fifth, and pumps his arms from three, not nearly four:
+    // a run to a ball well wide, behind or in front of him began as a quick sideways shuffle of three steps a second and went
+    // on with the racket held out in front of him at chest height, as if already taking it back)
+    const gT0 = globalThis.__turnOld ? GAIT.turn0 : (globalThis.__turn0 ?? 2.5), gT1 = globalThis.__turnOld ? GAIT.turn1 : (globalThis.__turn1 ?? 4.0), gP0 = globalThis.__pumpOld ? GAIT.pump0 : (globalThis.__pump0 ?? 3.0), gP1 = globalThis.__pumpOld ? GAIT.pump1 : (globalThis.__pump1 ?? 4.4);
+    this.fastT = speed > gP0 ? (this.fastT || 0) + dt : 0;
     // (running in to the net, inside the service line or moving toward it in front of the baseline, a volleyer carries the
     // racket up in front and does not pump; pumping and then taking it up again was a racket that went up, down and up)
     const inward = (-p.vz * p.sgn) > 0.6 * speed && Math.abs(p.z) < 10.5;
-    this.pumpSus = sm((this.fastT - (Math.abs(p.z) < 7.2 || inward ? 0.6 : 0.22)) / 0.25);
+    this.pumpSus = sm((this.fastT - (Math.abs(p.z) < 7.2 || inward ? 0.6 : (globalThis.__pumpOld ? 0.22 : 0.1))) / 0.25);
     // (his routine at the line waits for him to stop walking: bounced on the move, the ball dropped to the court at his feet in
     // mid-stride; walking, he holds it, and once he has stopped he begins again)
     if (serverWait && !globalThis.__ritWalkOld) { const RT0 = m.ritual || { t0: 0.5 }; if (this.ritT == null || m.phaseT < (this.ritPT ?? 0)) this.ritT = m.phaseT; else this.ritT += m.phaseT - this.ritPT; this.ritPT = m.phaseT; if ((this.srvWalkK || 0) > 0.25) this.ritT = Math.min(this.ritT, RT0.t0 - 0.35); } else this.ritT = null;
@@ -562,7 +576,7 @@ export class Figure {
     else {
       // the racket stays in front in both hands until he is flat out; only then do the arms pump
       basePose = this.ready(t, { live: m.phase === 'live', wait: m.phase !== 'live' });
-      const pump = sm((speed - GAIT.pump0) / (GAIT.pump1 - GAIT.pump0)) * this.pumpSus * (st && sw > 0.3 ? 0 : 1);
+      const pump = sm((speed - gP0) / (gP1 - gP0)) * this.pumpSus * (st && sw > 0.3 ? 0 : 1);
       if (pump > 0.001) basePose = blendPose(basePose, this.runPose(t, speed), pump);
     }
     // (from one kind of standing to another, the walk between points into the stance to serve or to receive, over a quarter of a
@@ -638,17 +652,17 @@ export class Figure {
     // (the stroke holds the body only until the ball has gone: running out of a finish he turns to run as anyone does; held
     // facing the net while the recovery played out, a third of his sprints back across the court were a sideways gallop)
     const swTurn = globalThis.__turnRecOld || !(st && st.tc != null) ? sw : sw * (1 - sm((t - st.tc - 0.2) / 0.2));
-    this.turnT = live && speed > GAIT.turn0 * 0.85 && !(swTurn > 0.3) ? (this.turnT || 0) + dt : 0;
-    if (speed > GAIT.turn0 && !(swTurn > 0.3) && live) {
+    this.turnT = live && speed > gT0 * 0.85 && !(swTurn > 0.3) ? (this.turnT || 0) + dt : 0;
+    if (speed > gT0 && !(swTurn > 0.3) && live) {
       const lx = p.vx * s, lf = -p.vz * s;               // velocity in body space (x right, f forward)
       // (only once he has been going that fast for a moment: a step or two across to a ball near him is shuffled facing the net,
       // as a player does; turned at once at the peak of every quick shuffle, the body swung side-on and back in half a second
       // and the legs ran a crossover under a body still shuffling)
       const turnSus = globalThis.__turnSusOld ? 1 : Math.max(sm(((this.turnT || 0) - 0.14) / 0.22), globalThis.__turnFastOld ? 0 : sm((speed - 4.2) / 0.8));   /* (but nobody shuffles at a sprint: above four and a half metres a second he turns at once) */
-      yawT = clamp(Math.atan2(lx, Math.max(0.2, Math.abs(lf)) * Math.sign(lf || 1)), -1.15, 1.15) * sm((speed - GAIT.turn0) / (GAIT.turn1 - GAIT.turn0)) * (lf < -0.5 ? 0.35 : 1) * turnSus;
+      yawT = clamp(Math.atan2(lx, Math.max(0.2, Math.abs(lf)) * Math.sign(lf || 1)), -1.15, 1.15) * sm((speed - gT0) / (gT1 - gT0)) * (lf < -0.5 ? 0.35 : 1) * turnSus;
       // (going back and across fast, as for a deep ball wide of him, he turns to the side and runs, the shoulders to the sideline:
       // kept within a third of the turn going back, at five or six metres a second he galloped sideways with his chest to the net)
-      if (!globalThis.__backRunOld && lf < -0.5 && Math.abs(lx) > 0.25 * speed) { const bk = sm((speed - 3.8) / 1.2); if (bk > 0.001) yawT = lerp(yawT, Math.sign(lx) * Math.min(1.6, Math.atan2(Math.abs(lx), lf)) * sm((speed - GAIT.turn0) / (GAIT.turn1 - GAIT.turn0)) * turnSus, bk); }
+      if (!globalThis.__backRunOld && lf < -0.5 && Math.abs(lx) > 0.25 * speed) { const bk = sm((speed - 3.8) / 1.2); if (bk > 0.001) yawT = lerp(yawT, Math.sign(lx) * Math.min(1.6, Math.atan2(Math.abs(lx), lf)) * sm((speed - gT0) / (gT1 - gT0)) * turnSus, bk); }
     } else if ((between || (serverWait && !globalThis.__srvWalkOld)) && speed > (serverWait && !globalThis.__srvWalk2Old ? (this.srvWalking ? 0.08 : 0.15) : 0.5)) { yawT = Math.atan2(p.vx * s, -p.vz * s); }
     // (waiting to serve, any move along the line is a walk, turned to where he is going from a few steps a second and back into
     // his stance when he stops: held facing the net below half a metre a second, he slid along the line in his wide serving
@@ -1222,7 +1236,7 @@ export class Figure {
     // between the two at every step)
     const sustain = this.pumpSus;
     const walkSv = serverWait && !globalThis.__srvStrollOld ? (this.srvWalkK || 0) : 0;   /* (walking to serve: the arms swing as they do strolling between points) */
-    const free = ease(this, 'armFree', strolling ? 1 - Math.max(this.reactK || 0, this.touchK || 0) : lerp(sm((speed - GAIT.pump0) / (GAIT.pump1 - GAIT.pump0)) * sustain * (1 - sm(sw / 0.4)), 1, walkSv), strolling || walkSv > 0.5 ? 7 : this.sinceSw < 0.5 ? 8 : 19, dt);   /* (after a point the arms loosen slowly) */
+    const free = ease(this, 'armFree', strolling ? 1 - Math.max(this.reactK || 0, this.touchK || 0) : lerp(sm((speed - gP0) / (gP1 - gP0)) * sustain * (1 - sm(sw / 0.4)), 1, walkSv), strolling || walkSv > 0.5 ? 7 : this.sinceSw < 0.5 ? 8 : 19, dt);   /* (after a point the arms loosen slowly) */
     const sh = [shL, shR], cEl = _el2, cWr = _wr2, CJ = ARM_J;
     // the way each knee bends (see below): a function, so either leg's can be had while the other is solved
     const kpFor = (i, out) => { const jh = LEG_J[i][0], jk = LEG_J[i][1], ja = LEG_J[i][2];
@@ -1255,7 +1269,7 @@ export class Figure {
       if (trunkE(_stQ.copy(h).add(mv)) >= need - 1e-4) return; let lo = 0, hi = 1; for (let it = 0; it < 7; it++) { const sv = (lo + hi) / 2; if (trunkE(_stQ.copy(h).addScaledVector(mv, sv)) < need - 1e-4) hi = sv; else lo = sv; } mv.multiplyScalar(lo); };
     // how much of the runner's arm swing the racket arm takes: all of it strolling, about half flat out
     // (eased: from strolling between points to the ready position it went from all of it to half in a frame)
-    const carry = this.posed ? 0 : clamp(ease(this, 'carryE', strolling ? 1 : lerp(0.12 + 0.38 * free, 1, walkSv), 12, dt), 0, 1);
+    const carry = this.posed ? 0 : clamp(ease(this, 'carryE', strolling ? 1 : lerp(0.12 + (globalThis.__runCarryOld ? 0.38 : 0.2) * free, 1, walkSv), 12, dt), 0, 1);   /* (the racket arm swings less than the free one at a run) */
     // waiting to serve, the ball hand works in front of him at the waist (the keyed bounce), not where his tracked
     // address clip lets it hang at his side, where the ball is lost against his leg
     this.addrHandW = damp(this.addrHandW || 0, serverWait && m.ball && m.ball.held === p.i ? 1 - (globalThis.__srvStrollOld ? 0.7 : 1) * (this.srvWalkK || 0) : 0, 10, dt);   /* (walking, the ball hand hangs at his side with the ball in it) */

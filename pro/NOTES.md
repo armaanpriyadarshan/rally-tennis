@@ -651,3 +651,25 @@ still in the air, both in a stroke's finish, for two or three frames.
   is moving at twenty metres a second: eased as everywhere else, the elbow went through the side of the chest on the swing at
   the ball (Medvedev, Zverev). Arm inside the trunk 0.014% to 0.012%; one frame more of Ivanisevic's arm turning fast near
   contact, one fewer of McEnroe's free arm in a smash finish. `__elbowFastOld`.
+
+## 2026-11-20 (evening): runs to far balls, drop shots, the broadcast camera, the walk's stride
+
+- **The broadcast camera at Wimbledon after a change of ends** (`js/game.js`): the stadium is turned round for a change of
+  ends, and Wimbledon's far upper tier front (8.5 m up, 26 m out) then stood just under the camera's line: a dark band across
+  the middle of the picture where the net should be. The crane that lifted the camera over the stands for a player gone deep
+  now also keeps the middle of the court (just past the net, the net, both baselines) and the near player in view at all
+  times; checked at every venue from both ends, only Wimbledon turned round needed it (the camera goes to 13.2 m there).
+  `__craneCourtOld`.
+- **Drop shots shown as drop shots** (`js/human.js`): with the classic controls the shot is the player's (↓ held as he
+  swings) only as he lets go, a sixth of a second before contact, and by then the figure keeps the swing it has begun: every
+  drop shot and lob of his was drawn as the drive the game had prepared. The prepared stroke now takes the kind of the key he
+  is holding from the start of the wind-up (judged with the ball's speed after its bounce, as it will be when he meets it).
+  `__ownKindOld`.
+- **Running to a ball far from him** (`js/figure.js`): a stroke is booked nine-tenths of a second ahead, and its take-back
+  came in at once and held the body facing the net: he shuffled sideways at a sprint with the racket out. Running hard to a
+  ball over half a second away he now runs, the take-back eased in over the last steps (`__prepLateOld`); he turns and runs
+  from 2.5 m/s, not 3.2, and pumps his arms from 3 m/s, not 3.8, sooner after setting off (`__turnOld`, `__pumpOld`); and the
+  racket is carried low and pointing ahead, the racket arm swinging less than the free one, instead of held up at the chest
+  and swung up behind his head (`__runCarryOld`).
+- **The walk's stride**: shortened with the pace, the walk along the line was a tiptoe of steps a fifth of a metre long on
+  bent knees. The filmed walker's own stride is kept, played at a walker's slower rate. `__walkKSa` (0.45 for the shortened).

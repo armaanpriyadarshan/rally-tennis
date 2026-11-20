@@ -590,9 +590,14 @@ export class Game {
       // (and craned up over the stands when he goes back deep: from its usual height the first rows of the stand behind the
       // baseline, and the back wall's raised end, stood between it and his legs within a couple of metres of the back wall)
       const nz = near ? Math.abs(near.z) : 0, nzA = near ? Math.max(nz, Math.abs(near.z + (near.vz || 0) * 0.4)) : 0;   /* (where he is going, a little ahead, as a camera operator leads a running player) */
-      if (near && this.arena && this.arena.root && nzA > COURT.halfLen + 1.2 && !globalThis.__noCrane) {
-        if (!(this._craneT > this.time - 0.1)) { this._craneT = this.time; const rc = this._rc || (this._rc = new THREE.Raycaster()), sgn = Math.sign(near.z) || 1;
-          const zA = near.z + (near.vz || 0) * 0.4, xA = near.x + (near.vx || 0) * 0.4, pts = [[0.06, near.x, near.z], [0.45, near.x, near.z], [0.95, near.x, near.z], [0.06, xA, zA], [0.45, xA, zA]].map(([y, x, z]) => new THREE.Vector3(x, y, z));   /* (his feet too: tilted down after him, the front rows of the stand cut across the bottom of the picture at his shoes) */
+      // (and over whatever of the stadium stands between it and the court itself: the ends of a bowl are not always alike, and
+      // with the stadium turned round for a change of ends, the front of Wimbledon's far upper tier came up just under the
+      // camera's line, a band across the middle of the picture where the net should be)
+      const deepN = near && nzA > COURT.halfLen + 1.2;
+      if (this.arena && this.arena.root && !globalThis.__noCrane && (deepN || !globalThis.__craneCourtOld)) {
+        if (!(this._craneT > this.time - 0.1)) { this._craneT = this.time; const rc = this._rc || (this._rc = new THREE.Raycaster()), sgn = near ? Math.sign(near.z) || 1 : 1;
+          const court = [[0.5, 0, 0.4], [1.0, 0, 0], [0.5, 0, -COURT.halfLen], [0.3, 0, COURT.halfLen]].concat(near && !deepN ? [[0.06, near.x, near.z], [0.95, near.x, near.z]] : []);   /* (along the middle, and the near player wherever he is: by the near corners a ball kid would stand in the way of no picture) */
+          const zA = near ? near.z + (near.vz || 0) * 0.4 : 0, xA = near ? near.x + (near.vx || 0) * 0.4 : 0, pts = (deepN ? [[0.06, near.x, near.z], [0.45, near.x, near.z], [0.95, near.x, near.z], [0.06, xA, zA], [0.45, xA, zA]] : []).concat(globalThis.__craneCourtOld ? [] : court).map(([y, x, z]) => new THREE.Vector3(x, y, z));   /* (his feet too: tilted down after him, the front rows of the stand cut across the bottom of the picture at his shoes) */
           let want = 9.6, wantZ = 30;
           for (const [h, cz] of [[9.6, 30], [10.8, 30], [12, 30], [13.2, 30], [14.4, 30], [15.6, 30]]) {   /* (up a little only: craned higher, or forward over the stands, it looked down on the top of his head and lost the far player) */ let ok = true; const o = new THREE.Vector3(0, h, cz * sgn);
             for (const q of pts) { const d = q.clone().sub(o), L = d.length(); rc.set(o, d.normalize()); rc.far = L - 0.35;

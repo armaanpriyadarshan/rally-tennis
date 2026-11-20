@@ -510,7 +510,7 @@ export class Loco {
     // pace is a quick shuffle of quarter-metre steps, the legs reaching for a full stride and caught by the planted feet. The
     // stride shortens with the pace (to about four-fifths at 0.8 m/s, at a person's one and a half steps a second) and the
     // legs' reach is drawn in to match it (below), so the feet still cover the ground they stand on.
-    const upF = globalThis.__walkStrideOld ? 0 : c01(w.up) * w.f * (fa === CL.walk ? 1 - t : 0), kS = 1 + (Math.min(1, Math.max(0.5, 0.45 + 0.55 * speed / CL.walk.speed)) - 1) * upF;
+    const upF = globalThis.__walkStrideOld ? 0 : c01(w.up) * w.f * (fa === CL.walk ? 1 - t : 0), kSa = globalThis.__walkKSa ?? 1, kS = 1 + (Math.min(1, Math.max(0.5, kSa + (1 - kSa) * speed / CL.walk.speed)) - 1) * upF;
     const strideM = (w.f * strideF * kS + w.b * CL.back.stride + (w.r + w.l) * CL.shuffleR.stride) / sum, rateF = speed / Math.max(0.3, strideM);
     if (globalThis.__noSync) { this.phF = (this.phF + dt * Math.min(3.2, speed * ((w.f / strideF) + (w.b / CL.back.stride)) / Math.max(1e-6, w.f + w.b))) % 1; this.phS = (this.phS + dt * Math.min(3.4, speed / CL.shuffleR.stride)) % 1; }
     // (and never slower than a little over three steps a second while he is moving at all: slowing in proportion to his speed,
