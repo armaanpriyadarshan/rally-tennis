@@ -621,3 +621,17 @@ with DBG=1 the speed, knee angles, hands and blend weights), not in the pose lab
 - **The ball** (`js/figure.js`, `js/game.js`): his routine at the line ran on the phase's clock while he walked, so the ball
   was bounced in mid-stride and dropped to the court at his feet. His routine now waits for him to stop (`Figure.ritT`),
   then starts again; walking, he holds the ball. `__ritWalkOld`.
+
+## 2026-11-20: legs crossing in an X
+
+The last of the crossovers, traced at Djokovic's 103 s: the feet were apart (a third of a metre) and on their own sides
+across the body's frame, but the stroke's clip, coming in, had turned his hips more than ninety degrees, so across his own
+hips the feet were crossed by 43 cm and each leg ran from its hip to a foot on the other side: an X. Before that, three things
+were tried and taken out: the stance-widening and soft separation left alone in strokes (above), a guard that moved the foot
+in the air clear of the other shin (the legs closed faster than it could move a foot, and it was knees and thighs that met),
+and a rule sending a crossing foot round in front of the other leg (measured against hips turned that far, "in front" was
+sideways). What works (`js/figure.js`, where the pelvis is oriented): the hips are never turned more than about eighty degrees
+from the line between the feet, about as far as hips turn over planted feet, and not at all when the feet are too close
+together for their line to mean much. Across the roster (seeded audit, one match per pair): legs crossed by more than 8 cm
+0.085% of frames to 0.003%, legs through each other 0.035% to 0.016%, knees bent backwards 0.206% to 0.196%, foot jumps
+0.013% to 0.011%; nothing else moved. `__hipClampOld`, `__hipClampDeg`.
