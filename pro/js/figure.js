@@ -2269,7 +2269,9 @@ export class Figure {
       { const pe = bodyPush(el, LIMB_R, _bq2), mid = _bp0.copy(el).add(wrist[i]).multiplyScalar(0.5), pm = bodyPush(mid, LIMB_R * 0.9, _bp1);
         if (pm.lengthSq() > pe.lengthSq()) pe.copy(pm).multiplyScalar(2);
         // (eased like the hands: the elbow slides round the body rather than being knocked out of it)
-        const eg = this.elGot || (this.elGot = [V(), V()]), ev = this.elVel || (this.elVel = [V(), V()]), w = 50, ex = Math.exp(-w * dt);
+        // (quicker round contact, where the arm is moving at twenty metres a second and an elbow eased in a hundredth of a second
+        // behind it went through the side of the chest on the swing at the ball)
+        const ucE = st && st.tc != null ? t - st.tc : 9, eg = this.elGot || (this.elGot = [V(), V()]), ev = this.elVel || (this.elVel = [V(), V()]), w = globalThis.__elbowFastOld ? 50 : lerp(50, globalThis.__elbowFastW ?? 140, Math.exp(-(ucE * ucE) / 0.012)), ex = Math.exp(-w * dt);
         if (dt > 0) for (const c of ['x', 'y', 'z']) { const d = eg[i][c] - pe[c], k = (ev[i][c] + w * d) * dt; eg[i][c] = pe[c] + (d + k) * ex; ev[i][c] = (ev[i][c] - w * k) * ex; } else eg[i].copy(pe);
         if (eg[i].lengthSq() > 1e-8) { const mid2 = _bp1.copy(sh[i]).add(wrist[i]).multiplyScalar(0.5), np = _bq.copy(el).add(eg[i]).sub(mid2); if (np.lengthSq() > 1e-8) el = ik(sh[i], wrist[i], D.upper, D.fore, np.normalize(), _el[i], true); } }
       // Last, the elbow moves no faster than an elbow does: relative to the chest, about nine centimetres a frame away from the

@@ -647,3 +647,7 @@ still in the air, both in a stroke's finish, for two or three frames.
   hands by the other hip just outside the old limit had the upper arm across the inside of the chest (Murray, the elbow at
   the breastbone). Arm inside the trunk 0.017% to 0.014% across the roster (Murray 8 frames to 3); one frame more of
   Agassi's off hand off the handle, one fewer chicken wing. `__frontWide=0.1` for the old.
+- The elbow's way out of the trunk is eased about three times quicker within a tenth of a second of contact, where the arm
+  is moving at twenty metres a second: eased as everywhere else, the elbow went through the side of the chest on the swing at
+  the ball (Medvedev, Zverev). Arm inside the trunk 0.014% to 0.012%; one frame more of Ivanisevic's arm turning fast near
+  contact, one fewer of McEnroe's free arm in a smash finish. `__elbowFastOld`.
