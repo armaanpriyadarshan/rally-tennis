@@ -182,9 +182,11 @@ export class Game {
     const b = m.ball;
     let held = b.held >= 0 ? this.fig[b.held].offHand : null;
     const RT = m.ritual || { n: 4, per: 0.6, t0: 0.5 };
-    if (held && m.phase === 'ready' && m.phaseT > RT.t0 && m.phaseT < RT.t0 + RT.per * RT.n) {
+    // (by his own routine's clock, which waits while he walks to his mark: see Figure.ritT)
+    const rT = held && this.fig[b.held].ritT != null ? this.fig[b.held].ritT : m.phaseT;
+    if (held && m.phase === 'ready' && rT > RT.t0 && rT < RT.t0 + RT.per * RT.n) {
       // the ball leaves the palm and comes back to it (offHand is where the posed palm holds it)
-      const u = ((m.phaseT - RT.t0) % RT.per) / RT.per, f = this.fig[b.held], top = held.y, lo = BALL.r;
+      const u = ((rT - RT.t0) % RT.per) / RT.per, f = this.fig[b.held], top = held.y, lo = BALL.r;
       const y = u < 0.5 ? top + (lo - top) * (2 * u) * (2 * u) : lo + (top - lo) * (1 - (2 - 2 * u) * (2 - 2 * u));
       held = _held.copy(held).setY(Math.min(y, held.y));
       if (u < 0.5 !== this._bdown) { this._bdown = u < 0.5; if (!this._bdown && this.audio) this.audio.bounce({ x: held.x, z: held.z, vy: 3, speed: 4 }, this.arena.spec.surface); }

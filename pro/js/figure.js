@@ -290,7 +290,10 @@ export class Figure {
     const F = this.loco && this.loco.FW;
     if (!globalThis.__strollArmOld && F) { const k = Math.min(1, speed / 1.0) * (this.loco.w.go || 0), rk = this.hs > 0 ? [J.rwri, J.rsho] : [J.lwri, J.lsho], fr = this.hs > 0 ? [J.lwri, J.lsho] : [J.rwri, J.rsho];
       sw = (F[rk[0] * 3 + 2] - F[rk[1] * 3 + 2] - 0.075) * (globalThis.__strollSwR ?? 1.15) * k; swL = (F[fr[0] * 3 + 2] - F[fr[1] * 3 + 2] - 0.065) * (globalThis.__strollSwL ?? 1.6) * k; }
-    return { R: [0.27, 0.80, 0.05 + sw], L: [-0.27, 0.84, 0.02 + swL], dir: [0.05, -0.55, 0.83], nrm: [1, 0, 0], twist: 0, lean: 0.06, crouch: 0.02, stance: 0.14, lgrip: 0, head: this.lookUp ? 0.02 : -0.25 };
+    // (and the hands hang a little in front of the hips, where a relaxed arm hangs, the racket hand swinging back only half as
+    // far as forward: about the hips' line, both hands spent half of each step behind the body, the racket trailing behind him)
+    const fwdR = globalThis.__strollFwdOld ? 0.05 : 0.11, fwdL = globalThis.__strollFwdOld ? 0.02 : 0.09; if (!globalThis.__strollFwdOld && sw < 0) sw *= 0.5;
+    return { R: [0.27, 0.80, fwdR + sw], L: [-0.27, 0.84, fwdL + swL], dir: [0.05, -0.55, 0.83], nrm: [1, 0, 0], twist: 0, lean: 0.06, crouch: 0.02, stance: 0.14, lgrip: 0, head: this.lookUp ? 0.02 : -0.25 };
   }
   runPose(t, speed) {
     const ph = this.gait * Math.PI * 2, sw = Math.sin(ph) * 0.07 * Math.min(1, speed / 4), up = Math.cos(ph * 2) * 0.012;
@@ -545,10 +548,13 @@ export class Figure {
     // racket up in front and does not pump; pumping and then taking it up again was a racket that went up, down and up)
     const inward = (-p.vz * p.sgn) > 0.6 * speed && Math.abs(p.z) < 10.5;
     this.pumpSus = sm((this.fastT - (Math.abs(p.z) < 7.2 || inward ? 0.6 : 0.22)) / 0.25);
+    // (his routine at the line waits for him to stop walking: bounced on the move, the ball dropped to the court at his feet in
+    // mid-stride; walking, he holds it, and once he has stopped he begins again)
+    if (serverWait && !globalThis.__ritWalkOld) { const RT0 = m.ritual || { t0: 0.5 }; if (this.ritT == null || m.phaseT < (this.ritPT ?? 0)) this.ritT = m.phaseT; else this.ritT += m.phaseT - this.ritPT; this.ritPT = m.phaseT; if ((this.srvWalkK || 0) > 0.25) this.ritT = Math.min(this.ritT, RT0.t0 - 0.35); } else this.ritT = null;
     let basePose;
     if (this.posed) basePose = this.posed;
     else if (between || !live) basePose = this.stroll(t, speed);
-    else if (serverWait) { basePose = this.preServe(m.phaseT, m.ritual);
+    else if (serverWait) { basePose = this.preServe(this.ritT != null ? this.ritT : m.phaseT, m.ritual);
       // walking to his mark to serve he walks as anyone does between points, arms down, racket hanging in his hand, ball in the
       // other; the set-up's turn of the chest and its stance come on only as he stops (walked in the set-up pose, the chest was
       // turned well round to the racket side and the feet kept the serving stance as he walked along the line)

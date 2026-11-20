@@ -602,3 +602,22 @@ dropper's own misses, and the dropper wins 55% of those points (5 more than his 
   ordinary, Roland Garros and US kits, are placeholders drawn from their makers' documented colours for them that season (no
   description of those shirts was found); Becker's Wimbledon 1989 colours and US Open sleeve stripe, and Edberg's 1990
   Australian Open shirt (white below, marbled grey with lightning streaks above), are from descriptions of those events.
+
+## 2026-11-20 (later): the walk, filmed in a match
+
+"the walking animation still looks terrible ... the arms hang back and the steps look really unnatural". Filmed in a
+real match (`tools/steps_walkfilm.mjs`: the human server walking along his baseline, every few frames from three sides,
+with DBG=1 the speed, knee angles, hands and blend weights), not in the pose lab, whose samples each start from a standstill:
+
+- **The steps** (`js/motion.js`): at the 0.8 m/s of a walk along the line, the gait clock was held to a jog's least rate of
+  1.6 cycles a second (over three steps a second, quarter-metre steps) while the legs reached for the filmed walker's full
+  stride, and below 3 m/s the feet were lifted to under half: a quick shuffle with the feet scraping the court, the planted
+  feet forcing catch-up steps. Walking upright (between points, to his mark), the stride now shortens with the pace (about
+  four-fifths at 0.8 m/s, about one and a half steps a second), the legs' reach is drawn in to match so the feet still cover
+  the ground, the least rate is a walker's, and the walk keeps its own lift. `__walkStrideOld` for the old.
+- **The arms** (`js/figure.js`, `stroll`): both hands hung about the line of the hips and swung as far back as forward, so
+  half of every step they were behind him and the racket trailed behind; they now hang a little in front, where a relaxed arm
+  hangs, and the racket hand swings back half as far as forward. `__strollFwdOld`.
+- **The ball** (`js/figure.js`, `js/game.js`): his routine at the line ran on the phase's clock while he walked, so the ball
+  was bounced in mid-stride and dropped to the court at his feet. His routine now waits for him to stop (`Figure.ritT`),
+  then starts again; walking, he holds the ball. `__ritWalkOld`.

@@ -505,12 +505,18 @@ export class Loco {
     // the one cycle runs at the rate that covers the ground he is really covering: the blended pose's feet travel, in a cycle,
     // the gaits' strides averaged by how much each is played, so that is the stride (by their rates averaged instead, the short
     // shuffle's counted for too much, a diagonal run cycled too fast for the ground, and the toe pushing off slid along it)
-    const strideM = (w.f * strideF + w.b * CL.back.stride + (w.r + w.l) * CL.shuffleR.stride) / sum, rateF = speed / Math.max(0.3, strideM);
+    // Walking upright between points (or to his mark to serve) slower than the filmed walker, the steps get shorter rather than
+    // quicker, as a person's do: the cycle was held to a jog's least rate of over three steps a second, which at a stroll's
+    // pace is a quick shuffle of quarter-metre steps, the legs reaching for a full stride and caught by the planted feet. The
+    // stride shortens with the pace (to about four-fifths at 0.8 m/s, at a person's one and a half steps a second) and the
+    // legs' reach is drawn in to match it (below), so the feet still cover the ground they stand on.
+    const upF = globalThis.__walkStrideOld ? 0 : c01(w.up) * w.f * (fa === CL.walk ? 1 - t : 0), kS = 1 + (Math.min(1, Math.max(0.5, 0.45 + 0.55 * speed / CL.walk.speed)) - 1) * upF;
+    const strideM = (w.f * strideF * kS + w.b * CL.back.stride + (w.r + w.l) * CL.shuffleR.stride) / sum, rateF = speed / Math.max(0.3, strideM);
     if (globalThis.__noSync) { this.phF = (this.phF + dt * Math.min(3.2, speed * ((w.f / strideF) + (w.b / CL.back.stride)) / Math.max(1e-6, w.f + w.b))) % 1; this.phS = (this.phS + dt * Math.min(3.4, speed / CL.shuffleR.stride)) % 1; }
     // (and never slower than a little over three steps a second while he is moving at all: slowing in proportion to his speed,
     // the cycle all but stopped as he pulled up, with a foot caught in the air half way through a step, held there floating
     // while he stopped under it; a player pulling up takes quick short steps)
-    else { const rMin = globalThis.__noMinRate ? 0 : 1.6 * c01((speed - 0.3) / 0.5); this.phF = (this.phF + dt * Math.min(3.3, Math.max(rateF, rMin))) % 1; this.phS = this.phF; }
+    else { const rMin = globalThis.__noMinRate ? 0 : 1.6 * c01((speed - 0.3) / 0.5) * (1 - upF) + 0.6 * c01((speed - 0.1) / 0.3) * upF; this.phF = (this.phF + dt * Math.min(3.3, Math.max(rateF, rMin))) % 1; this.phS = this.phF; }
     const P = this.P, A = this.A, B = this.B;
     // standing: low and ready in a point, upright between points
     sampleLoop(CL.ready, 0, P); if (w.up > 0.001) mix(P, sampleLoop(CL.stand, 0, B), w.up);
@@ -518,6 +524,7 @@ export class Loco {
       const ph = this.phF;
       sampleLoop(fa, at(fa, ph), A); if (t > 0.001) mix(A, sampleLoop(fb, at(fb, ph), B), t);
       if (w.up > 0.001 && fa !== CL.walk) mix(A, sampleLoop(CL.walk, at(CL.walk, ph), B), w.up * 0.7);
+      if (kS < 0.999) for (const j of [J.lknee, J.rknee, J.lankle, J.rankle, J.ltoe, J.rtoe]) A[j * 3 + 2] *= kS;
       this.FW.set(A);
       let acc = w.f;
       if (w.b > 0.001) { acc += w.b; mix(A, lowLift(sampleLoop(CL.back, at(CL.back, ph), B), globalThis.__backLift ?? 0.7), w.b / acc); }
@@ -529,7 +536,8 @@ export class Loco {
       // shuffle or while pulling up, both feet were off the court together for half of every step, and blended, a foot coming
       // down averaged with one in the air was down in neither. Below about three metres a second the feet are lifted less,
       // to under half at a walk, so one of them is always on the court.
-      const kL = globalThis.__noLow ? 1 : 1 - (1 - c01(0.45 + 0.55 * (speed - 0.8) / 2.4)) * w.go;
+      // (but not the walk itself, filmed at a walk: lowered, the stroll to the line was a shuffle with the feet scraping the court)
+      const kL = globalThis.__noLow ? 1 : 1 - (1 - c01(0.45 + 0.55 * (speed - 0.8) / 2.4)) * w.go * (1 - upF);
       if (kL < 0.999) for (const [ja, jt] of [[J.lankle, J.ltoe], [J.rankle, J.rtoe]]) { const y = P[ja * 3 + 1]; if (y > ANKLE_H) { const d = (y - ANKLE_H) * (1 - kL); P[ja * 3 + 1] -= d; P[jt * 3 + 1] -= d; } }
     }
     this.side = side;
