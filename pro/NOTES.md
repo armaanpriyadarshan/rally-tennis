@@ -673,3 +673,6 @@ still in the air, both in a stroke's finish, for two or three frames.
   and swung up behind his head (`__runCarryOld`).
 - **The walk's stride**: shortened with the pace, the walk along the line was a tiptoe of steps a fifth of a metre long on
   bent knees. The filmed walker's own stride is kept, played at a walker's slower rate. `__walkKSa` (0.45 for the shortened).
+- The hips' clamp against the line of the feet now counts the turn the shoulders' twist adds to the hips (it was added after
+  the clamp): a drop shot's take-back, its twist large, still turned the hips past the feet and crossed del Potro's legs (14
+  frames) and Kyrgios's (5). Both to none, nothing else moved in four pairs. `__hipTwLateOld`.

@@ -1132,11 +1132,14 @@ export class Figure {
     // hips to the shot before the feet have moved to it, and turned past square to an open stance the legs, each from its own
     // hip to a foot now on the other side of the body, crossed in an X between ankles a third of a metre apart. No further
     // than hips turn over planted feet; nothing is done with the feet close together, where their line means little.)
-    const hipV = cdir(J.lhip, J.rhip, _v4);
+    // (the turn the shoulders' twist adds to the hips counted in: clamped first and turned after, a drop shot's take-back, whose
+    // twist is large, still turned the hips past the feet and crossed the legs)
+    const hipV = cdir(J.lhip, J.rhip, _v4), hipTw = -this.twist * (pose.hipTurn == null ? 0.42 : pose.hipTurn), twFirst = !globalThis.__hipClampOld && !globalThis.__hipTwLateOld && this.inited;
+    if (twFirst) hipV.applyAxisAngle(UP, hipTw);
     if (!globalThis.__hipClampOld && this.inited) { const fx = _an[1].x - _an[0].x, fz = _an[1].z - _an[0].z, fl = Math.hypot(fx, fz), w = sm((fl - 0.07 * H) / (0.06 * H));
       if (w > 0.001) { const th = Math.atan2(fz * hipV.x - fx * hipV.z, fx * hipV.x + fz * hipV.z), mxA = (globalThis.__hipClampDeg ?? 80) * Math.PI / 180;
         if (Math.abs(th) > mxA) hipV.applyAxisAngle(UP, -(th - Math.sign(th) * mxA) * w); } }
-    const qPel = frameOf(hipV, _v5.copy(UP).lerp(spine, 0.35), _q1).multiply(_q3.setFromAxisAngle(UP, -this.twist * (pose.hipTurn == null ? 0.42 : pose.hipTurn)));
+    const qPel = frameOf(hipV, _v5.copy(UP).lerp(spine, 0.35), _q1); if (!twFirst) qPel.multiply(_q3.setFromAxisAngle(UP, hipTw));
     // a stroke's own lean and side bend replace the clip's while it is being played
     // (and the lower the hips go, the more the trunk hinges forward over them, as a player's does getting down to a ball: the
     // hips lowered for a low ball or a wide stance with the chest left upright, from behind and above he sat on an invisible
