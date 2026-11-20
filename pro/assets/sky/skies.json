@@ -1,0 +1,255 @@
+{
+ "kloofendal_43d_clear_puresky": {
+  "sun": true,
+  "sunAz": 36.2,
+  "sunEl": 42.9,
+  "sunIrr": 6.182,
+  "sunIrrH": 4.21,
+  "skyIrr": 1.228,
+  "ratio": 3.43,
+  "sunCol": [
+   1.0,
+   0.943,
+   0.864
+  ],
+  "skyCol": [
+   0.547,
+   0.715,
+   1.0
+  ],
+  "skyAvg": 0.4711,
+  "ldrIrr": 0.948,
+  "ldrAvg": 0.3491,
+  "bytes": 200963
+ },
+ "kloofendal_48d_partly_cloudy_puresky": {
+  "sun": true,
+  "sunAz": 34.3,
+  "sunEl": 47.9,
+  "sunIrr": 4.472,
+  "sunIrrH": 3.317,
+  "skyIrr": 1.437,
+  "ratio": 2.31,
+  "sunCol": [
+   0.992,
+   1.0,
+   0.913
+  ],
+  "skyCol": [
+   0.58,
+   0.682,
+   1.0
+  ],
+  "skyAvg": 0.4403,
+  "ldrIrr": 0.941,
+  "ldrAvg": 0.3029,
+  "bytes": 436587
+ },
+ "kloofendal_38d_partly_cloudy_puresky": {
+  "sun": true,
+  "sunAz": 36.0,
+  "sunEl": 38.0,
+  "sunIrr": 2.737,
+  "sunIrrH": 1.684,
+  "skyIrr": 1.347,
+  "ratio": 1.25,
+  "sunCol": [
+   1.0,
+   0.946,
+   0.849
+  ],
+  "skyCol": [
+   0.818,
+   0.887,
+   1.0
+  ],
+  "skyAvg": 0.478,
+  "ldrIrr": 0.953,
+  "ldrAvg": 0.3542,
+  "bytes": 414894
+ },
+ "kloofendal_overcast_puresky": {
+  "sun": false,
+  "sunAz": 29.4,
+  "sunEl": 23.0,
+  "sunIrr": 0.0,
+  "sunIrrH": 0.0,
+  "skyIrr": 4.034,
+  "ratio": 0.0,
+  "sunCol": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "skyCol": [
+   0.809,
+   0.866,
+   1.0
+  ],
+  "skyAvg": 1.2343,
+  "ldrIrr": 1.219,
+  "ldrAvg": 0.3726,
+  "bytes": 254971
+ },
+ "kloofendal_28d_misty_puresky": {
+  "sun": true,
+  "sunAz": -10.8,
+  "sunEl": 28.5,
+  "sunIrr": 1.33,
+  "sunIrrH": 0.635,
+  "skyIrr": 3.515,
+  "ratio": 0.18,
+  "sunCol": [
+   0.993,
+   1.0,
+   0.946
+  ],
+  "skyCol": [
+   0.95,
+   0.955,
+   1.0
+  ],
+  "skyAvg": 1.2667,
+  "ldrIrr": 0.981,
+  "ldrAvg": 0.3458,
+  "bytes": 171748
+ },
+ "syferfontein_18d_clear_puresky": {
+  "sun": true,
+  "sunAz": 35.9,
+  "sunEl": 18.4,
+  "sunIrr": 13.431,
+  "sunIrrH": 4.23,
+  "skyIrr": 0.549,
+  "ratio": 7.7,
+  "sunCol": [
+   1.0,
+   0.868,
+   0.535
+  ],
+  "skyCol": [
+   0.464,
+   0.662,
+   1.0
+  ],
+  "skyAvg": 0.2687,
+  "ldrIrr": 0.879,
+  "ldrAvg": 0.3625,
+  "bytes": 204364
+ },
+ "syferfontein_6d_clear_puresky": {
+  "sun": true,
+  "sunAz": 35.8,
+  "sunEl": 5.9,
+  "sunIrr": 8.177,
+  "sunIrrH": 0.834,
+  "skyIrr": 0.992,
+  "ratio": 0.84,
+  "sunCol": [
+   1.0,
+   0.817,
+   0.3
+  ],
+  "skyCol": [
+   0.626,
+   0.808,
+   1.0
+  ],
+  "skyAvg": 0.5275,
+  "ldrIrr": 0.873,
+  "ldrAvg": 0.3677,
+  "bytes": 198235
+ },
+ "belfast_sunset_puresky": {
+  "sun": false,
+  "sunAz": 37.8,
+  "sunEl": 1.9,
+  "sunIrr": 0.0,
+  "sunIrrH": 0.0,
+  "skyIrr": 3.4,
+  "ratio": 0.0,
+  "sunCol": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "skyCol": [
+   0.973,
+   0.838,
+   1.0
+  ],
+  "skyAvg": 1.3671,
+  "ldrIrr": 0.991,
+  "ldrAvg": 0.3277,
+  "bytes": 291698
+ },
+ "qwantani_dusk_2_puresky": {
+  "sun": false,
+  "sunAz": 32.5,
+  "sunEl": 12.1,
+  "sunIrr": 0.0,
+  "sunIrrH": 0.0,
+  "skyIrr": 3.544,
+  "ratio": 0.0,
+  "sunCol": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "skyCol": [
+   0.91,
+   0.73,
+   1.0
+  ],
+  "skyAvg": 1.2569,
+  "ldrIrr": 1.087,
+  "ldrAvg": 0.3662,
+  "bytes": 208426
+ },
+ "qwantani_night_puresky": {
+  "sun": true,
+  "sunAz": 101.4,
+  "sunEl": 84.2,
+  "sunIrr": 0.001,
+  "sunIrrH": 0.001,
+  "skyIrr": 2.014,
+  "ratio": 0.0,
+  "sunCol": [
+   1.0,
+   0.652,
+   0.381
+  ],
+  "skyCol": [
+   0.938,
+   1.0,
+   0.991
+  ],
+  "skyAvg": 0.863,
+  "ldrIrr": 0.539,
+  "ldrAvg": 0.209,
+  "bytes": 945916
+ },
+ "kloppenheim_07_puresky": {
+  "sun": false,
+  "sunAz": 35.7,
+  "sunEl": 38.1,
+  "sunIrr": 0.0,
+  "sunIrrH": 0.0,
+  "skyIrr": 1.03,
+  "ratio": 0.0,
+  "sunCol": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "skyCol": [
+   0.784,
+   0.868,
+   1.0
+  ],
+  "skyAvg": 0.3316,
+  "ldrIrr": 1.002,
+  "ldrAvg": 0.3195,
+  "bytes": 359191
+ }
+}

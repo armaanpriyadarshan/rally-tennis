@@ -1,0 +1,519 @@
+# Rally Pro Tour — notes
+
+First-person 3D version of Rally. Static files, no build step: open `index.html` from any
+web server (`npx vercel` from the repo root deploys it at `/pro/`).
+
+`dev.html` is a developer view, not part of the game:
+`?game=1&demo=1` watches two computer players, `?lab=fh|bh|serve&p=Name&view=front|top|side`
+scrubs one stroke, `?venue=<key>&weather=<key>&cam=fp|tv|high` shows an empty stadium.
+
+## Where the numbers come from
+
+- **Players** (`js/playerdata.js`): career serve and return statistics from the ATP stats
+  tables and Tennis Abstract match data; serve speeds from Tennis Abstract's Slam radar
+  tables; forehand/backhand pace and spin from Hawk-Eye / TennisViz reporting; net, slice,
+  drop-shot and serve-direction rates from the Match Charting Project. `null` means no
+  credible figure exists; `est` lists the fields that are estimates. For Lendl, McEnroe,
+  Connors, Borg and Laver the ATP tables only cover the end of their careers, so
+  `js/data.js` substitutes era-typical values (the `ERA` table). Playing weights in
+  `js/data.js` (`FRAME`) are from public bios and approximate for older players.
+- **Tournaments** (`js/tourdata.js`): 2026 calendar, draws and points from the ATP schedule;
+  Court Pace Index from published Tennis TV readings (courtspeed.com), old readings for the
+  Slams; ace rate and surface speed from Tennis Abstract; weather from Open-Meteo history
+  for each event's dates; altitude from elevation data. The hex colours there are estimates.
+- **Venue looks** (`js/venues.js`): court, surround, wall and seat colours sampled from
+  photographs of each centre court (mostly Wikimedia Commons). Several venues only had old
+  photos; Turin and Beijing had almost none and are approximations. Signage uses the
+  venue's own words and invented partner names, not real sponsors.
+  Revised in November 2026 against each event's 2025/2026 edition (2023–26 Commons photos,
+  official sites, ATP 2026 media guide, surface makers' colour names, news reports):
+  - Paris moved to Paris La Défense Arena in 2025 and kept its green court on charcoal.
+  - Miami's court is Laykold's two blues inside Hard Rock Stadium, under the NFL canopy and
+    its masts.
+  - Cincinnati was repainted navy on cerulean in 2025, and Queen's has had red walls since 2025.
+  - Basel, Vienna, Rotterdam, Tokyo, Acapulco and Turin have their measured court colours.
+  - Still unconfirmed: Beijing (2014 photos only), Acapulco after its 2026 resurfacing, Dallas
+    (which part is blue, which silver), Shanghai, and Halle's and Hamburg's walls.
+- **Strokes** (`js/strokedata.js`): contact-aligned averages of 232 forehands, 210 backhands
+  and 168 serves from the joint tracks published with offpolicyinc.com/work/federer
+  (17 keypoints at 15 Hz, tracked from broadcast footage). Arms were lifted to 3D with bone
+  lengths. Footage at 15 Hz cannot resolve the hit itself, so the racket hand follows an
+  authored path for about a tenth of a second either side of contact, and racket
+  orientation is authored throughout. There is no tracked two-handed backhand: it borrows
+  the one-hander's turn and timing.
+- **Footwork** (`GAIT` in `js/figure.js`): from the same joint tracks, about 600 seconds of
+  sideways movement phase-aligned on the ankles (`tools/gait.py`). Step rate against speed,
+  where each foot lands and leaves relative to the hips, ankle lift, the rise and fall of the
+  hips through a step, lean into the run, the speed at which the shoulders turn and the arms
+  start to pump, and the height, length and landing of the split step are measured. Seen from
+  behind, running toward or away from the net is foreshortened, so running straight is measured
+  from 3D motion capture instead: 14 runs and two walks by four people from the CMU Graphics
+  Lab Motion Capture Database (mocap.cs.cmu.edu; `tools/gait_run.py`), rescaled to a 1.85 m
+  player — step rate, ground contact and the moment in the air, where the foot lands and
+  leaves, heel lift, track width and hip rise. Those are runners, not tennis players, and none
+  carries a racket: arm carriage and lean stay with the tennis footage. Backing up is stepped
+  like the sideways shuffle; nothing measures it. Heights in the tennis footage are relative —
+  its picture scale is not a true body scale — so how deep the ready crouch is remains a
+  judgement.
+- **Sound**: checked by recording what the page actually sends to the speakers while points
+  are played (`tools/audio_capture.mjs`) and measuring it against the log of sounds the game
+  asked for (`tools/audio_check.py`). That found and fixed a second "pock" a quarter of a
+  second after every racket hit (the recorded sample opens with 280 ms of silence) and a
+  crowd bed that swelled and dropped out every seven seconds (a fading sample on a loop). As
+  measured now on hard and clay: racket hits 15 dB above the crowd, the first bounce 14-16 dB,
+  nothing trailing a hit, applause 12-14 dB above the hush during a point, no clipping. The
+  chair umpire uses the browser's speech voice and was not captured. No one has listened to it.
+- **Back walls**: dressed after court-level photographs of Arthur Ashe — the venue's word large
+  on the wall, dark camera slots at its foot, a partner's block, and a clock cabinet whose serve
+  clock is the match's own. Names are invented. Wall paint is lightened from the sampled colour,
+  because the samples were taken in shade (New York uses its floodlit sample instead).
+- **Lens**: the stands beyond the far baseline are softened by a depth-of-field pass (strongest
+  through the broadcast camera, slight in first person), and the foot of the walls and the
+  seating bowl are darkened where they see less sky. Both are approximations chosen by eye.
+- **Venue light**: the sun's height is computed from each venue's latitude and the event's
+  dates for the hour the weather names (`PLACE` in `js/venues.js`); the sky photograph is tilted
+  to agree, by no more than 24 degrees.
+- **Difficulty** (`DIFFICULTY` in `js/data.js`): set with `tools/humanbot.mjs`, a bot that plays
+  through the real controls with a person's reaction time (0.20-0.34 s), release timing
+  (30-75 ms standard deviation) and aiming error. With the default footwork help a "decent" bot
+  (50 ms timing) wins about 71% of points on Club, 50% on Challenger and 42% on Tour; a "sharp"
+  one (30 ms) 75%, 53% and 47%; a "casual" one (75 ms) 65%, 39% and 30%. Steering the feet by
+  hand cost the bot 13-16 points of those percentages. The bot is a model of a player, not a
+  player: nobody has yet played these levels by hand.
+- **Engine calibration**: two computer players of tour-average ability on a hard court
+  produce a 4.3-shot mean rally, 57% of points over within three shots, 64% first serves
+  in, 10% aces, and errors split roughly 46/36/18 between net, long and wide — against
+  4.1, 60%, 63%, 9% and 42/33/26 in the Match Charting Project. First-serve points won is
+  low (67% against 73%).
+
+## The 2026-11-10 rebuild: players, motion, graphics
+
+- **Roster**: the twelve players of the original game, no others (`ROSTER` in `js/data.js`).
+- **Look** (`js/looks.js`): each player's haircut (lengths in centimetres, texture, fringe, how far
+  the hairline has gone back), headwear, racket and five outfits (ordinary events and each major)
+  were described from photographs of him in the year named. The photographs were for looking at
+  only; none is in the repository. Makers' logos are left off. Items the research could not
+  confirm from a photograph (several older players' sock and shoe details, some wristband widths)
+  were filled with the era's ordinary kit.
+- **Hair** (`js/hair.js`): grown from those measurements on the model's own scalp — the head is
+  measured by casting rays from the middle of the skull — in three or four layers of strands.
+  Headbands, bandanas and caps are fitted to the same scalp. It is a generated haircut, not a
+  scan of the man's hair.
+- **Faces**: each player wears the head of whichever man in the avatar library is nearest his type
+  (`HEAD_OF`), moved onto the athletic body, tinted to his skin, with brows and stubble in his
+  colours and the bone structure pushed toward his (`face` measures: jaw, chin, nose, cheeks, brow,
+  ears). These are likenesses of type judged by eye, not portraits and not scans. Five heads serve
+  twelve players for now.
+- **Build** (`body` in `js/looks.js`): girth of each arm and forearm, legs, chest and shoulder
+  width per player, judged from photographs (Nadal's and Laver's hitting arms, Sinner's narrow
+  frame). Limb lengths are still the model's, scaled by height. Measured widths are to replace the
+  judged ones.
+- **Movement** (`js/motion.js`, `js/locodata.js`): walking, jogging, running, sprinting, backing up
+  and the side shuffle are 3D motion capture from the CMU Graphics Lab Motion Capture Database
+  (trials 16_15, 16_36, 127_07, 143_01, 143_39 and the basketball defensive slides 78_30), cut to
+  one cycle each and rescaled to a 1.85 m body by `tools/mocap_clips.py`. The shuffle and the ready
+  stance come from a basketball defender, who slides bent far lower than a tennis player: the
+  trunk was stood up and the hips raised by hand. Each cycle is played at the rate that covers the
+  ground the player is actually covering.
+- **Strokes**: the earlier tracks (two wrists and a shoulder turn, averaged over hundreds of strokes
+  filmed from behind at 15 frames a second) flattened every extreme — the serve's wrist peaked at
+  1.67 m where a real one reaches about 2.4 m — and are no longer played. Forehand, both backhands
+  and the serve are whole-body key poses written by hand (hips, feet, both arms, racket) until each
+  player's own clips are tracked from close slow-motion footage (`js/playermotion.js`, empty when
+  this was written). Slices and volleys still use the older hand-and-racket keys on the new legs.
+  So the strokes are generic, the same for every player of the same hand and backhand: they are
+  not yet the man's own motion.
+- **Between points**: no walk, cutaway or replay; the picture dips for an instant and the next
+  point is ready (`quick`). The cutaways and replays still exist behind `cfg.cuts`.
+- **Controls**: the default is the first game's — arrows or WASD to move, Space to toss, serve and
+  hit, an arrow held at the swing to aim. A bot playing that way with 50 ms timing error wins 71%,
+  49% and 34% of points on Club, Challenger and Tour (`tools/classicbot.mjs`); nobody's hands have
+  confirmed those levels. The mouse scheme is still there under Settings.
+- **Graphics over the match**: laid out from frames of the ATP world feed's 2026 package (measured
+  positions, cell sizes and colours; the font is Outfit, the nearest open face to the tour's) and
+  from one frame each of the four majors' own score bugs. Seen in frames: the score bug and its
+  states, the lime row tab, the statistic add-on, the lower third. Not seen in any 2026 frame and
+  therefore designed to match rather than copied: set/match-point tabs, the serve-speed read-out,
+  the statistics panel, the match strap and the wipe. No tour or sponsor marks are used.
+
+- **Faces (update)**: nine players — Federer, Nadal, Alcaraz, Djokovic, Sampras, Agassi, Lendl, Borg,
+  McEnroe — wear a face baked from one freely licensed photograph each (`tools/face_bake.py`,
+  `js/facedata.js`, sources and licences in `assets/people/faces/SOURCES.md`). Seven of the nine
+  textures are CC BY-SA because their photographs are: credit them wherever the game is published.
+  Sinner, Connors and Laver have no usable free photograph and keep a library head.
+- **Light**: the picture goes through AgX rather than ACES (true clay and grass, highlights rolling off
+  like a camera's), and clear and fair days are set in mid-afternoon, when the stadium's own shadow
+  lies across part of the court as it does on television.
+
+- **Borrowed swings**: a player without a tracked stroke of his own that passes inspection borrows the
+  closest real one — same hand where possible, same kind of backhand — mirrored to his side
+  (`DONORS` in `js/figure.js`): Federer's forehand, one-handed backhand and serve for right-handers,
+  Nadal's forehand and serve for left-handers. Two-handed backhands stay hand-made until one passes.
+  So most players' strokes are real tennis motion, but not yet each man's own.
+- **Ball kids**: built on the athletic player body at teenage size, in the event's shirt (collar and
+  sleeve trim in the cap colour), shorts, white ankle socks and shoes, with a fitted cap and one of the
+  library's children's faces; they watch the ball.
+- **Night**: under floodlights the run-off falls away from the court toward the walls, the seats are
+  darker, lamp banks glow along the rim of open bowls, and the camera is exposed for the court.
+
+## 2026-11-11: surfaces, smoothness, cost
+
+- **Who is better where** (`surfaceEdge`, `profileFor` in `js/data.js`): a player's career win rate on the
+  surface over his overall rate (the `win` table in `js/playerdata.js`), capped at 0.8–1.15. That edge
+  now moves consistency, top speed, acceleration, reaction, groundstroke and first-serve pace and first
+  serves in; a clay specialist's ball is also heavier on clay. The sizes of those effects are my
+  judgement, not measured. The edge is shown on player cards and in an event's field.
+- **How a surface is played** (`SURFACE_PLAY`): footing (`grip`, `brake`: players slide on clay and can
+  stop less sharply) and how often serve-and-volley, the net, the slice and the drop shot are chosen.
+  The direction of each follows the tour (serve-and-volley and slice on grass, drop shots and patience on
+  clay); the numbers are judged, not fitted. The ball itself already differed by surface through the ITF
+  friction and restitution figures and each event's court pace.
+- **Court in shade**: the sun test the shaders make is also made in `buildLighting` over the court; the
+  exposure and a white balance follow the part of the court in sun, as a broadcast camera does, so a late
+  afternoon with the court under the stand no longer turns it dark and blue. Hard courts are a little
+  greyer and glossier than their venue swatch (measured against broadcast stills), clay a little more orange.
+- **Smoothness**: the match is simulated at 240 Hz and now drawn between its last two steps; the tracked
+  swings are cleared of single bad frames and smoothed both ways in time (hard where a joint is slow, light
+  where it is fast); a foot lifting off its planted spot eases away instead of snapping.
+- **Cost**: frames are capped near 60 Hz on fast screens (every second refresh, so still even), the match
+  behind the menus is drawn at 30 Hz and not at all under a full-screen menu; the automatic resolution
+  only ever steps down; two floodlight shadows instead of four; menu portraits release their textures.
+- **The racket meets the ball**: measured at contact, the middle of the strings had been 25-67 cm from the ball. Around
+  contact the hand now goes toward the struck ball as far as the arm reaches and the wrist angles the racket (in the
+  plane of its strings, a little out of it) for the rest: about 10-15 cm, inside the face. A low ball is played with
+  the legs: the hips go down with the contact height (0.65 m for a ball below the knee).
+- **Swing blur**: the band the racket head swept over the last two frames, faint and fading, only above about 7 m/s.
+- **Skin and cloth**: skin wraps warm where it turns from the sun and is a little damp (smoother); cloth brightens at
+  glancing angles toward the light.
+- **Footwork**: the split step lands 7 cm wider each side; pulling up hard from a run the hips drop into a braking
+  stance, and the first driving steps of a run are low; on clay a player braking from a run slides, the leading foot
+  gliding on with the body, wide, throwing clay dust and leaving its streak in the court.
+- **Review method**: every key moment of play is frozen from five angles (front, both sides, behind, above)
+  with `/tmp/rally-work/steps_review.mjs`, the pose lab is scrubbed through each stroke from four
+  (`steps_lab.mjs`), and hands and feet are checked close up (`steps_close.mjs`). What that found and fixed:
+  hands now close round the handle (finger curl about 60/80/55 degrees, not an open palm); sprinting arms come
+  from the forward run (the free arm pumps bent; a sideways run's own capture had it hanging); the slices and
+  volleys turn the shoulders and hips and step in with the front foot; the overhead has its own keys
+  (side-on, free hand at the ball, racket behind the head, thrown up to contact) instead of reusing the serve's;
+  after a point the legs straighten as he reacts, and the reaction keeps the arms; long hair swings (a
+  pendulum per player in the vertex shader: it falls the right way when he bends and lags as he moves).
+  The eyes finish the head's turn to the ball (the head turns 85% of the way, the eyes the rest, faster), and the
+  jaw opens on the breath out through the hit, wide in a shout after a point won with feeling. (Blinking was
+  tried and dropped: the grafted heads carry almost no weight on the eyelid bones, so a blink was a twitch.)
+- **The serve** (2026-11-11, from his notes on the toss, the pre-serve and the legs): each player has a routine
+  (`RITUAL` in `js/sim.js`: bounces and pace, one more or fewer from point to point; Djokovic bounces five times,
+  Federer twice) and then stands at the address, racket at the waist pointing at the box with the ball against it.
+  The ball is drawn on the posed palm. The toss is thrown with a straight arm (the collarbone's shrug adds reach
+  instead of folding the elbow), the hand lets go rising and follows the ball up, then pulls down across the body.
+  On landing he is carried half a metre into the court; the back leg kicks up to about knee height and comes down;
+  knees never fall in toward each other (tracked knees do).
+- **Your shots** are chosen by the game at the swing (the computer's `decide()`): moonballs and slices when pushed
+  back or stretched, lobs over a man at the net, drop shots now and then, approaches that the footwork follows in to
+  volley, swinging volleys on a floating ball from mid-court, drives otherwise. The timing circle follows the footwork's
+  planned contact while it can get him there; high balls up to the shoulders are taken on and can be driven hard.
+- **Arms**: the racket hand never comes closer to its shoulder than about half the arm's length (tracked clips fold it
+  shut in finishes), the clip's own elbow direction counts only as far as its arm is bent, and the elbow direction is
+  smoothed after everything that moves it.
+- **Reactions** (`REACT`, `REACT_STYLE`, `pickReaction` in `js/figure.js`): several per outcome, weighted per player,
+  kept for points that mattered, never the same twice running, and often none at all.
+- **Sweat**: the shirt darkens down the chest, across the upper back and under the arms as games are played, faster
+  in the heat and hardly under a roof (`uSweat`, set in `game.js`).
+- **Hair**: on top of the layered mass, a few hundred locks — strips rooted inside the mass, lying the way
+  the cut goes, thinning to both edges and the tip — break its outline, hang where the hair is long, and
+  turn as they go where it is curly.
+
+## 2026-11-11: each player's own groundstrokes
+
+- **Who has his own**: Djokovic's forehand and backhand and Nadal's backhand are now tracked from his own
+  slow-motion footage (`js/playermotion.js`, `ok: true`), beside the earlier Federer forehand, backhand and serve,
+  Nadal forehand and serve, and the Alcaraz, Sinner and Djokovic serves. A right-handed two-hander without his own
+  backhand now borrows Djokovic's, a left-handed one Nadal's (`DONORS` in `js/figure.js`); nothing needs hand-made
+  arms at contact any more (`PARTIAL` is empty). This supersedes "Two-handed backhands stay hand-made" above.
+- **How**: two cameras of the same player's practice, each a front or rear quarter, are fused over the ground — each
+  measures the direction across its own picture and the trunk and arms go where both agree (`fuse` axis `tri` in
+  `tools/player_motion.py`); one camera where no second one exists, the depth of the arms then coming from their
+  lengths. Each clip was compared in the game with the frames of the camera it came from at 6-8 instants (and with
+  the second camera where there is one). The racket's angle in the take-back is not tracked: where the shared keys,
+  carried by the tracked forearm, put it somewhere the footage does not, `RACKET_OVR` in `js/figure.js` holds key
+  directions solved to match the frames (`tools/racket_ovr.py`).
+- **Speed**: the Essential Tennis 2013 shoots run about 9x (the ball toss of the same series measured 9.0-9.7x; a ball
+  in flight beside Djokovic's forehand fits 8.5-9.2x). "Slow motion" uploads from Courtside Tennis Highlights repeat
+  every frame four times: 30-frames-a-second footage at quarter speed, so the arms are blurred through the hit and
+  were not used for it.
+- **Not yet his own**: Sinner's and Alcaraz's groundstrokes (the slow-motion footage found is filmed from straight
+  behind or in front, with cuts mid-stroke, repeated frames or an unknown slow-down; nothing passed), and every
+  stroke of Sampras, Agassi, Lendl, Borg, McEnroe, Connors and Laver (the footage found is broadcast, archive
+  360-480p, or senior-event film from raised seats; nothing court-level and slow enough to pass). They borrow.
+- **Footage** (YouTube, analysed locally to derive joint motion only; nothing of it is kept in or shipped with the
+  game): Essential Tennis, "Novak Djokovic Forehand and Backhand In Super Slow Motion - 2013 Cincinnati Open"
+  (youtube.com/watch?v=wIU_3TIUzDo) and "... In Super Slow Motion 2 - 2013 Cincinnati Open" (watch?v=k8B5Hqvx8kA);
+  "Rafael Nadal Forehand and Backhand In Super Slow Motion 2 - 2013 Cincinnati Open" (watch?v=OVFqDqxcJC4);
+  "Rafael Nadal Backhand in Super Slow Motion - BNP Paribas Open 2013" (watch?v=xm2zi36uZEg). The earlier clips came
+  from the same channel's Federer serve (watch?v=FBkFgS3e4QY), forehands (watch?v=TViGEogv3rc, watch?v=BFHvsskH7_k)
+  and backhand (watch?v=LA7B-M-kOrw), Nadal forehand (watch?v=fRxJk1omIm4) and serve (watch?v=VXTxuWxafKg), and from
+  Slow-Mo Tennis's Alcaraz (watch?v=rxo1uEdLouY), Sinner (watch?v=_wut0HlifLQ) and serve-compilation
+  (watch?v=fhn2ANDE4kA) videos.
+
+## 2026-11-11: each player's own body
+
+- **How**: `tools/body_shapes.py` sets MakeHuman's body (the CC0 base mesh, targets and default-rig weights, read
+  straight from the MPFB 2.0.18 extension's `data/` folder; none of MPFB's code is run) to each man: muscle judged from
+  freely licensed Wikimedia Commons photographs (viewed only; none kept), weight solved so that MakeHuman's body at his
+  height weighs his listed playing weight (`FRAME` in `js/data.js`; density 1.04 kg/l), then his own traits as
+  MakeHuman modifiers on top of a shared tour-player base (a playing forearm about 2 cm bigger round, runner's thighs
+  and calves). That body is laid onto the game model's skeleton segment by segment and each vertex of the game body is
+  moved by how the player's body differs, there, from a reference one matching the model; bare skin (forearms, legs
+  below the shorts, arms of a sleeveless shirt) is laid on his MakeHuman surface itself, the model's own thick
+  forearms and calves dropped. Wider shoulders move the arm bones out. The result (`assets/people/m04_shapes.bin`,
+  `BODY_SHAPES` and girths in `BODY_INFO` in `js/bodydata.js`) is added to each player's copy of the mesh at load:
+  no cost per frame. The kit is drawn on the body as built (`aBind`), so it sits the same on every frame.
+- **Judged, not measured**: muscle levels and traits are judgement from photographs. The listed weights were kept
+  except McEnroe (listed 75 kg, as now; built 70 kg, as slim as his playing-years photographs) and Sinner (built 76 kg
+  of 77). MakeHuman girths at his height (cm, upper arm L/R, forearm L/R): Nadal 40/37, 31/27; Federer 36/37, 28/31;
+  Laver 35/32, 33/25 (his left forearm, 13 inches round as his autobiography gives it, is the one girth set to a
+  published figure). Limb lengths are still the model's.
+- To rebuild: download MPFB 2.0.18 from extensions.blender.org, extract its `data/` folder, and run
+  `python3 -I tools/body_shapes.py <extracted folder>`.
+- **Shorts shorter than the model's**: under the model's own shorts lie three sheets (its leg skin, which goes on up
+  under the cloth to about 0.68 m; the shorts' shell, down to their hem at about 0.59 m; and the lining turned in
+  there). For a shorter hem the outside is kept as the model built it: shell on the surface down to 0.59 m, leg skin
+  below, everything else 8 mm under the surface. All of it takes the reference surface's normals, and a seam's copies
+  of a vertex always move together, so no ring or crack shows at the old hem. The skin there is drawn plain at the
+  bare leg's brightness (the shorts' folds, seams, grey edge texels and baked shade no longer show as a band or pale
+  patches). Ball kids, who have no body shape of their own, keep a faint lighter band in strong sun.
+
+## Third-party material
+
+- three.js r187 — MIT (`vendor/three/LICENSE`).
+- Player, umpire, ball-kid and crowd figures are built from a Microsoft Rocketbox avatar
+  — MIT (`assets/people/LICENSE-Rocketbox.md`). Its textures were reprocessed: clothing is
+  stored as neutral folds and coloured per player, skin and face detail deliberately
+  smoothed.
+- Court and concrete grain are Poly Haven texture scans — CC0 (`assets/surface/*`: a
+  rubberised track for acrylic hard courts, baseball infield clay for clay, turf for
+  grass, brushed concrete for the stands). Only the grain is used; court colours are the
+  sampled venue colours.
+- Sky panoramas are Poly Haven "pure sky" HDRIs — CC0. Sun direction and sun-to-sky
+  strength were measured from the HDR originals (`js/skies.js`).
+- Motion capture in `js/locodata.js` was obtained from mocap.cs.cmu.edu, the CMU Graphics Lab Motion
+  Capture Database (created with funding from NSF EIA-0196217); the database is free for any use.
+- Type is Outfit — SIL Open Font License (`assets/fonts/OFL-Outfit.txt`). The Barlow files beside
+  it are no longer loaded.
+- The heads of five further Rocketbox avatars (`assets/people/crowd-src/*`, `assets/people/staff/*`)
+  are used for the players' faces — MIT, as above.
+- `../audio/*` are the samples the original game already uses.
+- The players' body shapes (`assets/people/m04_shapes.bin`) are derived from MakeHuman's base mesh, targets and rig
+  weights as shipped in the MPFB 2.0.18 Blender extension (extensions.blender.org/add-ons/mpfb) — CC0 ("All core
+  assets are shared under Creative Commons, CC0", static.makehumancommunity.org/about/license.html); MPFB's own code
+  is GPL-3.0 and is not used or included (`assets/people/LICENSE-MakeHuman.md`).
+
+## 2026-11-11: each player's record at each event (`js/eventrecords.js`)
+
+- Career win–loss for the twelve players at each of the 30 events, counted from Jeff Sackmann's tennis_atp tour-level
+  match files (Tennis Abstract, CC BY-NC-SA 4.0). His GitHub repository was no longer public on 2026-11-11; the files
+  came from a public copy that keeps the repository's history (github.com/zvonimir-rezo/tennis_atp; the data files
+  were last committed by Sackmann on 2026-05-06), and the 2020 file was checked match for match against a Wayback
+  Machine copy of the original.
+- The data ends with the 2026 Madrid Masters (early May 2026): Rome 2026 onward is missing, which matters for
+  Alcaraz, Sinner and Djokovic. It starts in 1968, so Laver's records are Open era only.
+- Only editions on the court the game uses are counted (the file's header gives each event's cut-off, e.g. hard-court
+  Australian Opens from 1988); walkovers are left out, retirements and defaults counted.
+- Checked against published records: Nadal at Roland Garros 112–4, Federer at Wimbledon 105–14, Djokovic at the
+  Australian Open 104–11 (through his 2026 final), Djokovic at Beijing 29–0, Nadal at Monte-Carlo 73–6, Sampras at
+  Wimbledon 63–7.
+- How the game uses them (`eventRate`/`eventEdge` in `js/data.js`): with at least 6 matches at an event, his win rate
+  there is pulled toward his record on its surface by 14 matches' worth of that record (so Nadal's 112–4 at Roland
+  Garros counts almost as it stands and a 3–0 debut barely moves him); with fewer, his surface record alone. That rate
+  sets his edge in the match (`profileFor`), in simulated draws (`js/season.js`) and on the player cards.
+
+## 2026-11-11: spin by player and court
+
+- Each player's forehand and backhand spin are the measured rates already in `js/playerdata.js` (Hawk-Eye / TennisViz
+  reporting) or, for the wooden-racket era, the estimates in `ERA` (`js/data.js`). John Yandell's high-speed filming at
+  the 1997 US Open put Sampras and Agassi at about 1800–2000 rpm on the forehand (Sampras over 2000 and Agassi about
+  1700 on the backhand, as in the game's data) and Bruguera above 3000, then thought of as a clay-court ball
+  (tennisplayer.net: "Modern Tennis: what have we learned" and "The Heavy Ball in Modern Tennis").
+- No published source gives average spin or net clearance by surface. The game's assumption, from how the courts play:
+  on clay players brush up more and play with more margin (topspin ×1.06, net clearance ×1.08), on grass they flatten
+  the ball (×0.93, ×0.88) because a topspin ball sits up there (`SURFACE_PLAY` in `js/data.js`).
+- A rally drive's net clearance follows the player's own spin (`resolveStroke` in `js/sim.js`): a flat hitter drives
+  low at his own pace and the ball skids, a heavy topspin player keeps his margin and it kicks. Measured in the engine
+  (`/tmp` harness, 200 points a match, forehands landing deep): on hard Nadal ~3100 rpm, ball rising to 0.98 m after
+  the bounce; Federer ~2500 rpm, 0.90 m; Agassi ~1600 rpm, 0.82 m; Connors ~1100 rpm, 0.81 m. Clay lifts all of them
+  to 1.05–1.18 m, grass flattens them to 0.70–0.79 m.
+
+## 2026-11-19: sixteen more players
+
+Murray, Wawrinka, Zverev, Thiem, Medvedev, Tsitsipas, del Potro, Roddick, Kyrgios, Monfils, Becker, Edberg, Ivanišević,
+Wilander, Kuerten and Hewitt are playable (`ROSTER` in `js/data.js`, appended so existing ids and saved seasons keep).
+- **Statistics** (`js/playerdata.js`; Murray, Zverev, Medvedev, Becker and Edberg were already there as tour opponents):
+  career serve and return from Tennis Abstract's tour-level match lists, checked against ATP's figures (atptour.com
+  itself sits behind a bot challenge, so where its pages could not be read, archived copies were used); serve speeds
+  from Tennis Abstract's Slam radar tables; forehand/backhand speed and spin from ATP/Infosys and Hawk-Eye reporting
+  where any exists (Tsitsipas, Thiem, Wawrinka's backhand, Kyrgios's forehand); serve direction, rally length, shot mix,
+  net and serve-volley rates and the rally aggression score from the Match Charting Project's career rows. Monfils and
+  Wawrinka retired in autumn 2026, so they carry no current rank. Wilander's serve and return tables cover only
+  1991-96, past his best (`rep: false`): his prime is estimated in `ERA`, with every speed and spin that no source gives
+  (estimates, as before for the older players).
+- **Event records** (`js/eventrecords.js`): rebuilt with `tools/event_wl.py` from Sackmann's match files (the original
+  repository is no longer public; the copies used are named at the top of that file). The script reproduces the earlier
+  table for the eight players inside the old dataset (one Borg match at Barcelona aside).
+- **Bodies** (`tools/body_shapes.py`, MPFB 2.0.18 data): judged from freely licensed photographs and listed playing
+  weights; Hewitt built at about 72 kg (his listed 77 is from his later years), Kuerten at 80 (rail-thin in his prime).
+- **Looks** (`js/looks.js`): colours and kits judged from descriptions of each man's best-known outfits (dated per kit);
+  Hewitt's and Kyrgios's caps are worn backwards (`head.back`, new in `js/hair.js`).
+- **Faces** (`js/facedata.js`, `assets/people/faces/SOURCES.md`): eleven painted from freely licensed photographs with
+  `tools/face_bake.py`, all sixteen. Kuerten (Agência Brasil, CC BY 3.0 BR) and Edberg (a 2012 press portrait, CC BY 3.0)
+  are from Commons; the rest from Flickr originals. Most are si.robi's tournament photographs (CC BY-SA 2.0), taken from his Flickr originals because Wikimedia's
+  file server was refusing this machine; each is also on Commons. Heads were chosen by matching the face's landmarks and
+  skin to every library head; Monfils wears `heads/Male_Adult_18` (cut by `tools/rb_head.py` with its normal map), the
+  rest share the nine heads already shipped. Eye colours were judged by eye from the photographs, not measured (squinting
+  in sunlight, the measured irises came out near black). `face_bake.py` gained `--mouthw` (how far past an open mouth's
+  corners the head keeps its own lips) and `--crease` (the size of the shadows closed over at the mouth's corners: the
+  default left round dark spots on both cheeks of a bearded, open-mouthed, turned face, mirrored to both sides).
+  For the older men only later photographs are freely licensed, so the bake was told to make them younger: Wilander (2010)
+  and Edberg (2012) with the lines of age turned down (`--fine`, `--mid`); Becker (2017, bearded; he played clean-shaven)
+  painted from the photograph only down to just below the nose, the head's own mouth and chin below that (`--bottom`,
+  new). Ivanišević's is from 2010. Becker's Commons picture (1994) was too small to use (a 56-pixel face), and its Flickr
+  page now shows a non-commercial licence; it was not used. Flickr photographs were taken only from their
+  photographers' own pages under CC BY or CC BY-SA, never from accounts that post other people's pictures as CC0.
+- **Strokes**: none has his own tracked clips yet; each borrows the nearest real swing (`DONORS` in `js/figure.js`:
+  Federer's for a right-handed one-hander, Djokovic's for a two-hander, Nadal's backhand for Ivanišević). All passed the
+  clip check (`tools/scan_new.sh`).
+- **Celebrations** (`REACT_STYLE`): from what each is known for; Wawrinka's finger to the temple is a reaction of its own.
+- **Wawrinka's temple tap** first put his hand on top of his head, then in his eye: the keys set the wrist at the temple,
+  and the tracked arms' elbow for a hand there is out at the side, which lays the forearm across the face. A reaction
+  can now say where its free elbow goes (`poleL` in `REACT`) and hold the index finger out (`point`, through
+  `Person.setFingers`); the wrist sits in front of the ear below the temple, so the finger reaches up to it. Arm-in-body
+  frames for him in the seeded audit went from 0.14% to 0.01%.
+- **Replays opened cold.** The replay of a great winner runs its figures unseen through the moments before it, to warm the
+  springs that keep an arm out of the body; but the frames it was given started where the replay does, so that run-in never
+  ran, and a figure caught mid-swing at the replay's first frame put his arm 11 cm into his stomach (Kuerten, seeded audit,
+  147.2 s). The frames now start half a second earlier (`REPLAY_PRE` in `js/game.js`; about 40 ms of work, at the cut).
+- **A necklace above the collar.** `heads/Male_Adult_06`'s texture has a cord necklace painted round the base of the neck,
+  and it showed above the shirt of every man baked onto that head (Borg, Murray, Thiem, Kuerten). `tools/unneck.py` fills
+  dark marks in that band of a face texture from the skin round them; run on those four.
+- **Late blocks.** A ball on a player with too little time for a groundstroke is met with a block (the volley's keys). A
+  block booked a fifth of a second out still played the keys' full shoulder turn, held from a sixth of a second before
+  contact, so the turn came in two or three frames and the hitting arm moved 35-39 degrees a frame (Kuerten, Murray in the
+  seeded audit). The racket now goes more nearly straight from where it was to the contact, the turn scaled with the time
+  there is (all of it from about 0.38 s), eased in from the frame the contact's time is known; and a stroke counts as late
+  from 0.37 s, not 0.30. Kuerten's worst frame went from 39 to 27 degrees.
+- **The off hand put back on the handle from the wrong shoulder.** The last pass of every frame re-solves the off arm so its
+  palm is on the racket; it laid the arm in the right directions but from the shoulder worked out earlier for the arms,
+  which as the trunk turns and bobs at a run is a few centimetres from where the skeleton's shoulder joint now is. The hand
+  landed that far off the handle, and the same however often it was solved again. Solved from the joint itself: off hand
+  more than 6 cm off the racket while gripping went from 0.42% to 0.03% (Ivanišević) and 0.22% to 0.17% (Nadal), and arm
+  inside the trunk fell too (Alcaraz 0.17% to 0.03%, Sinner 0.11% to 0).
+- **The racket's turn outside the swing is limited.** Between two poses whose rackets point nearly opposite ways (a
+  take-back let go of after the point, for the racket hanging by the side; Nadal's finish over his head, for the run back)
+  the blend flipped the racket 35-57 degrees in a frame. Turning it evenly between the two (slerp) only moved the fault: at
+  nearly opposite directions the way round jumped from one side to the other between frames. Instead, outside the swing at
+  the ball (more than 0.4 s before contact or 0.35 s after; 0.75/0.5 for a serve) the racket turns against the body no
+  faster than 20 degrees a frame.
+- Late strokes (above): the scaled-down take-back also applies to slices and drop shots booked late, and its span was
+  widened (full take-back from about 0.44 s); Tsitsipas' late slice had the upper arm move 31 degrees in a frame.
+- **Feet at the change from walking between points to the stance.** Found by photographing every player's worst flagged
+  frame of each arm and foot measure (214 moments): Laver, stopping on his mark to serve, had a foot jump 15-27 cm in a
+  frame. Causes and fixes in `js/figure.js`:
+  - the stance itself (the walk's pose, then the pre-serve or ready pose) was switched in a frame, and a foot still coming
+    down from a step was sent straight to its new place: the base pose is now crossfaded over a quarter of a second when
+    its kind changes;
+  - out of play the body turned to face where he was walking even at a tenth of a metre a second, so as he slowed the body
+    and both feet swung round 100 degrees in five frames: out of play the body now turns no faster than 5 degrees a frame;
+  - (tried and taken out again: easing the pass that keeps the shins apart to 4 cm a frame. Legs come together faster than
+    that in a crossover, and legs passing through each other doubled across the roster.)
+  With the first two, Laver's worst foot near the court moved 6 m/s there instead of 16.
+- **A sprinting man's body spun as a stroke came on.** Turned side-on to run, a player was let out of that turn in the frame
+  the stroke's weight passed 0.3, and the body spun 50 degrees in three frames to face the net; every hand target swung
+  round with it, the arm went 11 cm into his chest and the racket was flung over 115 degrees (Ivanišević, a slice at 6.4
+  m/s). In play, while a stroke is coming on, the body now turns no faster than 7 degrees a frame.
+- Checked across the whole roster after these: each of the 14 seeded pairs audited in full, and every player's worst frame
+  of every arm and foot measure photographed from behind and in front (about 220 moments). What is still flagged is a real
+  shape (a forehand's finish over the shoulder, a slice's take-back with the free hand on the throat, hands on hips after
+  the point, a serve's landing with the back leg kicked up) or a single fast frame at the most violent part of a swing.
+- **A foot dragged along the court at the end of a step.** A stepping foot follows the clip's ankle to the step's end; one
+  already on the court was dragged with it as that ankle drifted, two or three centimetres a frame (Laver). The step now ends,
+  and the foot is set down, once it is down in the last eighth of it. Planted-foot sliding fell for almost every player
+  (Kyrgios 2.0% to 1.3%, Medvedev 1.6% to 1.1%) and flat-foot skating to none.
+- **The racket's escape from the body or head is capped at 28 degrees a frame** (it was unlimited): Nadal's racket coming
+  down past his head after his finish over it was flicked 45 degrees; now 35, with the frame a few centimetres in the hair
+  for one frame.
+- **A crossing landing.** A foot carried round the planted one by the pass that keeps the shins apart landed where the stride
+  had it, not where it was drawn, a third of a metre back across; and the planted foot, now stepping out, was shoved the whole
+  way in the frame it lifted (Kuerten, a forehand at contact, seeded audit 20.23 s: both feet jumped about 30 cm in one frame).
+  A foot now lands where it was drawn, and a foot only lifting to step out goes out over the first third of its step. Both
+  feet there now move at a step's pace (12 cm a frame at most); legs passing through each other across the roster unchanged
+  (0.049% to 0.052% on average; Kuerten 0.14% to 0.08%).
+- **Feet thrown in a frame: a detector, and four causes.** `tools/steps_audit.mjs` now measures every frame for a foot near the
+  court moving faster against the hips than any stride moves one (foot jump), and for a one-frame spike much faster than the
+  frames either side (foot pop), and logs each player's chicken-wing frames by phase (WINGBY). Over all 28 players it found:
+  - players stopped dead at the arena's limits: running into the back fence at 8 m/s, a player was stopped in a frame. They
+    now brake into the limits, and into the rounded corners, over a real stopping distance (`js/sim.js`; no seeded match's
+    points changed);
+  - the split step's first step (`burst`, 2.3 m/s added in a frame) and those stops reversed or collapsed the stride at once:
+    the body now reads the player's velocity as it changes no faster than 18 m/s² (`js/figure.js`; where he is stays the game's);
+  - the pass that keeps the shins apart shared its push half and half with both feet up and all to the moving foot with one
+    down, and the pass that carries a foot round a planted one worked only while the other was down; as a foot landed or lifted
+    the other was thrown up to 33 cm. Both now go by how planted each foot is, eased over a few frames, and a push no longer
+    needed is let go of at about 7 cm a frame (taken up at once: a capped push let the shins through each other, tried and
+    taken out);
+  Across the roster: foot pops 0.033% to 0.022% of frames, foot jumps 0.037% to 0.020% (McEnroe 0.36% to 0.06%), legs passing
+  through each other 0.052% to 0.040%, planted-foot sliding 3.56% to 3.64%. The ten largest pops left (10-14 m/s) were
+  filmed frame by frame from the broadcast and behind cameras: each is a fast, continuous step (a lunge, a serve's landing
+  swing, a crossover), no foot seen to jump.
+- **Chicken-wing frames by phase** (Djokovic, Connors, Monfils about 0.9%): after the point with hands on hips or a fist,
+  the forehand's finish and recovery over the shoulder, the slice and drop shot's take-back with the free hand on the throat,
+  and Connors' and McEnroe's elbow-out forehands; samples of each filmed frame by frame, all natural.
+- **A re-read of the contact time under 0.04 s was jumped, not worked off**: the wind-up, and with it both feet, skipped two
+  frames (Zverev, a foot thrown 23 cm, seeded audit 114.22 s). Any re-read over half a frame is now worked off like the larger
+  ones.
+- **Chicken-wing split** (`steps_audit.mjs`): the measure fires on any elbow-out, hand-in pose; it now also counts the frames
+  outside the shapes that are meant to look like that (after the point, a stroke's finish or recovery, the free hand on the
+  throat in a slice or drop shot's take-back, the free arm folding in through a forehand). Each kind of frame left (forehand
+  take-backs with the elbow up and out, Connors's and McEnroe's elbow-out forehands, the free arm in a one-handed backhand)
+  was filmed frame by frame from the broadcast and behind cameras: all natural.
+- **More feet thrown in a frame, traced to the engine** (each found by tracing a "fast step" the audit flagged, comparing how
+  far the source clip moved the foot with how far it was drawn): the rule that keeps the stance a minimum width switched off in
+  a frame as a serve began and as a player crossed a third of a metre a second (it counts how sideways he is going only from
+  there), moving a foot 10-14 cm (Sinner's toss, Alcaraz, Djokovic): its weight is now eased over a tenth of a second. A serve
+  whose waiting pose comes from later in the clip than the toss begins jumped back to the clip's start: now crossfaded over a
+  fifth of a second, as one stroke into another is. Foot pops 0.020% to 0.016% of frames. What is left of 10 m/s or more is
+  the clip's own motion (McEnroe's serve, the back foot swung through on landing; Medvedev's backhand set-up) or a sudden need
+  to keep the shins apart, met at once on purpose (capping that push, even at 11 cm a frame, made legs pass through each other
+  half as often again).
+- **And three more**: the split step's wider landing (7% of height) was dropped in the frame the hop's time ran out, pulling a
+  foot 13 cm in (Becker); the sliding lead foot's reach out (10%) was set and cleared in a frame; both are now eased over about a
+  tenth of a second. The rule that carries a moving foot round a planted one read the way the foot was going including its own
+  last push, so a foot hovering by the other was pushed one way, read as going that way and pushed back, flicking 15 cm every
+  frame (McEnroe standing ready); it now reads the stride's own motion. Foot pops 0.016% to 0.009% of frames. Left at 10 m/s or
+  more: the clip's own motion (McEnroe's serve landing, Medvedev's set-up) and a foot that has crossed to the other's side being
+  put back on its own through the other leg (McEnroe, Edberg, Borg): moving it out on the side it is on instead only moved the
+  jump a frame, because which side it is on flips as it crosses; tried and taken out.
+  (Also tried: turning the crossed foot's way out from sideways to fore and aft, chosen once per crossing. It took the three
+  crossings' jumps away but tripled legs passing through each other across the roster; taken out.)
+- **Crossed feet put back through the other leg** (McEnroe, Edberg, Borg): while a foot is on the other's side, the push that
+  puts it back on its own now comes on at most 15 cm a frame (`__crossCap`, 0.08 of height), not in one. At 11 cm a frame legs
+  passed through each other 40% more often; at 15 cm, 7% more (0.042% to 0.045%, within the original players' range). Foot pops
+  0.009% to 0.007%; the only ones of 9 m/s or more left are the clips' own motion (McEnroe's serve landing, the back foot swung
+  through; Medvedev's backhand set-up).
+  (Also tried: holding back a push that would make a fast-moving foot's step faster than its own stride's. It took out
+  McEnroe's serve-landing spike, but legs passed through each other nearly twice as often across the roster; taken out. Every
+  way of slowing the push that keeps the shins apart has cost that.)
+- **Feet kept from crossing over in the first place** (`js/figure.js`, before the passes): the sideways gap between the stride's
+  feet is held to at least about a tenth of his height by a smooth curve of where the stride puts them, taken up by the feet off
+  the court (a foot coming down or lifting takes little of it), and let go of over a tenth of a second around a serve, whose stance
+  brings the feet together on purpose. Running across his body the stride crossed one foot over the other, and the passes then put
+  it back through the other leg. Across the roster: legs passing through each other 0.045% to 0.016% of frames, feet through each
+  other 0.134% to 0.058%, legs crossed 0.085% to 0.055%, foot jumps 0.014% to 0.011%; planted-foot sliding 3.62% to 3.68%.
+  (Without the serve fade it threw the feet in Djokovic's and Alcaraz's serve set-ups; without favouring the airborne foot,
+  planted feet slid 7% more.)
+  And a foot down on the court is never moved by the passes, even while its weight eases in after landing (Djokovic's foot just
+  set down slid 25 cm in a frame): planted-foot sliding back to 3.61%, legs through each other 0.020%. The only foot spikes of
+  9 m/s or more left across the roster are McEnroe's serve landing (his tracked back-foot swing) and Medvedev's sideways stride.
+  (Measured the other way too: the moving foot taking the whole push at once while the other is planted. Across the roster it
+  is the same to within noise: legs through each other 0.019% against 0.020%, foot jumps 0.013% against 0.011%. Kept as is.)
+  (Tried: the feet-apart limit back on from a quarter of a second after a serve's contact. It took McEnroe's serve-landing
+  spike away but his legs came within 9 cm of each other four times as often (0.10% to 0.37%), his back foot swung through
+  across the front; taken out.)
+

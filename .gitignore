@@ -7,3 +7,6 @@ ml/data/*
 .venv/
 __pycache__/
 .ipynb_checkpoints/
+
+# pro: user-supplied photographs of unknown licence stay on this machine
+pro/assets/people/faces/local/

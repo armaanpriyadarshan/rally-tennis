@@ -1,0 +1,90 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Rally Pro · dev view</title>
+<style>html,body{margin:0;height:100%;background:#000;overflow:hidden}canvas{width:100%;height:100%;display:block}#i{position:fixed;left:8px;top:8px;color:#fff;font:12px monospace;text-shadow:0 0 3px #000}</style>
+<script type="importmap">{"imports":{"three":"./vendor/three/three.module.js","three/addons/":"./vendor/three/addons/"}}</script>
+</head><body><canvas id="c"></canvas><div id="i"></div>
+<script type="module">
+import * as THREE from 'three';
+import { Gfx } from './js/render.js';
+import { buildArena } from './js/arena.js';
+import { venueSpec } from './js/venues.js';
+import { WEATHER, loadSkyTexture } from './js/skies.js';
+const P = new URLSearchParams(location.search);
+const gfx = new Gfx(document.getElementById('c'), { quality: +(P.get('q') || 2), autoScale: false, preserve: true });
+window.__gfx = gfx; window.__THREE = THREE;
+const info = document.getElementById('i');
+const stat = extra => { const gl = gfx.renderer.getContext(), e = gl.getExtension('WEBGL_debug_renderer_info'); info.textContent = `${(window.__fps || 0).toFixed(0)} fps · ${extra || ''} · ${e ? gl.getParameter(e.UNMASKED_RENDERER_WEBGL) : ''}`; };
+let last = performance.now(), n = 0, acc = 0, tick = null;
+function loop(now) { const dt = Math.min(0.05, (now - last) / 1000); last = now; if (tick) tick(dt, now); n++; acc += dt; if (n === 4) window.__ready = true; if (n % 30 === 0) { window.__fps = 30 / acc; acc = 0; stat(window.__note); } requestAnimationFrame(loop); }
+addEventListener('resize', () => gfx.resize());
+if (P.get('game')) {
+  // a match: ?game=1 plays it yourself, &demo=1 watches two computer players
+  const { Game } = await import('./js/game.js'); const { Input } = await import('./js/input.js');
+  const { TOURNAMENTS, PLAYERS, playerByName } = await import('./js/data.js');
+  const input = new Input(gfx.canvas); input.enabled = true;
+  const game = new Game(gfx, { input });
+  const T = TOURNAMENTS.find(t => t.key === (P.get('venue') || 'us')) || TOURNAMENTS[0];
+  const id = (n, d) => { const p = playerByName(n || d); return p ? p.id : 0; };
+  await game.start({ T, weather: P.get('weather') || 'clear', p0: id(P.get('p0'), 'Alcaraz'), p1: id(P.get('p1'), 'Sinner'), demo: !!P.get('demo'), cam: P.get('cam') || (P.get('demo') ? 'tv' : 'fp'), difficulty: +(P.get('diff') || 1), seed: +(P.get('seed') || 0) || undefined, pace: +(P.get('pace') || 1), format: P.get('format') || undefined });
+  window.__game = game;
+  addEventListener('keydown', e => { if (e.code === 'KeyV') game.cycleCamera(); if (e.code === 'KeyP') game.paused = !game.paused; });
+  tick = dt => { game.frame(dt); const m = game.match; window.__note = `${m.players[0].prof.name} v ${m.players[1].prof.name} · ${m.phase} · sets ${m.score.setsWon} games ${m.score.g} pts ${m.pointText()} · V camera, P pause`; };
+} else if (P.get('crowdgen')) {
+  // draw the crowd sheet from the avatars in assets/people/crowd-src and leave it in window.__atlas
+  const { loadAvatar } = await import('./js/people.js'); const { renderCrowdAtlas, atlasDataURL, CROWD_SRC } = await import('./js/crowd.js');
+  const avatars = await Promise.all(CROWD_SRC.map(n => loadAvatar('crowd-src/' + n + '.glb')));
+  const rt = renderCrowdAtlas(gfx.renderer, avatars);
+  window.__atlas = atlasDataURL(gfx.renderer, rt, 'image/webp', 0.9); window.__atlasPng = () => atlasDataURL(gfx.renderer, rt, 'image/png');
+  const im = new Image(); im.src = window.__atlas; im.style.cssText = 'position:fixed;inset:0;height:100%;margin:auto;background:#5a6a7a'; document.body.appendChild(im);
+  window.__ready = true; info.textContent = 'crowd sheet ' + rt.width + 'x' + rt.height;
+} else if (P.get('lineup')) {
+  // every player side by side in one outfit: ?lineup=1&ev=wim. __line.at(i, view) frames one of them.
+  const { Figure } = await import('./js/figure.js'); const { loadPerson } = await import('./js/people.js'); const { PLAYERS, lookAt } = await import('./js/data.js');
+  const spec = venueSpec('default', P.get('weather') || 'fair'); const W = WEATHER[spec.weather];
+  const A = buildArena(spec, { quality: 1, skyTex: W.sky ? await loadSkyTexture(W.sky) : null }); gfx.setArena(A);
+  const model = await loadPerson('m04'), ev = P.get('ev') || 'default', figs = [], m = { t: 0, phase: 'live', phaseT: 0, score: { server: 1 }, ball: { visible: false, held: -1, x: 0, y: 1, z: 0 }, players: [] };
+  PLAYERS.forEach((pl, i) => { const fig = new Figure(lookAt(pl.id, ev), model); gfx.scene.add(fig.group); const p = { i: 0, sgn: 1, x: (i - (PLAYERS.length - 1) / 2) * 1.25, z: 11.9, vx: 0, vz: 0, stroke: null, split: -9, mood: 0, moodT: -9 }; figs.push({ fig, p, name: pl.facts.name }); });
+  for (let k = 0; k < 150; k++) { m.t += 1 / 120; for (const f of figs) { m.players = [f.p]; f.fig.update(1 / 120, f.p, m); } }
+  const views = { all: [[0, 1.5, -11], [0, 0.95, 0], 40], front: [[0.45, 1.25, -4.4], [0, 0.95, 0], 26], back: [[-0.45, 1.3, 4.4], [0, 0.95, 0], 26], head: [[0.28, 1.78, -1.1], [0, 1.70, 0], 22], side: [[1.15, 1.76, 0.05], [0, 1.70, 0], 22], rear: [[-0.3, 1.80, 1.1], [0, 1.68, 0], 22] };
+  const hv = new THREE.Vector3();
+  window.__line = { figs, names: figs.map(f => f.name), at(i, view) { const f = figs[i] || figs[0], v = views[view] || views.front, c = gfx.camera; f.fig.group.updateMatrixWorld(true); f.fig.person.bones['Bip01_Head'].getWorldPosition(hv); const hd = view === 'head' || view === 'side' || view === 'rear' ? hv.y + 0.10 - 1.70 : 0;
+    c.position.set((view === 'all' ? 0 : f.p.x) + v[0][0], v[0][1] + hd, f.p.z + v[0][2]); c.lookAt((view === 'all' ? 0 : f.p.x) + v[1][0], v[1][1] + hd, f.p.z + v[1][2]); c.fov = v[2]; c.updateProjectionMatrix(); A.update(0, 0); gfx.render(0.016); return f.name; } };
+  __line.at(0, 'all'); tick = null;
+} else if (P.get('lab')) {
+  // pose lab: one player, one stroke, scrubbed by time. __lab.go(u) poses the figure u seconds from contact.
+  const { Figure } = await import('./js/figure.js'); const { loadPerson } = await import('./js/people.js'); const { PLAYERS, playerByName, lookAt } = await import('./js/data.js');
+  const spec = venueSpec('default', P.get('weather') || 'fair'); const W = WEATHER[spec.weather];
+  const A = buildArena(spec, { quality: 1, skyTex: W.sky ? await loadSkyTexture(W.sky) : null }); gfx.setArena(A);
+  const model = await loadPerson('m04'); const who = playerByName(P.get('p') || 'Federer');
+  const fig = new Figure(lookAt(who.id, P.get('ev') || 'default'), model); gfx.scene.add(fig.group);
+  const kind = P.get('lab'), wing = P.get('wing') || (kind === 'bh' ? 'bh' : 'fh');
+  const strokeKind = { fh: 'drive', bh: 'drive', serve: 'serve', slice: 'slice', volley: 'volley', smash: 'smash', lob: 'lob', drop: 'drop', loop: 'loop' }[kind];
+  const p = { i: 0, sgn: 1, x: 0, z: 11.9, vx: 0, vz: 0, stroke: null, split: -9, mood: 0, moodT: -9 };
+  const m = { t: 0, phase: P.get('ph') || (kind === 'serve' ? 'toss' : 'live'), phaseT: 0, score: { server: P.get('srv') != null ? +P.get('srv') : kind === 'serve' ? 0 : 1 }, ball: { visible: false, held: -1, x: 0, y: 1, z: 0 }, players: [p] };
+  const T0 = 2.0;                                   // contact happens at t = 2
+  const reset = () => { m.t = 0; p.x = 0; p.z = 11.9; p.vx = 0; p.vz = 0; p.stroke = null; fig.inited = false; fig.handInit = false; };
+  const setStroke = () => { if (strokeKind) p.stroke = { kind: strokeKind, wing, t0: T0 - (kind === 'serve' ? 1.42 : 0.9), tc: T0, done: false, tEnd: T0, auto: true, cp: null }; };
+  const view = (P.get('view') || 'front');
+  const cam = () => { const c = gfx.camera, v = { front: [1.6, 1.25, -4.0], back: [-0.8, 1.6, 4.2], side: [4.4, 1.2, -0.2], top: [0.2, 5.5, -0.6] }[view]; c.position.set(p.x + v[0], v[1], p.z + v[2]); c.lookAt(p.x, 1.0, p.z); c.fov = 27; c.updateProjectionMatrix(); };
+  window.__lab = { fig, p, m, shoot(vw) { const c = gfx.camera, v = { front: [1.6, 1.25, -4.0], back: [-0.8, 1.6, 4.2], side: [4.4, 1.2, -0.2], tv: [0.0, 6.5, 11.0] }[vw] || [-0.8, 1.6, 4.2]; c.position.set(p.x + v[0], v[1], p.z + v[2]); c.lookAt(p.x, 1.0, p.z); c.fov = vw === 'tv' ? 14 : 27; c.updateProjectionMatrix(); A.update(0, 0); gfx.render(0.016); return 1; }, go(u) {
+    reset(); if (kind === 'run') { p.vx = +(P.get('v') || 5); p.vz = +(P.get('vz') || 0); } else { p.vx = +(P.get('vx') || 0); p.vz = +(P.get('vz') || 0); } p.split = -9; fig.lastSplit = -9;
+    const target = T0 + u, dt = 1 / 120;
+    while (m.t < target - 1e-6) { m.t += dt; m.phaseT = m.t; p.x += p.vx * dt; p.z += (p.vz || 0) * dt; if (kind === 'split' && p.split < 0 && m.t >= T0 - 0.1) p.split = m.t; if (!p.stroke && strokeKind && m.t >= T0 - (kind === 'serve' ? 1.42 : 0.9)) setStroke(); if (p.stroke && m.t >= p.stroke.tc + 0.001 && !p.stroke.done) { p.stroke.done = true; p.stroke.hit = true; } fig.update(dt, p, m); }
+    cam(); A.update(0, 0); gfx.render(0.016); return 1; } };
+  __lab.go(0); tick = null;
+} else {
+  const spec = venueSpec(P.get('venue') || 'default', P.get('weather') || 'clear');
+  const W = WEATHER[spec.weather];
+  const skyTex = W.sky && !spec.indoor ? await loadSkyTexture(W.sky) : null;
+  const A = buildArena(spec, { quality: gfx.q, skyTex });
+  gfx.setArena(A); window.__A = A;
+  if (P.get('flip')) gfx.setFlip(-1);
+  const cams = { fp: [[0.6, 1.72, 12.9], [0, 1.0, -6]], tv: [[0, 11, 27], [0, 0, -2]], high: [[26, 30, 38], [0, 0, 0]], side: [[-13, 2.2, 6], [3, 1, -3]], low: [[3, 0.5, 14], [-1, 1, 0]], net: [[2, 1.6, 4], [0, 0.9, 0]], top: [[0, 60, 0.01], [0, 0, 0]], stands: [[0, 3, 0], [14, 9, -22]], corner: [[9, 1.8, 17], [-3, 1.5, -14]] };
+  const cam = cams[P.get('cam') || 'fp'];
+  const pos = P.get('pos') ? P.get('pos').split(',').map(Number) : cam[0], look = P.get('look') ? P.get('look').split(',').map(Number) : cam[1];
+  gfx.camera.position.set(...pos); gfx.camera.lookAt(...look);
+  if (P.get('fov')) { gfx.camera.fov = +P.get('fov'); gfx.camera.updateProjectionMatrix(); }
+  tick = (dt, now) => { A.update(dt, now / 1000); gfx.render(dt); window.__note = `crowd ${A.crowd.count}`; };
+}
+requestAnimationFrame(loop);
+</script></body></html>
