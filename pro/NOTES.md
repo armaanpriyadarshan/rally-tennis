@@ -643,3 +643,7 @@ still in the air, both in a stroke's finish, for two or three frames.
 - The second leg's knee, turned out round its own hip-to-ankle line to keep the shins apart, may now turn as far as ninety
   degrees at up to nine a frame (it was sixty, at six): a stroke's finish with both feet off the court still brought the shins
   together. Legs through each other 0.016% to 0.014% across the roster, nothing else moved. `__legSepNarrowOld`.
+- A hand across the body is put in front of the trunk out to 22 cm past its side, not 10: a two-hander's take-back with the
+  hands by the other hip just outside the old limit had the upper arm across the inside of the chest (Murray, the elbow at
+  the breastbone). Arm inside the trunk 0.017% to 0.014% across the roster (Murray 8 frames to 3); one frame more of
+  Agassi's off hand off the handle, one fewer chicken wing. `__frontWide=0.1` for the old.

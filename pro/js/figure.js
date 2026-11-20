@@ -1996,7 +1996,7 @@ export class Figure {
         const srvFin = st && (st.kind === 'serve' || st.kind === 'smash') && st.tc != null && t > st.tc + 0.05 && !globalThis.__srvFinOld;
         if ((!(st && (st.kind === 'serve' || st.kind === 'smash')) || srvFin) && al > -0.1 * tLen && al < tLen * 1.3) { const x = rel.dot(tRt), z = rel.dot(tFw), cross = Math.max(clamp((-x * sx + 0.06) / 0.26, 0, 1), 0.7 * foldK);
           // (up by the other shoulder, a finish wrapping round, the arm crosses in front of the neck: less far forward there)
-          if (cross > 0 && Math.abs(x) < tA + LIMB_R + 0.1) { const need = ((tB + LIMB_R + 0.03) * sm(cross * 2.5) + 0.2 * cross) * (1 - 0.4 * sm((al / tLen - 0.85) / 0.25));
+          if (cross > 0 && Math.abs(x) < tA + LIMB_R + (globalThis.__frontWide ?? 0.22)) {   /* (to a hand a little further out by the other hip too: a two-hander's take-back with the hands just outside a tenth of a metre past the trunk had the upper arm across the inside of the chest) */ const need = ((tB + LIMB_R + 0.03) * sm(cross * 2.5) + 0.2 * cross) * (1 - 0.4 * sm((al / tLen - 0.85) / 0.25));
             const uc = st && st.tc != null ? t - st.tc : 9, nearC = Math.exp(-(uc * uc) / 0.008);
             // (round contact only where the hand is in front already: a block reached late for a ball behind him on the far side had
             // the racket hand back by the other hip at contact, and eased off there the arm lay through his chest)
