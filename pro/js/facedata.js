@@ -24,10 +24,10 @@ export const FACES = {
   Roddick: { head: 'heads/Business_Male_02', map: 'faces/Roddick.jpg', skin: '#dea884', face: {faceW: 0.2, jawW: -0.15, faceL: 0.34, chinL: 0.03, noseL: 0.14, noseW: 0.02}, src: "Carine06, CC BY-SA 2.0 (Flickr)" },
   Thiem: { head: 'heads/Male_Adult_06', map: 'faces/Thiem.jpg', skin: '#d49e7f', face: {faceW: 0.1, jawW: -0.21, faceL: 0.24, chinL: -0.45, noseL: -0.35, noseW: -0.0}, src: "si.robi, CC BY-SA 2.0 (Flickr)" },
   Medvedev: { head: 'heads/Sports_Male_02', map: 'faces/Medvedev.jpg', skin: '#e49f83', face: {faceW: 0.12, jawW: -0.15, faceL: 0.45, chinL: -0.19, noseL: 0.07, noseW: -0.03}, src: "si.robi, CC BY-SA 2.0 (Flickr)" },
-  Monfils: { head: 'heads/Male_Adult_18', map: 'faces/Monfils.jpg', skin: '#6c3f2d', face: {faceW: 0.21, jawW: -0.21, faceL: 0.45, chinL: -0.45, noseL: 0.25, noseW: 0.12}, src: "si.robi, CC BY-SA 2.0 (Flickr)" },
   Kuerten: { head: 'heads/Male_Adult_06', map: 'faces/Kuerten.jpg', skin: '#d9a283', face: {faceW: 0.3, jawW: -0.28, faceL: 0.04, chinL: -0.18, noseL: -0.37, noseW: 0.05}, src: "Valter Campanato/ABr (Ag\u00eancia Brasil), CC BY 3.0 BR (Wikimedia Commons)" },
   Ivanisevic: { head: 'heads/Business_Male_01', map: 'faces/Ivanisevic.jpg', skin: '#d2977c', face: {faceW: 0.3, jawW: -0.33, faceL: 0.2, chinL: -0.07, noseL: 0.11, noseW: 0.19}, src: "Annie and Andrew, CC BY 2.0 (Flickr)" },
   Wilander: { head: 'heads/Sports_Male_02', map: 'faces/Wilander.jpg', skin: '#df9b80', face: {faceW: 0.02, jawW: -0.16, faceL: 0.3, chinL: 0.15, noseL: 0.2, noseW: 0.26}, src: "robbiesaurus, CC BY-SA 2.0 (Flickr)" },
   Becker: { head: 'heads/Male_Adult_16', map: 'faces/Becker.jpg', skin: '#d8a385', face: {faceW: -0.03, jawW: -0.02, faceL: -0.24, chinL: -0.29, noseL: 0.19, noseW: 0.02}, src: "FIBO Global Fitness, CC BY 2.0 (Flickr)" },
   Edberg: { head: 'heads/Male_Adult_16', map: 'faces/Edberg.jpg', skin: '#d8a483', face: {faceW: 0.12, jawW: -0.12, faceL: 0.45, chinL: -0.06, noseL: 0.45, noseW: 0.41}, src: "Robin Fritzson, CC BY 3.0 (Wikimedia Commons)" },
+  Monfils: { head: 'heads/Male_Adult_12', map: 'faces/Monfils.jpg', skin: '#7a4f37', face: {faceW: -0.09, jawW: -0.05, faceL: 0.45, chinL: -0.45, noseL: 0.28, noseW: 0.05}, src: "si.robi, CC BY-SA 2.0 (Flickr)" },
 };

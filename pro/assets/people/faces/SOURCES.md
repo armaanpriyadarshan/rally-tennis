@@ -175,15 +175,6 @@ Hair, ears, neck and eyes are the avatar's. A texture made from a CC BY-SA photo
 - Done to it: face cut out; turned-away half filled from the mirror image of the other; his open mouth left on the head's own closed lips, the shadows at its corners closed over; lighting flattened, colour matched to the head's skin; the head's own eyes kept, tinted grey-green.
 - This texture's licence: CC BY-SA 2.0
 
-## Monfils
-- File: https://www.flickr.com/photos/sirobi/30063255678/
-- Author: si.robi (Flickr)
-- Licence: CC BY-SA 2.0 (https://creativecommons.org/licenses/by-sa/2.0/)
-- Taken: 2018-07 (Wimbledon 2018)
-- Head it is painted on: `heads/Male_Adult_18.glb`
-- Done to it: face cut out; his open mouth left on the head's own closed lips; lighting flattened, colour matched to the head's skin; the head's own eyes kept, tinted dark brown.
-- This texture's licence: CC BY-SA 2.0
-
 ## Kuerten
 - File: https://commons.wikimedia.org/wiki/File:Gustavo_Kuerten.jpg
 - Author: Valter Campanato/ABr (Agência Brasil)
@@ -228,6 +219,15 @@ Hair, ears, neck and eyes are the avatar's. A texture made from a CC BY-SA photo
 - Head it is painted on: `heads/Male_Adult_16.glb`
 - Done to it: face cut out below the hair; his smile left on the head's own closed lips, the shadows at its corners closed over; the lines of age (the photograph is from 2012, he plays at 22) turned down by more than half; lighting flattened, colour matched to the head's skin; the head's own eyes kept, tinted blue. (Commons' 960-pixel copy of the file.)
 - This texture's licence: CC BY 3.0 attribution; otherwise as the repository
+
+## Monfils
+- File: https://www.flickr.com/photos/sirobi/30063255678/
+- Author: si.robi (Flickr)
+- Licence: CC BY-SA 2.0 (https://creativecommons.org/licenses/by-sa/2.0/)
+- Taken: 2018-07 (Wimbledon 2018)
+- Head it is painted on: `heads/Male_Adult_12.glb`
+- Done to it: face cut out; his open mouth left on the head's own closed lips; lighting flattened, colour matched to the head's skin; the head's own eyes kept, tinted dark brown.
+- This texture's licence: CC BY-SA 2.0
 
 # User-supplied, local only — not for publication
 

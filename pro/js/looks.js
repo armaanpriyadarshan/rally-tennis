@@ -259,8 +259,11 @@ export const LOOKBOOK = {
     hair: { top: 3.5, sides: 1.2, back: 1.5, tex: 'straight', fringe: 0.2, recede: 0.15, ears: false, c: '#4a3020' },
     rk: { frame: '#e8761e', frame2: '#1c1c1c', grip: '#f2f2f2', string: '#e8e8e8', head: 1.0 },
     kits: {
-      default: { year: 2016, shirt: '#1f3d7a', layers: [['collar', '#f2f2f2', 0.93]], shorts: { c: '#f2f2f2', len: 'mid' }, socks: { c: '#f2f2f2' }, shoes: { c: '#f2f2f2', c2: '#1f3d7a' }, wb: { L: ['#f2f2f2', 8], R: ['#f2f2f2', 8] } },
-      wim: { year: 2016, shirt: '#f4f4f1', shorts: { c: '#f4f4f1', len: 'mid' }, socks: { c: '#f4f4f1' }, shoes: { c: '#f2f0ec', c2: '#e2ded8' }, wb: { L: ['#f4f4f1', 8], R: ['#f4f4f1', 8] } },
+      default: { year: 2016, shirt: '#3d4046', shorts: { c: '#1a1b1e', len: 'mid' }, socks: { c: '#f2f2f2' }, shoes: { c: '#1c1c1e', c2: '#f2f2f2' }, wb: { L: ['#2a2b2e', 11], R: ['#2a2b2e', 11] } },   // ATP Finals, London
+      ao: { year: 2016, shirt: '#1c1d20', layers: [['sides', '#5d6066', 0.12, 0.66, 0, -0.3]], shorts: { c: '#18191c', len: 'mid' }, socks: { c: '#1c1d20' }, shoes: { c: '#18181a', c2: '#8a8d92' }, wb: { L: ['#1c1d20', 11], R: ['#1c1d20', 11] } },
+      rg: { year: 2016, shirt: '#161719', layers: [['sides', '#45484d', 0.12, 0.68, 0, -0.3], ['collar', '#556b2f', 0.95], ['sleeve', '#556b2f', 0.37, 0.40]], shorts: { c: '#161719', len: 'mid' }, socks: { c: '#f2f2f2' }, shoes: { c: '#151515', c2: '#4b5320' }, wb: { L: ['#556b2f', 11], R: ['#556b2f', 11] }, head: { type: 'cap', c: '#161719' } },
+      us: { year: 2016, shirt: '#f5f5f3', shorts: { c: '#18191c', len: 'mid' }, socks: { c: '#f2f2f2' }, shoes: { c: '#f2f2f0', c2: '#9a9ca0' }, wb: { L: ['#f5f5f3', 11], R: ['#f5f5f3', 11] }, head: { type: 'cap', c: '#f5f5f3' } },   // the day kit
+      wim: { year: 2016, shirt: '#f5f5f3', shorts: { c: '#f5f5f3', len: 'mid' }, socks: { c: '#f4f4f1' }, shoes: { c: '#f2f2f0', c2: '#e2e2de' }, wb: { L: ['#f5f5f3', 11], R: ['#f5f5f3', 11] } },
     },
   },
   Wawrinka: {
@@ -270,8 +273,12 @@ export const LOOKBOOK = {
     hair: { top: 1.6, sides: 0.5, back: 0.6, tex: 'straight', fringe: 0, recede: 0.2, ears: false, c: '#3a2b22' },
     rk: { frame: '#1b1b1b', frame2: '#d0202e', grip: '#f2f2f2', string: '#e8e8e8', head: 1.0 },
     kits: {
-      default: { year: 2016, shirt: '#c2185b', layers: [['sides', '#e8628f', 0.085, 0.12, -1, -0.3]], shorts: { c: '#141414', len: 'mid' }, socks: { c: '#f2f2f2' }, shoes: { c: '#f2f2f2', c2: '#c2185b' }, wb: { R: ['#141414', 8] } },
-      wim: { year: 2015, shirt: '#f4f4f1', shorts: { c: '#f4f4f1', len: 'mid' }, socks: { c: '#f4f4f1' }, shoes: { c: '#f2f0ec', c2: '#e2ded8' } },
+      default: { year: 2015, shirt: '#18181b', layers: [['sides', '#e0528b', 0.12, 0.66, 0, -0.3]], shorts: { c: '#18181b', len: 'knee' }, socks: { c: '#f2f2f2' }, shoes: { c: '#1a1a1c', c2: '#e0528b' }, wb: { R: ['#18181b', 8] } },   // ATP Finals, London
+      ao: { year: 2016, shirt: '#fb7a52', layers: [['fade', '#f0ea3c', 0.55, 0.12, 1]], shorts: { c: '#f6683a', len: 'knee' }, socks: { c: '#e6f03c' }, shoes: { c: '#f2f2f2', c2: '#f6683a' }, wb: { R: ['#f6683a', 8] } },
+      rg: { year: 2015, shirt: '#d4d7da', layers: [['band', '#666a70', 0.30, 0.52, 0, 0, 0, 0], ['band', '#f4f4f2', -0.3, 0.30, 0, 0, 0, 0], ['band', '#cc2b2b', 0.513, 0.53, 0, 0, 0, 0], ['band', '#cc2b2b', 0.293, 0.31, 0, 0, 0, 0], ['collar', '#cc2b2b', 0.93]],
+        shorts: { c: '#8d9095', len: 'knee', pin: 0.07, pinC: '#c0464e' }, socks: { c: '#f2f2f2' }, shoes: { c: '#cc2a2a', c2: '#f2f2f2' }, wb: { R: ['#f2f2f2', 8] } },   // champion: the grey-and-red polo and the checked shorts
+      us: { year: 2016, shirt: '#e0307f', layers: [['collar', '#c81e63', 0.93]], shorts: { c: '#c41e5c', len: 'knee' }, socks: { c: '#f2f2f2' }, shoes: { c: '#f2f2f2', c2: '#e0307f' }, wb: { R: ['#f37aa9', 8] } },   // champion
+      wim: { year: 2015, shirt: '#f5f5f3', layers: [['collar', '#f1f1ee', 0.93]], shorts: { c: '#f5f5f3', len: 'knee' }, socks: { c: '#f4f4f1' }, shoes: { c: '#f2f0ec', c2: '#e2ded8' }, wb: { R: ['#f5f5f3', 8] } },
     },
   },
   Zverev: {
@@ -282,7 +289,9 @@ export const LOOKBOOK = {
     rk: { frame: '#1a1a1c', frame2: '#d6262e', grip: '#f2f2f2', string: '#e6e6e6', head: 1.0 },
     kits: {
       default: { year: 2026, shirt: '#1d2a4a', layers: [['collar', '#f2f2f2', 0.93]], shorts: { c: '#f2f2f2', len: 'mid' }, socks: { c: '#f2f2f2' }, shoes: { c: '#f2f2f2', c2: '#1d2a4a' }, head: { type: 'headband', c: '#f2f2f2', w: 4 } },
-      us: { year: 2026, shirt: '#f2b7c6', shorts: { c: '#f4f4f1', len: 'mid' }, socks: { c: '#f4f4f1' }, shoes: { c: '#f4f4f1', c2: '#f2b7c6' }, head: { type: 'headband', c: '#f4f4f1', w: 4 } },
+      ao: { year: 2025, shirt: '#e8323c', layers: [['collar', '#d42a33', 0.93]], shorts: { c: '#5c1a28', len: 'mid' }, socks: { c: '#e8323c' }, shoes: { c: '#f2414a', c2: '#ffffff' }, head: { type: 'headband', c: '#e8323c', w: 5 } },   // runner-up
+      rg: { year: 2025, shirt: '#dff23a', layers: [['collar', '#d0e332', 0.93]], shorts: { c: '#141416', len: 'mid' }, socks: { c: '#f2f2f2' }, shoes: { c: '#dff23a', c2: '#141416' }, head: { type: 'headband', c: '#141416', w: 5 } },
+      us: { year: 2026, shirt: '#f3dfe0', shorts: { c: '#7a1f35', len: 'mid' }, socks: { c: '#f3dfe0' }, shoes: { c: '#f3dfe0', c2: '#7a1f35' }, head: { type: 'headband', c: '#f3dfe0', w: 4 } },
       wim: { year: 2026, shirt: '#f4f4f1', shorts: { c: '#f4f4f1', len: 'mid' }, socks: { c: '#f4f4f1' }, shoes: { c: '#f2f0ec', c2: '#e2ded8' }, head: { type: 'headband', c: '#f4f4f1', w: 4 } },
     },
   },
@@ -293,8 +302,12 @@ export const LOOKBOOK = {
     hair: { top: 7, sides: 1.0, back: 1.5, tex: 'straight', fringe: 0, recede: 0, ears: false, c: '#3d2b1f' },
     rk: { frame: '#f2f2f2', frame2: '#1a1a1a', grip: '#1a1a1a', string: '#e8e8e8', head: 1.0 },
     kits: {
-      default: { year: 2019, shirt: '#5b9bd5', shorts: { c: '#1f2a44', len: 'mid' }, socks: { c: '#f2f2f2' }, shoes: { c: '#f2f2f2', c2: '#5b9bd5' }, wb: { R: ['#f2f2f2', 7] } },
-      wim: { year: 2019, shirt: '#f4f4f1', shorts: { c: '#f4f4f1', len: 'mid' }, socks: { c: '#f4f4f1' }, shoes: { c: '#f2f0ec', c2: '#e2ded8' } },
+      default: { year: 2019, shirt: '#3b2a55', layers: [['sides', '#e2363f', 0.10, 0.62, -1, -0.3]], shorts: { c: '#16161a', len: 'mid' }, socks: { c: '#f2f2f2' }, shoes: { c: '#f2f2f2', c2: '#3b2a55' } },   // Barcelona, champion
+      ao: { year: 2020, shirt: '#e4efa0', layers: [['hbands', '#4b3b8f', 0.09, 0.22, 0, -0.14, 0.34, 0, 0], ['hbands', '#4b3b8f', 0.09, 0.48, 0, 0.34, 0.58, 0, 0], ['hbands', '#4b3b8f', 0.09, 0.74, 0, 0.58, 0.80, 0, 1], ['yoke', '#4b3b8f', 0.80, 0, 0, 1], ['hbands', '#a9d8e8', 0.18, 0.10, 0.06, 0.20, 0.60, 0, 0]],
+        shorts: { c: '#2e2a58', len: 'mid' }, socks: { c: '#f2f2f2' }, shoes: { c: '#f2f2f2', c2: '#4b3b8f' }, head: { type: 'headband', c: '#4b3b8f', w: 4 } },   // runner-up
+      rg: { year: 2019, shirt: '#3fc3e6', layers: [['sides', '#eef8fc', 0.10, 0.62, -1, -0.3]], shorts: { c: '#16161a', len: 'mid' }, socks: { c: '#f2f2f2' }, shoes: { c: '#f2f2f2', c2: '#3fc3e6' } },   // runner-up
+      us: { year: 2020, shirt: '#ee7f9a', shorts: { c: '#141416', len: 'mid' }, socks: { c: '#f2f2f2' }, shoes: { c: '#f2f2f2', c2: '#ee7f9a' }, wb: { L: ['#141416', 8], R: ['#141416', 8] }, head: { type: 'headband', c: '#141416', c2: '#ee7f9a', w: 4 } },   // champion
+      wim: { year: 2019, shirt: '#f7f7f5', shorts: { c: '#f7f7f5', len: 'mid' }, socks: { c: '#f4f4f1' }, shoes: { c: '#f4f4f4', c2: '#f4f4f4' } },
     },
   },
   Medvedev: {
@@ -304,8 +317,11 @@ export const LOOKBOOK = {
     hair: { top: 3.0, sides: 1.0, back: 1.2, tex: 'straight', fringe: 0.4, recede: 0.1, ears: false, c: '#4a3a2c' },
     rk: { frame: '#f2f2f2', frame2: '#1d4e9e', grip: '#f2f2f2', string: '#e8e8e8', head: 1.0 },
     kits: {
-      default: { year: 2021, shirt: '#2a62b0', layers: [['collar', '#f2f2f2', 0.93]], shorts: { c: '#f4f4f1', len: 'mid' }, socks: { c: '#f4f4f1' }, shoes: { c: '#f4f4f1', c2: '#2a62b0' }, wb: { R: ['#f4f4f1', 7] } },
-      wim: { year: 2021, shirt: '#f4f4f1', shorts: { c: '#f4f4f1', len: 'mid' }, socks: { c: '#f4f4f1' }, shoes: { c: '#f2f0ec', c2: '#e2ded8' } },
+      default: { year: 2021, shirt: '#1b2440', layers: [['collar', '#1b2440', 0.93]], shorts: { c: '#f2f2f0', len: 'mid' }, socks: { c: '#f2f2f0' }, shoes: { c: '#f2f2f0', c2: '#1b2440' }, wb: { L: ['#f2f2f0', 8] } },   // ATP Finals, Turin
+      ao: { year: 2021, shirt: '#f4f4f1', layers: [['hbands', '#f2c230', 0.09, 0.4, 0.50, 0.50, 0.66, 0, 0], ['collar', '#f4f4f1', 0.93]], shorts: { c: '#f4f4f1', len: 'mid' }, socks: { c: '#f2f2f2' }, shoes: { c: '#f2f2f0', c2: '#1b2a4a' }, wb: { L: ['#f4f4f1', 8] } },   // runner-up
+      rg: { year: 2021, shirt: '#1d2a48', layers: [['collar', '#1d2a48', 0.93]], shorts: { c: '#1d2a48', len: 'mid' }, socks: { c: '#f2f2f2' }, shoes: { c: '#f2f2f0', c2: '#1d2a48' }, wb: { L: ['#f2f2f2', 8] } },
+      us: { year: 2021, shirt: '#f4f4f1', layers: [['collar', '#1f4a35', 0.93]], shorts: { c: '#1f4a35', len: 'mid' }, socks: { c: '#f2f2f2', ring: '#1f4a35' }, shoes: { c: '#f2f2f0', c2: '#1f4a35' }, wb: { L: ['#f4f4f1', 8] } },   // champion, the day kit
+      wim: { year: 2021, shirt: '#f4f4f1', shorts: { c: '#f4f4f1', len: 'mid' }, socks: { c: '#f4f4f1' }, shoes: { c: '#f2f0ec', c2: '#e2ded8' }, wb: { L: ['#f4f4f1', 8] } },
     },
   },
   Tsitsipas: {
@@ -315,8 +331,11 @@ export const LOOKBOOK = {
     hair: { top: 14, sides: 18, back: 24, tex: 'wavy', fringe: 0, recede: 0, ears: false, c: '#7a5a3c', c2: '#5e4430' },
     rk: { frame: '#2f4f3a', frame2: '#151515', grip: '#f2f2f2', string: '#e6e6e6', head: 1.0 },
     kits: {
-      default: { year: 2021, shirt: '#f5f5f5', shorts: { c: '#f5f5f5', len: 'mid' }, socks: { c: '#f5f5f5' }, shoes: { c: '#f5f5f5', c2: '#1a1a1a' }, head: { type: 'headband', c: '#ffffff', w: 4 } },
-      wim: { year: 2023, shirt: '#f4f4f1', shorts: { c: '#f4f4f1', len: 'mid' }, socks: { c: '#f4f4f1' }, shoes: { c: '#f2f0ec', c2: '#e2ded8' }, head: { type: 'headband', c: '#ffffff', w: 4 } },
+      default: { year: 2021, shirt: '#1f2a44', shorts: { c: '#1f2a44', len: 'mid' }, socks: { c: '#f2f2f2' }, shoes: { c: '#f2f2f0', c2: '#1f2a44' }, head: { type: 'headband', c: '#f4f4f1', w: 4 } },
+      ao: { year: 2021, shirt: '#e3ef4c', shorts: { c: '#5a6236', len: 'mid' }, socks: { c: '#f2f2f2', top: 'high' }, shoes: { c: '#e3ef4c', c2: '#2f3a2a' }, head: { type: 'headband', c: '#e3ef4c', w: 4 } },
+      rg: { year: 2021, shirt: '#f4f4f1', shorts: { c: '#7a3fa3', len: 'mid' }, socks: { c: '#1a1a1a' }, shoes: { c: '#1a1a1a', c2: '#7a3fa3' }, head: { type: 'headband', c: '#f4f4f1', w: 4 } },   // runner-up
+      us: { year: 2021, shirt: '#5f6b4e', layers: [['diag', '#525d43', 0.03, 0.3, 0.79, -0.2, 0.95, 0, 0], ['diag', '#525d43', 0.03, 0.3, 2.36, -0.2, 0.95, 0, 0]], shorts: { c: '#1c1c1c', len: 'mid' }, socks: { c: '#f2f2f2' }, shoes: { c: '#f2f2f0', c2: '#5f6b4e' }, head: { type: 'headband', c: '#f4f4f1', w: 4 } },
+      wim: { year: 2021, shirt: '#f4f4f1', shorts: { c: '#f4f4f1', len: 'mid' }, socks: { c: '#f4f4f1' }, shoes: { c: '#f2f0ec', c2: '#e2ded8' }, wb: { L: ['#f4f4f1', 8], R: ['#f4f4f1', 8] }, head: { type: 'headband', c: '#f4f4f1', w: 4 } },
     },
   },
   'del Potro': {
@@ -326,8 +345,11 @@ export const LOOKBOOK = {
     hair: { top: 5, sides: 1.5, back: 2.5, tex: 'wavy', fringe: 0, recede: 0.1, ears: false, c: '#2e221b' },
     rk: { frame: '#141414', frame2: '#f2f2f2', grip: '#f2f2f2', string: '#e6e6e6', head: 1.0 },
     kits: {
-      default: { year: 2018, shirt: '#f26a21', layers: [['collar', '#1f4e9c', 0.93]], shorts: { c: '#1c2233', len: 'mid' }, socks: { c: '#f2f2f2' }, shoes: { c: '#f2f2f2', c2: '#f26a21' }, wb: { R: ['#f2f2f2', 8] } },
-      wim: { year: 2018, shirt: '#f4f4f1', shorts: { c: '#f4f4f1', len: 'mid' }, socks: { c: '#f4f4f1' }, shoes: { c: '#f2f0ec', c2: '#e2ded8' } },
+      default: { year: 2018, shirt: '#c8162f', layers: [['collar', '#8f2f36', 0.93], ['sleeve', '#8f2f36', 0.36, 0.40]], shorts: { c: '#1a1a1a', len: 'mid' }, socks: { c: '#f2f2f2' }, shoes: { c: '#f2f2f0', c2: '#1a1a1a' }, wb: { R: ['#f2f2f2', 12] } },   // the autumn's Asian events
+      ao: { year: 2018, shirt: '#d3d5d8', layers: [['diag', '#1c1c1e', 0.06, 0.5, 0.6, -0.2, 0.62, 1, 1]], shorts: { c: '#1c1c1e', len: 'mid' }, socks: { c: '#f2f2f2' }, shoes: { c: '#d3d5d8', c2: '#1c1c1e' }, wb: { R: ['#1c1c1e', 12] } },
+      rg: { year: 2018, shirt: '#141414', layers: [['hbands', '#f2f2f2', 0.06, 0.4, 0.56, 0.56, 0.66, 0, 0]], shorts: { c: '#141414', len: 'mid' }, socks: { c: '#f2f2f2' }, shoes: { c: '#1a1a1a', c2: '#f2f2f2' }, wb: { R: ['#f2f2f2', 12] } },
+      us: { year: 2018, shirt: '#f4f4f1', layers: [['collar', '#1d3f8f', 0.93], ['collar', '#f26b1d', 0.985], ['sleeve', '#1d3f8f', 0.35, 0.40], ['sleeve', '#f26b1d', 0.33, 0.35]], shorts: { c: '#1d2a4a', len: 'mid' }, socks: { c: '#f2f2f2' }, shoes: { c: '#f2f2f0', c2: '#1d3f8f' }, wb: { R: ['#f2f2f2', 12] } },   // runner-up
+      wim: { year: 2018, shirt: '#f4f4f1', shorts: { c: '#f4f4f1', len: 'mid' }, socks: { c: '#f4f4f1' }, shoes: { c: '#f2f2f0', c2: '#c8202e' }, wb: { R: ['#f4f4f1', 12] } },
     },
   },
   Roddick: {
@@ -337,16 +359,18 @@ export const LOOKBOOK = {
     hair: { top: 3, sides: 1.5, back: 2, tex: 'straight', fringe: 0, recede: 0, ears: false, c: '#5a3e2b' },
     rk: { frame: '#1e4fa0', frame2: '#111111', grip: '#f2f2f2', string: '#e8e8e8', head: 1.0 },
     kits: {
-      default: { year: 2003, shirt: '#f6f6f2', shorts: { c: '#f6f6f2', len: 'mid' }, socks: { c: '#f6f6f2' }, shoes: { c: '#f6f6f2', c2: '#1f2d4d' }, head: { type: 'cap', c: '#f6f6f2' } },
-      ao: { year: 2007, shirt: '#1f2d4d', layers: [['collar', '#f2f2f2', 0.93]], shorts: { c: '#1f2d4d', len: 'mid' }, socks: { c: '#f2f2f2' }, shoes: { c: '#f2f2f2', c2: '#1f2d4d' }, head: { type: 'cap', c: '#f6f6f2' } },
-      wim: { year: 2004, shirt: '#f4f4f1', shorts: { c: '#f4f4f1', len: 'mid' }, socks: { c: '#f4f4f1' }, shoes: { c: '#f2f0ec', c2: '#e2ded8' }, head: { type: 'cap', c: '#f4f4f1' } },
+      default: { year: 2004, shirt: '#f4f4f1', shorts: { c: '#1c2a4f', len: 'knee' }, socks: { c: '#f2f2f2' }, shoes: { c: '#f2f2f0', c2: '#1c2a4f' }, head: { type: 'cap', c: '#1c2a4f' } },   // Miami, champion
+      ao: { year: 2004, shirt: '#1c2a4f', shorts: { c: '#f2f2f0', len: 'knee' }, socks: { c: '#f2f2f2' }, shoes: { c: '#f2f2f0', c2: '#1c2a4f' }, head: { type: 'cap', c: '#f4f4f1' } },
+      rg: { year: 2004, shirt: '#2e7d4f', shorts: { c: '#f2f2f0', len: 'knee' }, socks: { c: '#f2f2f2' }, shoes: { c: '#f2f2f0', c2: '#2e7d4f' }, head: { type: 'cap', c: '#2e7d4f' } },
+      us: { year: 2003, shirt: '#f4f4f1', layers: [['hbands', '#161616', 0.05, 0.45, 0.48, 0.48, 0.72, 1, 0]], shorts: { c: '#161616', len: 'knee' }, socks: { c: '#f2f2f2' }, shoes: { c: '#f2f2f0', c2: '#161616' }, head: { type: 'cap', c: '#f4f4f1' } },   // champion
+      wim: { year: 2004, shirt: '#f4f4f1', shorts: { c: '#f4f4f1', len: 'knee' }, socks: { c: '#f4f4f1' }, shoes: { c: '#f2f0ec', c2: '#e2ded8' }, head: { type: 'cap', c: '#f4f4f1' } },   // runner-up
     },
   },
   Kyrgios: {
     year: 2022, skin: '#c99a72', beard: 0.2,
     body: { arms: 1.02, legs: 0.99, calf: 0.99, chest: 1.02, depth: 0.99, shoulders: 0.010 },
     face: { faceL: 0.4, jawW: 0.3, chinL: 0.2, noseL: 0.4, noseW: 0.2, brow: 0.4 },
-    hair: { top: 5, sides: 0.3, back: 0.5, tex: 'straight', fringe: 0, recede: 0, ears: false, c: '#1c1410' },
+    hair: { top: 5, sides: 1.0, back: 1.4, tex: 'straight', fringe: 0, recede: 0, ears: false, c: '#1c1410' },
     rk: { frame: '#1d4e9e', frame2: '#151515', grip: '#f2f2f2', string: '#e6e6e6', head: 1.0 },
     kits: {
       default: { year: 2022, shirt: '#151515', shorts: { c: '#151515', len: 'mid' }, socks: { c: '#f2f2f2' }, shoes: { c: '#151515', c2: '#c8102e' }, head: { type: 'cap', c: '#c8102e', back: true } },
@@ -393,8 +417,12 @@ export const LOOKBOOK = {
     hair: { top: 3, sides: 1.5, back: 2, tex: 'straight', fringe: 0, recede: 0.1, ears: false, c: '#2b1d16' },
     rk: { frame: '#1c1c1c', frame2: '#f2f2f2', grip: '#f2f2f2', string: '#e8e8e8', head: 0.95 },
     kits: {
-      default: { year: 2001, shirt: '#f6f6f2', layers: [['collar', '#c8202e', 0.93]], shorts: { c: '#f6f6f2', len: 'mid' }, socks: { c: '#f6f6f2' }, shoes: { c: '#f6f6f2', c2: '#1c1c1c' } },
-      wim: { year: 2001, shirt: '#f4f4f1', shorts: { c: '#f4f4f1', len: 'mid' }, socks: { c: '#f4f4f1' }, shoes: { c: '#f2f0ec', c2: '#e2ded8' } },
+      default: { year: 1996, shirt: '#16161e', layers: [['collar', '#16161e', 0.93], ['band', '#c8202e', 0.600, 0.615], ['band', '#e8742a', 0.622, 0.637], ['band', '#2a5bd0', 0.644, 0.659], ['sleeve', '#c8202e', 0.36, 0.375], ['sleeve', '#2a5bd0', 0.38, 0.395]],
+        shorts: { c: '#16161e', len: 'mid' }, socks: { c: '#f2f2f2' }, shoes: { c: '#f2f2ef', c2: '#16161e' } },   // the black polo with its taping
+      ao: { year: 2002, shirt: '#151b1c', layers: [['sides', '#c9ced2', 0.10, 0.70, 0, -0.2]], shorts: { c: '#16191c', len: 'mid' }, socks: { c: '#f2f2f2' }, shoes: { c: '#f2f2ef', c2: '#151b1c' } },
+      rg: { year: 1999, shirt: '#3d66c1', layers: [['band', '#1e2a54', -0.2, 0.45], ['collar', '#3d66c1', 0.93]], shorts: { c: '#1f232c', len: 'mid' }, socks: { c: '#f2f2f2' }, shoes: { c: '#f2f2ef', c2: '#1e2a54' } },
+      us: { year: 2001, shirt: '#f2f2ef', shorts: { c: '#1b1e22', len: 'mid' }, socks: { c: '#f2f2f2' }, shoes: { c: '#f2f2ef', c2: '#1b1e22' } },
+      wim: { year: 2001, shirt: '#f4f4f1', shorts: { c: '#f4f4f1', len: 'mid' }, socks: { c: '#f4f4f1' }, shoes: { c: '#f2f0ec', c2: '#e2ded8' } },   // champion
     },
   },
   Wilander: {
@@ -404,8 +432,12 @@ export const LOOKBOOK = {
     hair: { top: 7, sides: 6, back: 8, tex: 'wavy', fringe: 0.5, recede: 0, ears: true, c: '#9a7650' },
     rk: { frame: '#2a2a2a', frame2: '#c8202e', grip: '#f2f2f2', string: '#e8e8e8', head: 0.82 },
     kits: {
-      default: { year: 1988, shirt: '#f7f7f4', tucked: true, layers: [['collar', '#1d2b4f', 0.93], ['placket', '#c8202e', 0.013, 0.72]], shorts: { c: '#f7f7f4', len: 'short' }, socks: { c: '#f7f7f4' }, shoes: { c: '#f4f4f0', c2: '#1d2b4f' } },
-      wim: { year: 1988, shirt: '#f7f7f4', tucked: true, shorts: { c: '#f7f7f4', len: 'short' }, socks: { c: '#f7f7f4' }, shoes: { c: '#f2f0ec', c2: '#e2ded8' } },
+      default: { year: 1988, shirt: '#f4f3f1', tucked: true, layers: [['yoke', '#8fa6d6', 0.80, 0.6, 1, 1]], shorts: { c: '#f4f3f1', len: 'short' }, socks: { c: '#f4f4f0' }, shoes: { c: '#f2f1ec', c2: '#8f918d' }, wb: { R: ['#f4f3f1', 7] } },   // Key Biscayne, champion
+      ao: { year: 1988, shirt: '#f4f5f3', tucked: true, layers: [['yoke', '#55bfc9', 0.80, 0.6, -1, 1]], shorts: { c: '#f4f5f3', len: 'short' }, socks: { c: '#f4f4f0' }, shoes: { c: '#f2f1ec', c2: '#5aa83c' }, wb: { R: ['#f4f5f3', 7] } },   // champion
+      rg: { year: 1988, shirt: '#f3f1f2', tucked: true, layers: [['yoke', '#8fa8d0', 0.80, 0.6, -1, 1], ['band', '#c08a98', 0.16, 0.30]], shorts: { c: '#f3f1f2', len: 'short' }, socks: { c: '#f4f4f0' }, shoes: { c: '#f2f1ec', c2: '#8f918d' }, wb: { R: ['#f3f1f2', 7] } },   // champion
+      us: { year: 1988, shirt: '#f4f4f2', tucked: true, layers: [['band', '#a3c3e6', 0.62, 0.70, 0.2, 0, 0, 3], ['band', '#ecd384', 0.70, 0.76, 0.2, 0, 0, 3], ['band', '#9c7cc8', 0.76, 0.80, 0.2, 0, 0, 3], ['band', '#86cdc2', 0.80, 0.83, 0.2, 0, 0, 3]],
+        shorts: { c: '#f4f4f2', len: 'short' }, socks: { c: '#f4f4f0' }, shoes: { c: '#f2f1ec', c2: '#5aa83c' }, wb: { R: ['#f4f4f2', 7] } },   // champion: the sloping bands across the chest
+      wim: { year: 1988, shirt: '#f6f6f3', tucked: true, shorts: { c: '#f6f6f3', len: 'short' }, socks: { c: '#f6f6f3' }, shoes: { c: '#f2f1ec', c2: '#1a1a1a' }, wb: { R: ['#f6f6f3', 7] } },
     },
   },
   Kuerten: {
@@ -415,8 +447,12 @@ export const LOOKBOOK = {
     hair: { top: 10, sides: 6, back: 8, tex: 'curly', fringe: 0.3, recede: 0, ears: true, c: '#5a3d26' },
     rk: { frame: '#1c1c1c', frame2: '#f2f2f2', grip: '#f2f2f2', string: '#e8e8e8', head: 0.95 },
     kits: {
-      default: { year: 1997, shirt: '#f2cf1d', layers: [['collar', '#1d4fa3', 0.93]], shorts: { c: '#1d4fa3', len: 'mid' }, socks: { c: '#f2f2f2' }, shoes: { c: '#f2f2f2', c2: '#1d4fa3' } },
-      wim: { year: 2000, shirt: '#f4f4f1', shorts: { c: '#f4f4f1', len: 'mid' }, socks: { c: '#f4f4f1' }, shoes: { c: '#f2f0ec', c2: '#e2ded8' } },
+      default: { year: 2001, shirt: '#f2f2ee', layers: [['sides', '#2b5cb8', 0.10, 0.70, 0, -0.2]], shorts: { c: '#24419b', len: 'mid' }, socks: { c: '#f2f2f2' }, shoes: { c: '#f2f2ee', c2: '#24419b' } },   // Masters Cup, Sydney
+      ao: { year: 2001, shirt: '#d3c582', layers: [['yoke', '#f2f1ec', 0.80, 0.3, 0, 1]], shorts: { c: '#7c807d', len: 'mid' }, socks: { c: '#f2f2f2' }, shoes: { c: '#f2f2ee', c2: '#7c807d' } },
+      rg: { year: 1997, shirt: '#1f4fa8', layers: [['yoke', '#f2cc1f', 0.66, 0.0, 0, 1], ['band', '#f4f4f0', 0.62, 0.66], ['collar', '#1f4fa8', 0.93]], shorts: { c: '#1f3f8f', len: 'mid', side: '#f4f4f0' }, socks: { c: '#f2cc1f' }, shoes: { c: '#1f4fa8', c2: '#f2cc1f' },
+        head: { type: 'bandana', c: '#2b5cb8', c2: '#f4f4f4', w: 6 } },   // his first title: blue and yellow, yellow socks, a checked bandana
+      us: { year: 2001, shirt: '#d3c582', layers: [['yoke', '#f2f1ec', 0.80, 0.3, 0, 1]], shorts: { c: '#26335f', len: 'mid' }, socks: { c: '#f2f2f2' }, shoes: { c: '#f2f2ee', c2: '#26335f' } },
+      wim: { year: 2000, shirt: '#f4f4f1', shorts: { c: '#f4f4f1', len: 'mid' }, socks: { c: '#f4f4f1' }, shoes: { c: '#f2f0ec', c2: '#e2ded8' }, head: { type: 'headband', c: '#f4f4f1', w: 5 } },
     },
   },
   Hewitt: {
@@ -426,8 +462,11 @@ export const LOOKBOOK = {
     hair: { top: 3, sides: 1.5, back: 2.5, tex: 'straight', fringe: 0, recede: 0, ears: false, c: '#8a6a45' },
     rk: { frame: '#1a1a2e', frame2: '#f2f2f2', grip: '#f2f2f2', string: '#e8e8e8', head: 0.95 },
     kits: {
-      default: { year: 2002, shirt: '#f6f6f2', shorts: { c: '#f6f6f2', len: 'knee' }, socks: { c: '#f6f6f2' }, shoes: { c: '#f6f6f2', c2: '#1a1a2e' }, head: { type: 'cap', c: '#f6f6f2', back: true } },
-      wim: { year: 2002, shirt: '#f4f4f1', shorts: { c: '#f4f4f1', len: 'knee' }, socks: { c: '#f4f4f1' }, shoes: { c: '#f2f0ec', c2: '#e2ded8' }, head: { type: 'cap', c: '#f4f4f1', back: true } },
+      default: { year: 2002, shirt: '#5c6980', shorts: { c: '#1a232f', len: 'knee' }, socks: { c: '#f6f6f2' }, shoes: { c: '#f2f2f2', c2: '#1a232f' }, head: { type: 'cap', c: '#f2f2f2', back: true } },   // Indian Wells, champion
+      ao: { year: 2002, shirt: '#f2f2f4', shorts: { c: '#c4c6d0', len: 'knee' }, socks: { c: '#f6f6f2' }, shoes: { c: '#f2f2f2', c2: '#9aa3cc' }, head: { type: 'cap', c: '#f2f2f2', back: true } },
+      rg: { year: 2002, shirt: '#c8c7c3', shorts: { c: '#c8c7c3', len: 'knee' }, socks: { c: '#f6f6f2' }, shoes: { c: '#f2f2f2', c2: '#8a8a88' }, head: { type: 'cap', c: '#f2f2f2', back: true } },
+      us: { year: 2001, shirt: '#d42a1e', layers: [['placket', '#a8863a', 0.008, 0.3, 0]], shorts: { c: '#1e1c1b', len: 'knee' }, socks: { c: '#f6f6f2' }, shoes: { c: '#f2f2f2', c2: '#d42a1e' }, head: { type: 'cap', c: '#f2f2f2', back: true } },   // champion: the red shirt and the white cap backwards
+      wim: { year: 2002, shirt: '#f4f4f1', shorts: { c: '#f4f4f1', len: 'knee' }, socks: { c: '#f4f4f1' }, shoes: { c: '#f2f0ec', c2: '#e2ded8' }, head: { type: 'headband', c: '#f4f4f1', w: 5 } },   // champion, in a headband, not the cap
     },
   },
 };
