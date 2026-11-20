@@ -2348,8 +2348,8 @@ export class Figure {
         const ax = _lsF.copy(ankle).sub(hip); const al = ax.length();
         let want = 0;
         if (al > 1e-3) { ax.multiplyScalar(1 / al); const rel = _lsG.copy(kn).sub(hip), rot = th => _lsH.copy(rel).applyAxisAngle(ax, th).add(hip);
-          if (legD(kn) < mn) { let best = 0, bd = legD(kn); for (const th of [0.15, -0.15, 0.3, -0.3, 0.45, -0.45, 0.6, -0.6]) { const dd = legD(rot(th)); if (dd >= mn) { best = th; bd = dd; break; } if (dd > bd + 0.005) { bd = dd; best = th; } } want = best; }
-          const LS = this.legSepA || (this.legSepA = [0, 0]), cur = LS[i], mxS = 0.1 * Math.max(dt * 60, 0.5); LS[i] = cur + clamp(want - cur, -mxS, mxS);
+          if (legD(kn) < mn) { let best = 0, bd = legD(kn); for (const th of (globalThis.__legSepNarrowOld ? [0.15, -0.15, 0.3, -0.3, 0.45, -0.45, 0.6, -0.6] : [0.15, -0.15, 0.3, -0.3, 0.45, -0.45, 0.6, -0.6, 0.75, -0.75, 0.9, -0.9])) {   /* (as far as ninety degrees out, at up to nine degrees a frame: at sixty and six, a stroke's finish with both feet off the court still brought the shins together) */ const dd = legD(rot(th)); if (dd >= mn) { best = th; bd = dd; break; } if (dd > bd + 0.005) { bd = dd; best = th; } } want = best; }
+          const LS = this.legSepA || (this.legSepA = [0, 0]), cur = LS[i], mxS = (globalThis.__legSepNarrowOld ? 0.1 : 0.16) * Math.max(dt * 60, 0.5); LS[i] = cur + clamp(want - cur, -mxS, mxS);
           if (Math.abs(LS[i]) > 1e-4) kn.copy(rot(LS[i])); if (this.dbgOn) this.dbgLegSep = LS.map(x => +x.toFixed(2)); } }
       else if (this.legSepA && this.legSepA[i]) { const LS = this.legSepA, mxS = 0.1 * Math.max(dt * 60, 0.5); LS[i] -= clamp(LS[i], -mxS, mxS); const ax = _lsF.copy(ankle).sub(hip), al = ax.length(); if (al > 1e-3 && Math.abs(LS[i]) > 1e-4) { ax.multiplyScalar(1 / al); kn.copy(_lsG.copy(kn).sub(hip).applyAxisAngle(ax, LS[i]).add(hip)); } }
       const Fs = person.setLimb(S, 'leg', kn, ankle, qPel, hip, _qa, _qb);

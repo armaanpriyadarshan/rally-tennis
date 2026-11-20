@@ -640,3 +640,6 @@ through each other fell a little in three pairs (13 to 9, 18 to 15) but foot pop
 frame; taken out.) Eased in at a step's pace instead (1 m/s), it did next to nothing (feet through each other 18 to 15 in one pair, none
 elsewhere) and still added a pop; also taken out. What is left of the feet passing close is a foot landing while the other is
 still in the air, both in a stroke's finish, for two or three frames.
+- The second leg's knee, turned out round its own hip-to-ankle line to keep the shins apart, may now turn as far as ninety
+  degrees at up to nine a frame (it was sixty, at six): a stroke's finish with both feet off the court still brought the shins
+  together. Legs through each other 0.016% to 0.014% across the roster, nothing else moved. `__legSepNarrowOld`.
