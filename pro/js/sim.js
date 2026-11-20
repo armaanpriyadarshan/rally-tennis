@@ -831,12 +831,16 @@ export class Match {
       const depth = Math.abs(tz), shorter = Math.max(Math.min(depth, 5.2), depth - weak * TUNE.weakShort);
       tz = Math.sign(tz) * shorter; tx *= 1 - TUNE.weakMid * weak;
     }
+    let dropEl0 = 0;
     switch (kind) {
       case 'flat':  v = wingKmh / 3.6 * lerp(0.98, 1.34, power); top = wingRpm * 0.5; minClear = 0.22; sig = 1.25; break;
       case 'loop':  v = wingKmh / 3.6 * lerp(0.66, 0.84, power); top = wingRpm * 1.25; minClear = 1.15; sig = 0.8; break;
       case 'slice': v = lerp(19.5, 28.5, power) + vin * 0.06; top = -lerp(1700, 3100, prof.touch) * lerp(0.9, 1.1, power); side = (wing === 'fh' ? -1 : 1) * 350 * p.hs; minClear = 0.14; sig = 0.82; break;
       case 'block': v = 12.5 + vin * 0.38; top = -700; minClear = 0.4; sig = 1.0; break;
-      case 'drop':  mode = 'el'; el = lerp(0.5, 0.62, clamp((1.2 - h) / 1.2, 0, 1)) + (D < 6 ? -0.12 : 0); top = -lerp(2200, 3400, prof.touch); minClear = 0.2; sig = 1.25 - prof.touch * 0.4; break;
+      // From further back a drop shot is played flatter, as low over the net as he dares (below): sent up at the same 30-36
+      // degrees from the baseline as from the service line, the ball looped, came down steeply and sat up a metre and a half
+      // after its bounce, an easy ball for anyone to run down.
+      case 'drop':  mode = 'el'; el = lerp(0.5, 0.62, clamp((1.2 - h) / 1.2, 0, 1)) + (D < 6 ? -0.12 : 0); dropEl0 = el; el -= (globalThis.__dropElOld ? 0 : (globalThis.__dropDeep ?? 0.25) * clamp((D - 7) / 5, 0, 1)); top = -lerp(2200, 3400, prof.touch); minClear = 0.2; sig = 1.25 - prof.touch * 0.4; break;
       case 'lob':   mode = 'el'; el = lerp(0.66, 0.86, clamp(power, 0, 1)); top = weak > 0.5 ? -600 : wingRpm * 0.85; minClear = 2; sig = 1.15; break;
       case 'volley':v = lerp(14, 27, power) + vin * 0.22; top = -lerp(600, 1500, 1 - power); minClear = 0.14; sig = lerp(1.25, 0.8, prof.volley); break;
       case 'smash': v = lerp(36, 49, power) * lerp(0.9, 1.02, prof.volley); top = 700; minClear = 0.12; sig = 0.95; break;
@@ -856,7 +860,11 @@ export class Match {
     if (kind === 'drive' || kind === 'flat') { const low = clamp((0.5 - h) / 0.5, 0, 1); v *= 1 - 0.22 * low; top *= 1 + 0.12 * low; }
     const p0 = { x: b.x, y: b.y, z: b.z };
     let sol = null;
-    if (mode === 'el') sol = solveSpeed(p0, tx, tz, el, top, side, env);
+    if (mode === 'el') {
+      sol = solveSpeed(p0, tx, tz, el, top, side, env);
+      // (the flatter drop shot from the back still has to clear the net by enough that his usual miss does not find the tape)
+      for (let k = 0; k < 10 && kind === 'drop' && el < dropEl0 && (!sol || !sol.ok || sol.clear < (globalThis.__dropClr ?? 0.3)); k++) { el = Math.min(dropEl0, el + 0.03); sol = solveSpeed(p0, tx, tz, el, top, side, env); }
+    }
     else {
       for (let k = 0; k < 26; k++) {
         sol = solveShot(p0, tx, tz, v, top, side, env, false);

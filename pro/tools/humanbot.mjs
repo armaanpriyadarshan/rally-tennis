@@ -26,7 +26,7 @@ class Bot {
       takeMouse() { return self.mouse || { x: 0, y: 0 }; }, move() { return self.mv; }, down(c) { return self.keys.has(c); },
       takeEdges() { const e = self.edges; self.edges = []; return e; }, takePressed() { const p = self.pressed; self.pressed = new Set(); return p; },
     };
-    this.game = { input: this.input, opts: { assist: opts.assist == null ? 2 : opts.assist, aimSens: 1, markers: true }, audio: null };
+    this.game = { input: this.input, opts: { controls: 'mouse', assist: opts.assist == null ? 2 : opts.assist, aimSens: 1, markers: true }, audio: null };
     this.human = new Human(this.game);
   }
   gauss() { const r = this.rnd; return Math.sqrt(-2 * Math.log(1 - r())) * Math.cos(2 * Math.PI * r()); }

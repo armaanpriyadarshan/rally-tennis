@@ -98,6 +98,14 @@ export class AI {
       const sp = b.lastSpeed || 30;
       // a faster ball is read later; returners guess a little on a big first serve
       this.reactAt = m.t + p.prof.react * (serve ? lerp(0.92, 1.22, clamp((sp - 45) / 15, 0, 1)) : 1) * (0.85 + m.rng.u() * 0.3);
+      // A drop shot starts out looking like the drive it is not, and is read that much later: some at once (he half expected
+      // it), some only as the ball floats over the net, the best hands hiding it longest. Read like any other ball, a drop
+      // shot from the baseline came back 84% of the time; on the tour (Match Charting Project, 41,400 of them since 2015)
+      // about half do, a third are winners or force the error, and the rest are the dropper's own misses.
+      if (!serve && (globalThis.__dropRead ?? 0.12) > 0 && m.contactInfo && m.contactInfo.kind === 'drop' && m.contactInfo.who !== i) {
+        const dt0 = globalThis.__dropRead ?? 0.12, by = m.players[m.contactInfo.who].prof;
+        this.reactAt += dt0 * (0.2 + 1.6 * m.rng.u()) * lerp(0.75, 1.25, clamp(by.touch ?? 0.5, 0, 1));
+      }
       m.splitStep(i);
     }
     if (!this.plan) {

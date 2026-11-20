@@ -82,7 +82,11 @@ export class Human {
       // (how near the ball he must have got himself before the game's legs take over: Assist does the last
       // five metres, Manual the last adjusting steps, as a player's feet settle without his thinking about them)
       const near = A >= 2 ? 1e9 : A >= 1 ? 5.0 : 1.6;
-      const helped = coming && Math.hypot(plan.S.x - p.x, plan.S.z - p.z) < near; this.helpedNow = !!helped;
+      // With Assist a ball dropping short in front of him is the game's to run down from the start, as with Auto: by the time
+      // a person has seen a drop shot for what it is and pressed a key, three or four tenths of a second, the run up from the
+      // baseline is lost, and in the last five metres the legs that take over can no longer make it up.
+      const shortRun = A === 1 && coming && !globalThis.__shortRunOld && (p.z - plan.S.z) * s > 3.0;
+      const helped = coming && (shortRun || Math.hypot(plan.S.x - p.x, plan.S.z - p.z) < near); this.helpedNow = !!helped;
       const any = !committed && !helped && Math.abs(mv.x) + Math.abs(mv.y) > 0.01;
       if (any) {
         p.move.x = mv.x * s; p.move.z = -mv.y * s;
@@ -98,7 +102,7 @@ export class Human {
       }
       if (plan && !plan.leave && (A > 0 || classic)) {
         const dx = plan.S.x - p.x, dz = plan.S.z - p.z, d = Math.hypot(dx, dz);
-        if (!any && m.t >= this.readAt && (A >= 2 || d < (A >= 1 ? 5.0 : 1.6) || (committed && A > 0))) { this.coach.goTo(p, plan.S.x, plan.S.z, 0.05); if (p.burstOK && d > 0.6) m.burst(i, dx, dz); }
+        if (!any && m.t >= this.readAt && (A >= 2 || shortRun || d < (A >= 1 ? 5.0 : 1.6) || (committed && A > 0))) { this.coach.goTo(p, plan.S.x, plan.S.z, 0.05); if (p.burstOK && d > 0.6) m.burst(i, dx, dz); }
       } else if (!any && A >= 1 && ph === 'live' && m.ball.lastHit === i) {
         // after his shot: back to cover the court, or, behind an approach, in to the net (the game chose it with the shot)
         const r = this.coach.recoverSpot(m, i);
@@ -110,7 +114,10 @@ export class Human {
     this.tau = null;
     // with the game's legs bringing him to the ball, the ball arrives when the plan says it will meet him
     // (only while his legs can still get him to that spot in the time left; otherwise the ball is met where he is)
-    const canMake = plan && plan.S && plan.tc != null && Math.hypot(plan.S.x - p.x, plan.S.z - p.z) <= p.prof.speed * 0.8 * Math.max(0, plan.tc - m.t) + 0.25;
+    // (or wherever the game's own plan says the ball can be reached, at a stretch: judged only by four-fifths of his speed, a drop
+    // shot he was being run up to was not, the swing was timed to a ball crossing just in front of where he stood, which a drop
+    // shot never does, and went off at once into thin air; the computer's swing goes by its plan)
+    const canMake = plan && plan.S && plan.tc != null && ((!globalThis.__canMakeOld && plan.hit && !plan.leave) || Math.hypot(plan.S.x - p.x, plan.S.z - p.z) <= p.prof.speed * 0.8 * Math.max(0, plan.tc - m.t) + 0.25);
     const planned = globalThis.__noPlan ? null : classic && this.helpedNow && plan && !plan.leave && canMake && plan.tc > m.t - 0.02 ? plan.tc : null;
     if (planned != null && ph === 'live' && m.ball.live && m.ball.lastHit !== i) this.tau = planned - m.t - TIMING.swing;
     else if (ph === 'live' && m.ball.live && m.ball.lastHit !== i && m.incoming && !(m.ball.isServe && m.ball.bounces === 0 && false)) {
