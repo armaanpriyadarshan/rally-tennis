@@ -569,10 +569,12 @@ export class Figure {
     this.defSw = st && st === p.lastStroke && this.deferredSt ? sw : 0;
     const live = m.phase === 'live' || m.phase === 'toss' || m.phase === 'ready';
     const serverWait = m.phase === 'ready' && m.score.server === p.i;
+    // (globalThis.__rcvWalkOn, off: as he stops, the walk fading onto play's locks skated a flat foot 1.6-2.3 m/s for a few frames,
+    // four times the audit's flat-foot skating; the crouched approach it replaces glides more but skates less)
     // (the receiver walking to his place before the serve walks there as anyone does between points, upright, turned the way he goes,
     // and settles into his stance as he stops: counted as play, he went there crouched in the ready stance on play's footwork, gliding
     // on both feet and stepping to catch them up, the held foot slid along the court one to three metres a second)
-    const rcvWalk = this.rcvWalking = !globalThis.__rcvWalkOld && m.phase === 'ready' && m.score.server !== p.i && !(p.stroke && !p.stroke.done) && speed > (this.rcvWalking ? 0.25 : 0.45) && speed < 3.5;
+    const rcvWalk = this.rcvWalking = !!globalThis.__rcvWalkOn && m.phase === 'ready' && m.score.server !== p.i && !(p.stroke && !p.stroke.done) && speed > (this.rcvWalking ? 0.25 : 0.45) && speed < 3.5;
     const rcvWalkK = this.rcvWalkK = damp(this.rcvWalkK || 0, rcvWalk ? 1 : 0, 8, dt);
     // (a server moving along the baseline to choose his spot walks there, turned the way he is going, and settles into his
     // stance only once he stops: held in the side-on serving stance and slid sideways, the legs ran a sideways gait under it,

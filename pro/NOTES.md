@@ -933,3 +933,11 @@ still in the air, both in a stroke's finish, for two or three frames.
   centimetres in front, inside the chest: the 17 arm-in-trunk frames of his audit match (a backhand finish at 6 m/s, not the
   forehand it was first taken for). Djokovic's pair: arm in trunk 17 → 1 frame, chicken wing 1.50% → 0.76%; Nadal's: 0 → 0 and
   0.83% → 0.78%. Filmed: both finish over the far shoulder with the arms across the front of the face.
+- **The receiver's walk switched off again** (`__rcvWalkOn`): the full roster audit found it skating a flat foot 1.6-2.3 m/s for a
+  few frames as the receiver stops (the walk fading onto play's locks; Alcaraz's pair 0.03% → 0.12% of frames), the audit's
+  strictest foot fault. Two ways to hand the walk's feet to the locks as it fades were tried and both made it worse. The crouched
+  approach it replaced glides a little more (both feet held while he moves) but does not skate.
+- Final roster audit (14 pairs, against this morning's): foot pops 0.014% → 0.005%, legs through each other 0.014% → 0.008%,
+  feet through each other 0.085% → 0.069%, knee bent backwards max 0.76% → 0.48%, arm in trunk 0.003% → 0.005% (a few 5-7 cm
+  touches, photographed, not visible), held feet sliding on the court 0-0.3% for the first server and 0.9-1.7% for the other, almost
+  all the deliberate pull-up slide.
