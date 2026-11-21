@@ -958,3 +958,11 @@ still in the air, both in a stroke's finish, for two or three frames.
   stopping 10 → 6. Walk back only (the walk along the line to serve picked up a frame of shins together). Four-pair audit:
   neutral to slightly better (legs through each other 0.015% → 0.013%). Also tried and reverted: switching the feet to the walk in a
   frame as he sets off (worse: 15 → 37).
+- **The free elbow tucked by the side when running** (`js/figure.js`, `__runElbOld`): filmed frame by frame from behind (Murray running
+  on after a point, the case the audit flagged), the free hand came down to the waist with the elbow out to the side, a hand on the
+  hip for a third of a second. Running over 2.3 m/s with the free hand down at the waist and no stroke under way (or one over half a
+  second past contact), the elbow is pointed back and a little out, applied last; and after the point is over too (the case was
+  running on in the 'over' phase, which a first version left out, so nothing changed). Refilmed: the elbow stays by his side.
+  Not in a take-back or an early recovery (tucked there, the forearm went into the hip: arm in trunk 0.003% → 0.015%; away from
+  strokes 0.007%, the rest photographed, not visible). The audit's hand-on-hip test counts an elbow back and 5 cm out, which this
+  is, so its number does not fall (1.41% → 1.48%); the pictures are what changed.

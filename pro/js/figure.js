@@ -2433,6 +2433,14 @@ export class Figure {
       // after the first one left it free to come round in front, and the racket arm folded backwards at the elbow mid-stride)
       { const sK = globalThis.__strollElbBackOld ? 0 : (this.strollK || 0); if (sK > 0.001) { const dS = _b.copy(wrist[i]).sub(sh[i]).normalize(), bk = _rc2.copy(cFwdW).multiplyScalar(-0.9).addScaledVector(cRight, sx * 0.3).addScaledVector(cUpW, -0.15);
           bk.addScaledVector(dS, -bk.dot(dS)); if (bk.lengthSq() > 1e-4) { bk.normalize(); pole.lerp(bk, sK).normalize(); this.poleS[i].copy(pole); } } }
+      // (and the free arm swinging back as he runs, its elbow goes back, by his side, as a runner's does: left to the rules made for
+      // strokes, it came out to the side with the hand at the waist, and from behind he ran in with a hand on his hip;
+      // applied last, as the stroll's is, and only away from a stroke (none, or over half a second past contact): in a take-back or
+      // a recovery on the run, tucked, the forearm went into the hip)
+      if (!globalThis.__runElbOld && i === off && (live || m.phase === 'over') && !((this.strollK || 0) > 0.5) && !((this.reactK || 0) > 0.01) && !this.posed && !(st && (st.kind === 'serve' || st.kind === 'smash'))) {   /* (and running on after the point is over) */ const rK = sm((speed - 2.3) / 0.8) * (!st ? 1 : st.tc != null ? sm((t - st.tc - 0.5) / 0.15) : 0);   /* (in a stroke's recovery too, running off after it) */
+        if (rK > 0.001) { const hy = sh[i].y - wrist[i].y, wB = rK * sm((hy - 0.32) / 0.12);   /* (whenever the hand is down at the waist, in front of the hip or behind it: there an elbow out to the side is a hand on the hip) */
+          if (wB > 0.001) { const dS = _b.copy(wrist[i]).sub(sh[i]).normalize(), bk = _rc2.copy(cFwdW).multiplyScalar(-1).addScaledVector(cRight, sx * 0.12).addScaledVector(cUpW, 0.15);
+            bk.addScaledVector(dS, -bk.dot(dS)); if (bk.lengthSq() > 1e-4) { bk.normalize(); pole.lerp(bk, wB).normalize(); this.poleS[i].copy(pole); } } } }
       if (this.dbgOn) { const DP = this.dbgPole || (this.dbgPole = [{}, {}]); DP[i].p8 = pole.clone(); }
       // The wrist, too, moves round the chest no faster than a hand does away from the swing at the ball: about fifteen
       // centimetres a frame (nine metres a second). Through the stroke itself it is free. (A hand handed from one stroke to
