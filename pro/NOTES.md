@@ -950,3 +950,11 @@ still in the air, both in a stroke's finish, for two or three frames.
 - The running free arm's "hand on hip" count (1.5%) photographed again: the back of the arm swing, elbow back and a little out, by
   the hip; the audit's test (hand out from the hip at hip height, elbow back and over 5 cm out) is the back of any runner's swing.
   Pointing the elbow straight back changed nothing (1.57% → 1.52%) and was taken out.
+- **Setting off on the walk back, the standing foot held** (`js/figure.js`, `__fadeInHoldOld`): while the walk fades in, its plant
+  holds a foot until the walk clearly lifts it (5.5 cm off, not 1.9). At the first slow steps the walker's standing heel is up a
+  centimetre or two as it rolls; the plant let go of it, and the foot, half play's and half the walk's, slid along the court after
+  the walk's drifting foot. Measured (`steps_labmove.mjs` fade/fadeIn, now feet flat on the court with heel and toe both moving, so
+  a pivot on the toe as he turns to walk is not counted): frames over 0.5 m/s setting off Federer 13 → 9, Sinner 22 → 7-8;
+  stopping 10 → 6. Walk back only (the walk along the line to serve picked up a frame of shins together). Four-pair audit:
+  neutral to slightly better (legs through each other 0.015% → 0.013%). Also tried and reverted: switching the feet to the walk in a
+  frame as he sets off (worse: 15 → 37).

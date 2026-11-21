@@ -1171,7 +1171,11 @@ export class Figure {
           // (its speed over the court read in the walk's own frame, the clip's foot against the body's going: read from the court, the
           // body turning over a planted foot made it look to be moving, and it was let go of)
           const lx = LP[ja * 3] * r, lz = LP[ja * 3 + 2] * r, fresh = (this.stKPrev || 0) < 0.002 || L.px == null, cv = fresh || dt <= 0 ? 0 : globalThis.__stLockWorldV ? Math.hypot(cx - L.px, cz - L.pz) / dt : Math.hypot((lx - L.lx) / dt + (this.vRl || 0), (lz - L.lz) / dt + (this.vFl || 0)); L.px = cx; L.pz = cz; L.lx = lx; L.lz = lz;
-          const downC = cy - D.ankle < (L.on ? 0.016 : 0.01) * H && (L.on ? cv < 1.0 : cv < 0.6);
+          // (while the walk fades in, he setting off, its plant holds a foot until the walk clearly lifts it: at the first slow steps the
+          // walker's standing heel is up a centimetre or two as it rolls, the plant let go of it, and the foot, half play's and half the
+          // walk's, slid along the court after the walk's drifting foot)
+          const fin = !globalThis.__fadeInHoldOld && between && !serverWait && stK < 0.95 && stK > (this.stKPrev || 0) + 1e-4;   /* (on the walk back: the walk along the line to serve has its own short taps) */
+          const downC = cy - D.ankle < (L.on ? (fin ? 0.03 : 0.016) : (fin ? 0.02 : 0.01)) * H && (L.on ? cv < (fin ? 1.6 : 1.0) : cv < (fin ? 1.0 : 0.6));
           if (fresh) { L.on = downC; if (downC) { L.x = ankle.x; L.z = ankle.z; } else { L.ox = ankle.x - cx; L.oz = ankle.z - cz; L.sT = 0; } }
           if (downC) { if (!L.on) { const f = 1 - sm(L.sT / 0.3); L.on = true; L.x = cx + L.ox * f; L.z = cz + L.oz * f; } cx = L.x; cz = L.z; }
           else { if (L.on) { L.on = false; L.ox = L.x - cx; L.oz = L.z - cz; L.sT = 0; } else if (dt > 0) L.sT += dt; const f = 1 - sm(L.sT / 0.3); cx += L.ox * f; cz += L.oz * f; } }
