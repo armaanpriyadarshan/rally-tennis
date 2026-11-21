@@ -181,7 +181,7 @@ function follow(cur, tgt, F, dt, thr, first, al = 0.6, be = 0.5) {
 // forward from those. (Turns of the arm are limited against this, the frame they are seen in: measured against the chest's
 // own turn, which runs ahead of the skeleton's in a fast twist, an arm held to 36 degrees a frame there still swung 46
 // against the body as it is drawn.)
-const _sbF = new THREE.Vector3(), _sbR = new THREE.Vector3();
+const _sbF = new THREE.Vector3(), _sbR = new THREE.Vector3(); const _stX2 = new THREE.Vector3();
 const _laT = new THREE.Vector3(), _laF = new THREE.Vector3(), _laD = new THREE.Vector3(), _laQ = new THREE.Quaternion();
 const _lpO0 = new THREE.Vector3(), _lpO1 = new THREE.Vector3(), _rkQi = new THREE.Quaternion(), _rkQ = new THREE.Quaternion(), _rkQ2 = new THREE.Quaternion(), _rkD = new THREE.Vector3(), _rkN = new THREE.Vector3(), _rgSh = new THREE.Vector3(), _rr1 = new THREE.Vector3(), _rr2 = new THREE.Vector3(), _rr3 = new THREE.Vector3(), _rr4 = new THREE.Vector3(), _rr5 = new THREE.Vector3(), _rr6 = new THREE.Vector3();
 const _ecP = new THREE.Vector3(), _ecU = new THREE.Vector3(), _ecA = new THREE.Vector3(), _ecB = new THREE.Vector3(), _ecF = new THREE.Vector3(), _ecS = new THREE.Vector3(), _ecE = new THREE.Vector3(), _ecW = new THREE.Vector3(), _ecX = new THREE.Vector3(), _ecT = new THREE.Vector3(), _ecQ = new THREE.Vector3();
@@ -308,7 +308,7 @@ export class Figure {
     return { R, L, dir: globalThis.__strollClipOld ? [0.05, -0.55, 0.83] : globalThis.__strollRkOld ? [0.08, -0.86, 0.5] : [0.08, -0.6, 0.8], nrm: [1, 0, 0], twist: 0, lean: 0.06, crouch: 0.02, stance: 0.14, lgrip: 0, head: this.lookUp ? 0.02 : -0.25 };
   }
   runPose(t, speed) {
-    const ph = this.gait * Math.PI * 2, sw = Math.sin(ph) * 0.07 * Math.min(1, speed / 4), up = Math.cos(ph * 2) * 0.012;
+    const ph = this.gait * Math.PI * 2, sw = Math.sin(ph) * (globalThis.__pump2Old ? 0.07 : 0.15) * Math.min(1, speed / 4), up = Math.cos(ph * 2) * 0.012;   /* (a runner's hands swing a quarter of a metre and more each way; at seven centimetres the arms looked locked) */
     // (the free hand carried in front of the stomach, as a tennis player runs with it, not beside the hip: the running arm's
     // swing is blended toward this, and held beside the hip, with the elbow swung back behind him, it read as a hand on the hip)
     // (the racket carried low and pointing ahead, the hand by the waist, as a player runs with it: held at the chest pointing
@@ -573,11 +573,11 @@ export class Figure {
     // (he turns and runs from two and a half metres a second, not three and a fifth, and pumps his arms from three, not nearly four:
     // a run to a ball well wide, behind or in front of him began as a quick sideways shuffle of three steps a second and went
     // on with the racket held out in front of him at chest height, as if already taking it back)
-    const gT0 = globalThis.__turnOld ? GAIT.turn0 : (globalThis.__turn0 ?? 2.5), gT1 = globalThis.__turnOld ? GAIT.turn1 : (globalThis.__turn1 ?? 4.0), gP0 = globalThis.__pumpOld ? GAIT.pump0 : (globalThis.__pump0 ?? 3.0), gP1 = globalThis.__pumpOld ? GAIT.pump1 : (globalThis.__pump1 ?? 4.4);
+    const gT0 = globalThis.__turnOld ? GAIT.turn0 : (globalThis.__turn0 ?? 2.5), gT1 = globalThis.__turnOld ? GAIT.turn1 : (globalThis.__turn1 ?? 4.0), gP0 = globalThis.__pumpOld ? GAIT.pump0 : (globalThis.__pump0 ?? (globalThis.__pump2Old ? 3.0 : 2.0)), gP1 = globalThis.__pumpOld ? GAIT.pump1 : (globalThis.__pump1 ?? (globalThis.__pump2Old ? 4.4 : 3.4));   /* (from two metres a second, full by three and a half: below three every run was run with the racket held out in front in both hands, the arms locked, like a man carrying a tray) */
     this.fastT = speed > gP0 ? (this.fastT || 0) + dt : 0;
     // (running in to the net, inside the service line or moving toward it in front of the baseline, a volleyer carries the
     // racket up in front and does not pump; pumping and then taking it up again was a racket that went up, down and up)
-    const inward = (-p.vz * p.sgn) > 0.6 * speed && Math.abs(p.z) < 10.5;
+    const inward = (-p.vz * p.sgn) > 0.6 * speed && Math.abs(p.z) < (globalThis.__pump2Old ? 10.5 : 6.6);   /* (only once inside the service line: running in from the baseline to a short ball or behind an approach, a player's arms pump until he is near enough to set the racket for the volley; held still from the baseline on, every run to the net was run with the racket held out like a tray) */
     this.pumpSus = sm((this.fastT - (Math.abs(p.z) < 7.2 || inward ? 0.6 : (globalThis.__pumpOld ? 0.22 : 0.1))) / 0.25);
     // (his routine at the line waits for him to stop walking: bounced on the move, the ball dropped to the court at his feet in
     // mid-stride; walking, he holds it, and once he has stopped he begins again)
@@ -595,6 +595,10 @@ export class Figure {
       basePose = this.ready(t, { live: m.phase === 'live', wait: m.phase !== 'live' });
       const pump = sm((speed - gP0) / (gP1 - gP0)) * this.pumpSus * (st && sw > 0.3 ? 0 : 1);
       if (pump > 0.001) basePose = blendPose(basePose, this.runPose(t, speed), pump);
+      // (and moving at all, the shoulders turn against the hips with each stride and the hands ride with them, as a runner's do even
+      // with the racket held in front: held dead still over legs running, the upper body glided along like a statue on a cart)
+      if (!globalThis.__pump2Old && !(st && sw > 0.3)) { const k = sm((speed - 0.9) / 1.5) * (1 - pump * 0.6), ph = this.gait * Math.PI * 2;
+        if (k > 0.001) { basePose = { ...basePose, twist: (basePose.twist || 0) + Math.sin(ph) * 0.10 * k, R: [basePose.R[0], basePose.R[1] + Math.cos(ph * 2) * 0.02 * k, basePose.R[2] + Math.sin(ph) * 0.05 * k], L: [basePose.L[0], basePose.L[1] + Math.cos(ph * 2) * 0.02 * k, basePose.L[2] - Math.sin(ph) * 0.05 * k] }; } }
     }
     // (from one kind of standing to another, the walk between points into the stance to serve or to receive, over a quarter of a
     // second: switched in a frame, a foot still on its way down from a step was sent to its new place in the stance at once,
@@ -699,6 +703,14 @@ export class Figure {
       // he is already going a little across: the arrow held back sent him backpedalling at four metres a second, facing the net)
       if (!globalThis.__keyTurnOld && lf < -0.5 && Math.abs(lx) <= 0.25 * speed) { const bk = sm((speed - 2.6) / 0.9); if (bk > 0.001) { if (!this.backSide || Math.abs(lx) > 0.12 * speed) this.backSide = Math.abs(lx) > 0.12 * speed ? Math.sign(lx) : (hs > 0 ? 1 : -1); yawT = lerp(yawT, this.backSide * 1.25 * turnSus, bk); } } else if (!(lf < -0.5)) this.backSide = 0;
     } else if ((between || (serverWait && !globalThis.__srvWalkOld)) && speed > (serverWait && !globalThis.__srvWalk2Old ? (this.srvWalking ? 0.08 : 0.15) : 0.5)) { yawT = Math.atan2(p.vx * s, -p.vz * s); }
+    // Going forward and across at once at a jog or more (moved with the arrows, up and to one side), he runs the diagonal turned
+    // toward it, as a player runs in to a short ball wide of him: the turn above waits for two and a half metres a second and
+    // builds up slowly past it, so at two to three metres a second he stayed square to the net and the legs played half a run and
+    // half a side shuffle at once, neither, the body gliding diagonally on scissoring legs. Not for a moment's tap (after a tenth
+    // of a second of it), not into a stroke, and not going back (that is the backpedal and the drop step above).
+    { const lx = p.vx * s, lf = -p.vz * s, dgOn = !globalThis.__diagTurnOld && live && !(swTurn > 0.3) && speed > 1.3 && lf > 0.2 * speed && Math.abs(lx) > 0.25 * speed;
+      this.diagT = dgOn ? (this.diagT || 0) + dt : 0;
+      if (dgOn) { const dk = sm((speed - 1.5) / 0.8) * sm((this.diagT - 0.08) / 0.15), yd = clamp(Math.atan2(lx, lf), -1.15, 1.15); if (dk > 0.001 && Math.abs(yd) > Math.abs(yawT)) yawT = yawT + (yd - yawT) * dk; } }
     // (waiting to serve, any move along the line is a walk, turned to where he is going from a few steps a second and back into
     // his stance when he stops: held facing the net below half a metre a second, he slid along the line in his wide serving
     // stance, and just above it half turned, the legs of a sideways shuffle crossing under a body walking)
@@ -1362,7 +1374,7 @@ export class Figure {
       if (trunkE(_stQ.copy(h).add(mv)) >= need - 1e-4) return; let lo = 0, hi = 1; for (let it = 0; it < 7; it++) { const sv = (lo + hi) / 2; if (trunkE(_stQ.copy(h).addScaledVector(mv, sv)) < need - 1e-4) hi = sv; else lo = sv; } mv.multiplyScalar(lo); };
     // how much of the runner's arm swing the racket arm takes: all of it strolling, about half flat out
     // (eased: from strolling between points to the ready position it went from all of it to half in a frame)
-    const carry = this.posed ? 0 : clamp(ease(this, 'carryE', strolling ? 1 : lerp(0.12 + (globalThis.__runCarryOld ? 0.38 : 0.2) * free, 1, walkSv), 12, dt), 0, 1);   /* (the racket arm swings less than the free one at a run) */
+    const carry = this.posed ? 0 : clamp(ease(this, 'carryE', strolling ? 1 : lerp(0.12 + (globalThis.__runCarryOld ? 0.38 : globalThis.__armSwingOld ? 0.2 : 0.3) * free, 1, walkSv), 12, dt), 0, 1);   /* (the racket arm swings less than the free one at a run) */
     // waiting to serve, the ball hand works in front of him at the waist (the keyed bounce), not where his tracked
     // address clip lets it hang at his side, where the ball is lost against his leg
     this.addrHandW = damp(this.addrHandW || 0, serverWait && m.ball && m.ball.held === p.i ? 1 - (globalThis.__srvStrollOld ? 0.7 : 1) * (this.srvWalkK || 0) : 0, 10, dt);   /* (walking, the ball hand hangs at his side with the ball in it) */
@@ -1502,7 +1514,7 @@ export class Figure {
       let srvK = 0;
       if (st && (st.kind === 'serve' || st.kind === 'smash') && st.tc != null && !this.posed) { const su = t - st.tc; srvK = sm((su - 0.2) / 0.2) * (1 - sm((su - 1.3) / 0.4)); }
       const suH = st && (st.kind === 'serve' || st.kind === 'smash') && st.tc != null && !this.posed ? t - st.tc : -9, hkw = suH > -1 ? sm((suH - 0.05) / 0.12) * (1 - sm((suH - 1.3) / 0.4)) : 0;
-      const rw2 = inPlay && !this.posed && !strolling ? (1 - sm(sw / 0.3)) * sm((speed - 1.5) / 1.5) * (1 - (this.addrArmW || 0)) : 0;
+      const rw2 = inPlay && !this.posed && !strolling ? (1 - sm(sw / 0.3)) * sm((speed - 1.5) / 1.5) * (1 - (this.addrArmW || 0)) : 0; this.runSwingK = 0;
       if (zw > 0.001 || srvK > 0.001 || hkw > 0.001 || rw2 > 0.001) {
         const cU = _pb.set(0, 1, 0).applyQuaternion(qChest), cF = _pc.copy(cU).cross(cRight).normalize(), oU = _pa.copy(cRight).multiplyScalar(off === 1 ? 1 : -1);
         const rel = _v9.copy(tgt[off]).sub(sh[off]), y = rel.dot(cU), z = rel.dot(cF), x = rel.dot(oU);
@@ -1510,7 +1522,12 @@ export class Figure {
         if (band > 0.001) { const soft = d => 0.5 * (d + Math.sqrt(d * d + 0.0009));
           // (gathering after a serve the free hand comes on in toward the middle, where the racket will be: held in front of
           // its own hip, with the racket hand in front of the other, from behind he stood with both hands on his hips)
-          tgt[off].addScaledVector(cF, soft(0.22 - z) * band).addScaledVector(oU, -soft(x + 0.06) * band); }
+          // (but running, the free hand swings back past the hip as a runner's does: held at least 22 cm in front of the shoulders,
+          // the arm pumped a hand's breadth in front of his stomach and the run looked like a man carrying a tray)
+          // (and swinging back, it stays out at the width of his shoulder, beside the hip, not drawn in toward his middle, where the
+          // trunk is and it was sent forward again; its elbow goes straight back, not out)
+          const rK = globalThis.__armSwingOld ? 0 : sm((speed - 2.6) / 2.0) * (1 - sm(sw / 0.3)), zMin = 0.22 - 0.36 * rK, xMax = -0.06 + 0.07 * rK; this.runSwingK = rK * band / Math.max(1e-6, zw);
+          tgt[off].addScaledVector(cF, soft(zMin - z) * band).addScaledVector(oU, -soft(x - xMax) * band); }
         if (this.dbgOn && this.dbg) { this.dbg.zw = zw; this.dbg.band = band; }
         // (and the racket hand, carried on a run, in front of the stomach toward the middle, as the racket is carried: left level
         // with its own shoulder and only a hand's breadth in front, its elbow stood out behind him to the side, and from behind
@@ -1804,8 +1821,14 @@ export class Figure {
       const mz = _stM.copy(sh[0]).add(sh[1]).multiplyScalar(0.5), ax = _stA.copy(mz).sub(pelvis), L = ax.length();
       if (L > 1e-3) { ax.multiplyScalar(1 / L); const rt = _stX.copy(sh[1]).sub(sh[0]); rt.addScaledVector(ax, -rt.dot(ax)); const shW = rt.length();
         if (shW > 1e-3) { rt.multiplyScalar(1 / shW); const fw = _stF.copy(ax).cross(rt), mg = globalThis.__tgtMg ?? 0.05;
-          const eAt = q => { const rel = _stR.copy(q).sub(pelvis), al = rel.dot(ax); if (al < 0 || al > L * 1.05) return 9; const nk = al < 0.4 * L ? 0.75 + 0.25 * al / (0.4 * L) : al > 0.9 * L ? 0.75 : 1, dx = rel.dot(rt), dz = rel.dot(fw); return Math.hypot(dx / (shW * 0.39 * nk + mg), dz / ((dz > 0 ? shW * 0.25 : shW * 0.32) * nk + mg)); };
-          for (let i = 0; i < 2; i++) { if (eAt(tgt[i]) >= 1) continue; const T0 = _inT.copy(tgt[i]); let lo = 0, hi = 0.6; for (let it = 0; it < 9; it++) { const mid = (lo + hi) / 2; if (eAt(_stQ.copy(T0).addScaledVector(fw, mid)) < 1) lo = mid; else hi = mid; } tgt[i].addScaledVector(fw, hi); if (this.dbgOn) (this.dbgTC || (this.dbgTC = [0, 0]))[i] = +hi.toFixed(3); } } } }
+          let mgI = mg; const eAt = q => { const rel = _stR.copy(q).sub(pelvis), al = rel.dot(ax); if (al < 0 || al > L * 1.05) return 9; const nk = al < 0.4 * L ? 0.75 + 0.25 * al / (0.4 * L) : al > 0.9 * L ? 0.75 : 1, dx = rel.dot(rt), dz = rel.dot(fw), mgq = dz < 0 ? mgI : mg; return Math.hypot(dx / (shW * 0.39 * nk + mgq), dz / ((dz > 0 ? shW * 0.25 : shW * 0.32) * nk + mgq)); };
+          // (the free arm swinging back as he runs passes close beside the hip, not five centimetres clear of it: held to the margin,
+          // the hand at the back of a runner's swing counted as inside him and was sent forward again)
+          for (let i = 0; i < 2; i++) { mgI = i === off && !globalThis.__armSwingOld ? mg + (0.012 - mg) * clamp(this.runSwingK || 0, 0, 1) : mg; if (eAt(tgt[i]) >= 1) continue; const T0 = _inT.copy(tgt[i]); let lo = 0, hi = 0.6; for (let it = 0; it < 9; it++) { const mid = (lo + hi) / 2; if (eAt(_stQ.copy(T0).addScaledVector(fw, mid)) < 1) lo = mid; else hi = mid; }
+            // (globalThis.__tgtSideOn: a hand behind the middle of him goes out to its own side of the hip if that is the shorter way
+            // clear; tried for the runner's backswing, it flared the elbow out behind him, the hand on the hip)
+            let ax2 = fw, hv = hi; if (globalThis.__tgtSideOn && _stR.copy(T0).sub(pelvis).dot(fw) < 0) { const sd = _stX2.copy(rt).multiplyScalar(i === 0 ? -1 : 1); let lo2 = 0, hi2 = 0.4; for (let it = 0; it < 9; it++) { const mid = (lo2 + hi2) / 2; if (eAt(_stQ.copy(T0).addScaledVector(sd, mid)) < 1) lo2 = mid; else hi2 = mid; } if (hi2 < hi) { ax2 = sd; hv = hi2; } }
+            tgt[i].addScaledVector(ax2, hv); if (this.dbgOn) (this.dbgTC || (this.dbgTC = [0, 0]))[i] = +hv.toFixed(3); } } } }
     if (this.dbgOn && this.dbg) this.dbg.tI = tgt.map(v => v.clone());
     if (this.dbgOn && this.dbgDir) this.dbgDir.c2 = dir.clone();
     const first = !this.handInit; this.handInit = true;

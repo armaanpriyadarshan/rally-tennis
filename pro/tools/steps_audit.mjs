@@ -200,6 +200,11 @@ export default async function ({ ev }) {
         // floating: both feet off the court (ankles over 14 cm) while moving at walking-to-jogging pace, not in a jump or serve
         { const fl = J.L_Foot.y > 0.14 && J.R_Foot.y > 0.14 && J.L_Toe0.y > 0.04 && J.R_Toe0.y > 0.04 && spd > 0.6 && spd < 3.0 && !(kind === 'serve' || kind === 'smash') && m.phase === 'live';
           bump(i, 'both feet up at < 3 m/s', fl); if (fl) note(i, 'both feet up m', Math.min(J.L_Foot.y, J.R_Foot.y), info); }
+        // half a run and half a shuffle: going across and forward (or back) at once at a run's pace, the gait blended from the two
+        // (a run turned toward where he goes, or a shuffle facing the net, are each one gait; both at a third or more is neither)
+        { const lw = g.fig[i].loco && g.fig[i].loco.w, su = lw ? lw.f + lw.b + lw.r + lw.l + 1e-6 : 1, fb = lw ? (lw.f + lw.b) / su : 0, sd = lw ? (lw.r + lw.l) / su : 0;
+          const bl = m.phase === 'live' && spd > 2 && fb > 0.33 && sd > 0.33; bump(i, 'run-shuffle blend (> 2 m/s, both over a third)', bl);
+          if (bl) { const fg = g.fig[i], dirT = lw.f >= lw.b ? 'fwd' : 'back', stT = !m.players[i].stroke ? 'nostroke' : (fg.swNow || 0) > 0.3 ? 'swing' : 'prep', yT = Math.abs(fg.yaw || 0) > 0.3 ? 'turned' : 'square'; bump(i, 'blend ' + dirT + ' ' + stT + ' ' + yT + ' ' + (spd < 3 ? '2-3' : spd < 4.5 ? '3-4.5' : '4.5+'), true); } }
         // galloping sideways: on the side shuffle (its weight over half the gait) faster than 2.8 m/s, both feet off the court
         { const lw = g.fig[i].loco && g.fig[i].loco.w, sh = lw ? (lw.r + lw.l) / (lw.f + lw.b + lw.r + lw.l + 1e-6) : 0, gal = m.phase === 'live' && spd > 2.8 && sh > 0.5 && J.L_Foot.y > 0.12 && J.R_Foot.y > 0.12 && J.L_Toe0.y > 0.04 && J.R_Toe0.y > 0.04;
           bump(i, 'sideways gallop (shuffle > 2.8 m/s, both feet off)', gal); if (gal) { note(i, 'sideways gallop m/s', spd, info); const GB = window.__galBy || (window.__galBy = [{}, {}]), fg = g.fig[i], kk = tag.split(' ').slice(0, 2).join(' ') + ' sw' + ((fg.swNow || 0) > 0.3 ? 'H' : 'L') + ' yaw' + (Math.abs(fg.yaw || 0) > 0.5 ? 'T' : 'S'); GB[i][kk] = (GB[i][kk] || 0) + 1; if ((window.__galN = (window.__galN || 0) + 1) % 7 === 0 && window.__galN < 400) out0.push('GAL P' + i + ' ' + m.t.toFixed(2) + ' ' + kk + ' spd ' + spd.toFixed(1)); } }

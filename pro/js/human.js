@@ -90,6 +90,12 @@ export class Human {
       const any = !committed && !helped && Math.abs(mv.x) + Math.abs(mv.y) > 0.01;
       if (any) {
         p.move.x = mv.x * s; p.move.z = -mv.y * s; p.goDist = null;
+        // (and where the arrows point at where the ball is to be met, the figure is told how far that is, as the game's own legs tell
+        // it: a long run starts with a turn and is run, a step or two is shuffled. Left unknown, every run with the arrows to a ball
+        // three or four metres away was shuffled sideways square to the net at up to 3.6 m/s, feet together and upright, turning
+        // only part way and late, where the same run on Auto footwork turned and ran from the first step.)
+        if (!globalThis.__manGoOld && ph === 'live' && plan && !plan.leave && plan.S) { const dx = plan.S.x - p.x, dz = plan.S.z - p.z, d = Math.hypot(dx, dz), ml = Math.hypot(p.move.x, p.move.z);
+          if (d > 0.5 && ml > 0.01 && (dx * p.move.x + dz * p.move.z) / (d * ml) > 0.75) p.goDist = d; }
         if (p.burstOK) m.burst(i, p.move.x, p.move.z);
       }
       // the legs that run for you still have to see the ball first: they start after his own

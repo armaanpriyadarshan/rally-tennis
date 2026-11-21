@@ -837,3 +837,26 @@ still in the air, both in a stroke's finish, for two or three frames.
   from the leg and half way to level, 45 degrees forward and tipped out, a cocked wrist; it now hangs nearly upright down the
   leg, its head a little forward. In the vamos it pointed straight out in front at waist height like a sword; now down and
   forward. `__hangOld` (before load).
+- **Running, and moving with the arrows (Manual footwork)** ("absolutely terrible and unnatural", "the running animation in general
+  is terrible even when going to the net": sideways running, sliding feet, stiff posture, spinning). Found with a new movement
+  lab, `tools/steps_labmove.mjs` (the player in a live point with no ball, moved by an arrow script with the sim's own
+  acceleration and braking, filmed from behind, the side or the broadcast angle, logging gait, yaw and hand swing):
+  - the arms: a sprint at 6 m/s was run with the racket held out in front and the free hand a hand's breadth in front of the
+    stomach, both hands swinging 5-7 cm: the free hand was kept 22 cm in front of the shoulders and drawn in toward the middle
+    (for a hanging arm that had looked like a hand on the hip), and the last rule, keeping hands out of the trunk with a 5 cm
+    margin, sent any hand behind the middle of him forward again. Running, the free hand now swings back past the hip at the
+    width of the shoulder (from 26 cm in front to just behind the hip), the trunk margin a centimetre for it; the racket arm
+    carries a little more of the run's swing (0.42 of it, was 0.32). The audit's "free hand on hip while running" (hand back by
+    the hip, elbow back and out 5 cm) now counts the backswing, 0.16% → 1.9%; from behind the elbows stay in by the body.
+    `__armSwingOld`;
+  - the pump starts at 2 m/s (full by 3.4; was 3 and 4.4), and running to the net the racket is only brought up in front
+    inside the service line (it was from the baseline on). `__pump2Old`;
+  - at a jog with the racket in front, the shoulders turn against the hips with each stride and the hands ride with them (they
+    were held dead still over running legs). `__pump2Old`;
+  - going forward and across at once from 1.5 m/s, he turns into the diagonal and runs it (square to the net below 2.5 m/s the
+    legs played half a run and half a shuffle). `__diagTurnOld`;
+  - with the arrows pointing at where the ball is to be met, the figure is told how far that is, as Auto's legs tell it, so a
+    long run starts with a turn. `__manGoOld` (in `js/human.js`).
+  Still to do: a run round the ball for a forehand is shuffled sideways square to the net with the racket back, on every
+  footwork setting; the turn to run and back again on short arrow presses; and the feet at quick reversals.
+  `tools/steps_audit.mjs` counts the run-shuffle blend (by direction, stroke and turn).
