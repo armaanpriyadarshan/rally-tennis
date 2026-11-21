@@ -860,3 +860,11 @@ still in the air, both in a stroke's finish, for two or three frames.
   Still to do: a run round the ball for a forehand is shuffled sideways square to the net with the racket back, on every
   footwork setting; the turn to run and back again on short arrow presses; and the feet at quick reversals.
   `tools/steps_audit.mjs` counts the run-shuffle blend (by direction, stroke and turn).
+  - pulling up out of a run he turned for, he stays turned the way he is going until nearly stopped (under about 1.5 m/s) and comes
+    round to the net with his last steps; let go of under 2.5 m/s, the body swung back to the net while still going sideways at
+    three, and every run ended in a sideways slide into a wide stance. `__yawHoldOld`;
+  - with the arrows and no ball to run to, he turns to run only after keeping the same way for about 0.4 s (or at over 4 m/s):
+    a half-second press turned him side-on as he let go and straight back, a spin on every short press. `__commitOld`.
+  Measured in the movement lab: frames moving on two planted feet 11% → 4.5%; presses of 0.35-0.5 s stay shuffles, a 0.9 s run
+  turns at 0.6 s and pulls up turned. The roster audit (three pairs, one with Manual footwork): legs through each other 0.033% →
+  0.032%, feet through each other 0.082% → 0.065%, arm in trunk 0.005% → 0.002%.

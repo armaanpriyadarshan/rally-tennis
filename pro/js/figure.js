@@ -672,6 +672,9 @@ export class Figure {
     let yawT = 0;
     // (the stroke holds the body only until the ball has gone: running out of a finish he turns to run as anyone does; held
     // facing the net while the recovery played out, a third of his sprints back across the court were a sideways gallop)
+    // (how long he has kept going the same way, and whether he is pulling up: for the turn to run below)
+    { const hd = Math.atan2(p.vx, p.vz); if (speed > 0.8 && this.dirH != null && Math.abs(Math.atan2(Math.sin(hd - this.dirH), Math.cos(hd - this.dirH))) < 0.45) this.dirT = (this.dirT || 0) + dt; else { this.dirT = 0; this.dirH = speed > 0.8 ? hd : null; }
+      const acc = dt > 0 && this.spdPrev != null ? (speed - this.spdPrev) / dt : 0; this.accS = (this.accS || 0) + (acc - (this.accS || 0)) * (1 - Math.exp(-dt * 12)); this.spdPrev = speed; }
     let swTurn = globalThis.__turnRecOld || !(st && st.tc != null) ? sw : sw * (1 - sm((t - st.tc - 0.2) / 0.2));
     // (running fast into a stroke on its own side, he runs turned and the take-back rides on the run, the hips coming round into the
     // swing in its last few tenths: a forehand run down to his right is taken back with his chest already to the sideline, as a
@@ -694,8 +697,12 @@ export class Figure {
       // and the legs ran a crossover under a body still shuffling)
       const fT0 = globalThis.__keyTurnOld ? 4.2 : (globalThis.__fastTurn0 ?? 3.0);
       const turnSus = globalThis.__turnSusOld ? 1 : Math.max(sm(((this.turnT || 0) - 0.14) / 0.22), globalThis.__turnFastOld ? 0 : sm((speed - fT0) / 0.8));   /* (but nobody shuffles at a sprint: above about three and a half metres a second he turns at once) */   /* (from three metres a second, not four and a bit: moved with the arrows, a new way every third of a second, the wait for a steady run never ran out, and he went sideways and back at three or four metres a second square to the net, the legs a jumping jack, both feet off the court) */
+      // (moved with the arrows and no ball to run to, the game does not know how far he is going: he turns to run only once he has
+      // kept going the same way for about four tenths of a second. Turned by speed alone, a half-second press, a metre's move,
+      // turned him side-on to run as he let go, and he turned straight back: a spin on every short press)
+      const commit = !globalThis.__commitOld && p.goDist == null && live ? Math.max(sm(((this.dirT || 0) - 0.38) / 0.22), sm((speed - 3.8) / 0.6)) : 1;   /* (but at a sprint he turns whatever: nobody shuffles at four and a half metres a second) */
       const spK = Math.max(sm((speed - gT0) / (gT1 - gT0)), far);
-      yawT = clamp(Math.atan2(lx, Math.max(0.2, Math.abs(lf)) * Math.sign(lf || 1)), -1.15, 1.15) * spK * (lf < -0.5 ? 0.35 : 1) * Math.max(turnSus, far);
+      yawT = clamp(Math.atan2(lx, Math.max(0.2, Math.abs(lf)) * Math.sign(lf || 1)), -1.15, 1.15) * spK * (lf < -0.5 ? 0.35 : 1) * Math.max(turnSus * commit, far);
       // (going back and across fast, as for a deep ball wide of him, he turns to the side and runs, the shoulders to the sideline:
       // kept within a third of the turn going back, at five or six metres a second he galloped sideways with his chest to the net)
       if (!globalThis.__backRunOld && lf < -0.5 && Math.abs(lx) > 0.25 * speed) { const bk = sm((speed - 3.8) / 1.2); if (bk > 0.001) yawT = lerp(yawT, Math.sign(lx) * Math.min(1.6, Math.atan2(Math.abs(lx), lf)) * sm((speed - gT0) / (gT1 - gT0)) * turnSus, bk); }
@@ -711,6 +718,14 @@ export class Figure {
     { const lx = p.vx * s, lf = -p.vz * s, dgOn = !globalThis.__diagTurnOld && live && !(swTurn > 0.3) && speed > 1.3 && lf > 0.2 * speed && Math.abs(lx) > 0.25 * speed;
       this.diagT = dgOn ? (this.diagT || 0) + dt : 0;
       if (dgOn) { const dk = sm((speed - 1.5) / 0.8) * sm((this.diagT - 0.08) / 0.15), yd = clamp(Math.atan2(lx, lf), -1.15, 1.15); if (dk > 0.001 && Math.abs(yd) > Math.abs(yawT)) yawT = yawT + (yd - yawT) * dk; } }
+    // Pulling up out of a run he was turned for, he stays turned the way he is going until he is nearly stopped and turns back to the
+    // net with his last steps, as a player plants the outside foot and comes round on it. Let go of as soon as he slowed under two
+    // and a half metres a second, the body swung back to face the net while he was still going sideways at three, and the last metre
+    // of every run was a sideways slide into a wide stance.
+    { const lx = p.vx * s, lf = -p.vz * s;
+      if (!globalThis.__yawHoldOld && live && !(swTurn > 0.3) && (this.accS || 0) < -1.0 && Math.abs(this.yaw || 0) > 0.4 && speed > 0.3) {
+        const hk = sm((speed - 1.0) / 0.9), yd = clamp(Math.atan2(lx, Math.max(0.2, Math.abs(lf)) * Math.sign(lf || 1)), -1.15, 1.15), yh = Math.sign(yd) * Math.min(Math.abs(yd), Math.abs(this.yaw));
+        if (hk > 0.001 && Math.sign(yh) === Math.sign(this.yaw) && Math.abs(yh) > Math.abs(yawT)) yawT = yawT + (yh - yawT) * hk; } }
     // (waiting to serve, any move along the line is a walk, turned to where he is going from a few steps a second and back into
     // his stance when he stops: held facing the net below half a metre a second, he slid along the line in his wide serving
     // stance, and just above it half turned, the legs of a sideways shuffle crossing under a body walking)
