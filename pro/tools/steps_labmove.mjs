@@ -3,13 +3,14 @@
 // STEP frames shot from VIEW (back: behind him; tv: high behind like the broadcast; side; front). Logs, every 3 frames, speed,
 // direction, the gait's weights, yaw, both feet's plants, and the lower toe's speed over the court; at the end SLIP: how fast a
 // planted foot (held by its lock, no step) moves over the court (frames, share over 0.5 m/s, median, 95th pct, max).
-// env: KEYS ("U:1.2,-:0.5,L:0.8,..." U D L R and pairs, - for none), STEP, VIEW, OUT, FLAGS (a,b=1 → globalThis.__a ...), NOSHOT
+// env: PHASE (live|ready|between: the match phase he moves in; ready with SERVER=1 = receiving), KEYS ("U:1.2,-:0.5,L:0.8,..." U D L R and pairs, - for none), STEP, VIEW, OUT, FLAGS (a,b=1 → globalThis.__a ...), NOSHOT
 export default async function ({ ev, shot }) {
   const E = process.env, OUT = E.OUT || '/tmp/rally-work2/lm/m', ST = +(E.STEP || 2), VW = E.VIEW || 'back';
   const KEYS = (E.KEYS || 'U:1.2,-:0.6,D:1.0,-:0.6,L:0.9,-:0.4,R:0.5,L:0.4,-:0.5,UL:0.9,-:0.5,DR:0.8,-:0.6').split(',').map(x => { const [k, d] = x.split(':'); return [k, +d]; });
   for (let i = 0; i < 40 && !(await ev('!!window.__lab')); i++) await new Promise(r => setTimeout(r, 250));
   await ev(`(() => { Object.assign(globalThis, ${JSON.stringify(Object.fromEntries((E.FLAGS || '').split(',').filter(Boolean).map(x => { const [k, v] = x.split('='); return ['__' + k, v === undefined ? true : +v]; })))});
     const L = __lab, fg = L.fig, p = L.p, m = L.m; m.t = 0; m.phase = 'live'; m.phaseT = 0; p.x = 0; p.z = 11.9; p.vx = p.vz = 0; p.stroke = null; p.lastStroke = null; p.move = { x: 0, z: 0 }; p.goDist = null;
+    m.phase = ${JSON.stringify(E.PHASE || 'live')}; m.score.server = ${+(E.SERVER ?? 1)};
     fg.inited = false; fg.handInit = false; p.split = -9; fg.lastSplit = -9; const dt = 1 / 60; for (let f = 0; f < 60; f++) { m.t += dt; m.phaseT += dt; fg.update(dt, p, m); }
     window.__lm = { kI: 0, kT: 0, log: [], prevToe: null, prevLo: -1, slip: [], slipN: 0, slipT: 0, pa: null, pon: null }; return 1; })()`);
   const total = KEYS.reduce((a, k) => a + k[1], 0), N = Math.round(total * 60); let k = 0;

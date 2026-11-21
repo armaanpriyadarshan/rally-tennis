@@ -913,3 +913,18 @@ still in the air, both in a stroke's finish, for two or three frames.
   reverting the file; and any change to what a figure does shifts the audit match's rallies (the serve ritual's timing), so a
   pair's counts move with it: Djokovic's arm-in-trunk 3 → 17 frames here are other rallies, a topspin forehand finishing with
   both hands up over his head (the free hand catching the racket), not these changes.
+- **Feet checked frame by frame** (the audit's "planted foot sliding" at 3.5% of frames, questioned):
+  - that count takes any foot near the court; frame-by-frame films (`steps_audit.mjs SNAPAT=i:t,...`, broadcast, behind and front)
+    of its worst cases show a side step's foot coming down fast (13 m/s for the two frames before it lands, then still);
+  - so the audit now counts a foot the figure holds on the court (its lock on, not stepping, heel and toe both moving, the ankle
+    on the court): **held foot sliding on the court > 0.5 m/s**, broken down by cause. Held feet moving at a sprint turned out to
+    be the foot leaving the court at push-off (the drawn ankle rising 13 → 35 cm while its lock still held it). On the court: the
+    first server 0.03-0.19% of frames, the other 0.9-1.4%, almost all the deliberate pull-up slide (the front foot carried on up to
+    0.9 m/s as he stops, 10-15 cm); the rest is the walk back fading out as he stops (each foot easing 6-8 cm onto where its lock
+    holds it, about a dozen frames a match) and heels starting to lift. In the movement lab: none in 405 frames of shuffling.
+  - tried and taken out: a foot the leg cannot reach steps (6.8% → 6.4% in the lab, nothing in play), and the lock taking the foot
+    where it stands as the walk fades (its own foot is still moving: 23 → 160 frames).
+- **The receiver walks to his place** (`js/figure.js`, `__rcvWalkOld`): before the serve, the receiver moving (0.45-3.5 m/s) walks
+  upright with the walk, turned the way he goes, and settles into his stance as he stops; counted as play, he went there crouched
+  in the ready stance on play's footwork (in the lab, frames gliding on both planted feet 9% → 5%). Roster (four pairs, off → on):
+  neutral within noise. `tools/steps_labmove.mjs` takes PHASE and SERVER.

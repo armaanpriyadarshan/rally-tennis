@@ -569,6 +569,11 @@ export class Figure {
     this.defSw = st && st === p.lastStroke && this.deferredSt ? sw : 0;
     const live = m.phase === 'live' || m.phase === 'toss' || m.phase === 'ready';
     const serverWait = m.phase === 'ready' && m.score.server === p.i;
+    // (the receiver walking to his place before the serve walks there as anyone does between points, upright, turned the way he goes,
+    // and settles into his stance as he stops: counted as play, he went there crouched in the ready stance on play's footwork, gliding
+    // on both feet and stepping to catch them up, the held foot slid along the court one to three metres a second)
+    const rcvWalk = this.rcvWalking = !globalThis.__rcvWalkOld && m.phase === 'ready' && m.score.server !== p.i && !(p.stroke && !p.stroke.done) && speed > (this.rcvWalking ? 0.25 : 0.45) && speed < 3.5;
+    const rcvWalkK = this.rcvWalkK = damp(this.rcvWalkK || 0, rcvWalk ? 1 : 0, 8, dt);
     // (a server moving along the baseline to choose his spot walks there, turned the way he is going, and settles into his
     // stance only once he stops: held in the side-on serving stance and slid sideways, the legs ran a sideways gait under it,
     // lunging, scissoring and splaying into the splits as he changed direction)
@@ -596,6 +601,7 @@ export class Figure {
     else {
       // the racket stays in front in both hands until he is flat out; only then do the arms pump
       basePose = this.ready(t, { live: m.phase === 'live', wait: m.phase !== 'live' });
+      if (rcvWalkK > 0.001) basePose = blendPose(basePose, this.stroll(t, speed), rcvWalkK);
       const pump = sm((speed - gP0) / (gP1 - gP0)) * this.pumpSus * (st && sw > 0.3 ? 0 : 1);
       if (pump > 0.001) basePose = blendPose(basePose, this.runPose(t, speed), pump);
       // (and moving at all, the shoulders turn against the hips with each stride and the hands ride with them, as a runner's do even
@@ -713,6 +719,7 @@ export class Figure {
       // he is already going a little across: the arrow held back sent him backpedalling at four metres a second, facing the net)
       if (!globalThis.__keyTurnOld && lf < -0.5 && Math.abs(lx) <= 0.25 * speed) { const bk = sm((speed - 2.6) / 0.9); if (bk > 0.001) { if (!this.backSide || Math.abs(lx) > 0.12 * speed) this.backSide = Math.abs(lx) > 0.12 * speed ? Math.sign(lx) : (hs > 0 ? 1 : -1); yawT = lerp(yawT, this.backSide * 1.25 * turnSus, bk); } } else if (!(lf < -0.5)) this.backSide = 0;
     } else if ((between || (serverWait && !globalThis.__srvWalkOld)) && speed > (serverWait && !globalThis.__srvWalk2Old ? (this.srvWalking ? 0.08 : 0.15) : 0.5)) { yawT = Math.atan2(p.vx * s, -p.vz * s); }
+    if (rcvWalk) yawT = Math.atan2(p.vx * s, -p.vz * s);
     // Going forward and across at once at a jog or more (moved with the arrows, up and to one side), he runs the diagonal turned
     // toward it, as a player runs in to a short ball wide of him: the turn above waits for two and a half metres a second and
     // builds up slowly past it, so at two to three metres a second he stayed square to the net and the legs played half a run and
@@ -774,7 +781,7 @@ export class Figure {
     // ---- movement: motion capture under the feet, mixed by where he is going ----
     const settling = m.phase === 'over' && m.phaseT < 0.4;            // the point over, he straightens up as he reacts
     const strolling = between || (!live && !settling), serving = !!st && (st.kind === 'serve' || st.kind === 'smash') && sw > 0.2;
-    const upright = strolling || serverWait || serving;
+    const upright = strolling || serverWait || serving || rcvWalk;
     // (setting off upright from a standstill sideways, the foot on the side he is going steps first, as anyone's does: left to
     // wherever the cycle stood, half the time the far foot went first, across the near one, and the legs crossed in an X as he
     // turned to walk along the line)
@@ -1020,7 +1027,7 @@ export class Figure {
     // court because the cycle runs at the pace its feet cover the ground. (Run through the locks and catch-up steps kept for
     // play, the walker's planted foot was held down a beat long, the body went on, the hips sank to reach it and a step of the
     // game's own, short and low, took over: both feet off the court a hand's breadth apart, the knees bent, every few steps.)
-    { const want = !globalThis.__strollFaithOld && (between && !serverWait || (serverWait && this.srvWalking && !globalThis.__srvStrollFaithOld)) && !this.posed && !(st && sw > 0.05) ? clamp(this.loco.w.up, 0, 1) * sm((speed - 0.35) / 0.4) * (1 - sm((speed - 2.2) / 0.6)) * (!globalThis.__strollAlignOn ? 1 : sm((Math.cos(this.yaw - Math.atan2(p.vx * s, -p.vz * s)) - 0.82) / 0.14)) * (globalThis.__strollBackOld ? 1 : sm((Math.cos(this.yaw - Math.atan2(p.vx * s, -p.vz * s)) + 0.5) / 0.3)) : 0;   /* (not stepping back facing the net: walked forwards under a body going backwards, laid out the way he went, the walk turned half round under him in a sixth of a second; that is play's backpedal) */   /* (and walking along the line to serve: left to play's footwork, it walked there on bent knees with catch-up steps) */   /* (only on the walk back, 'between': brought in as the point ended, while he was still pulling up out of a run, play's running feet were thrown across to the walk's in a few frames) */   /* (walking, not standing: stood still after a point, the feet are play's, planted where they are) */
+    { const want = !globalThis.__strollFaithOld && (between && !serverWait || (serverWait && this.srvWalking && !globalThis.__srvStrollFaithOld) || rcvWalk) && !this.posed && !(st && sw > 0.05) ? clamp(this.loco.w.up, 0, 1) * sm((speed - 0.35) / 0.4) * (1 - sm((speed - 2.2) / 0.6)) * (!globalThis.__strollAlignOn ? 1 : sm((Math.cos(this.yaw - Math.atan2(p.vx * s, -p.vz * s)) - 0.82) / 0.14)) * (globalThis.__strollBackOld ? 1 : sm((Math.cos(this.yaw - Math.atan2(p.vx * s, -p.vz * s)) + 0.5) / 0.3)) : 0;   /* (not stepping back facing the net: walked forwards under a body going backwards, laid out the way he went, the walk turned half round under him in a sixth of a second; that is play's backpedal) */   /* (and walking along the line to serve: left to play's footwork, it walked there on bent knees with catch-up steps) */   /* (only on the walk back, 'between': brought in as the point ended, while he was still pulling up out of a run, play's running feet were thrown across to the walk's in a few frames) */   /* (walking, not standing: stood still after a point, the feet are play's, planted where they are) */
       // (from the moment he sets off, turning or not: the walk's own plants (below) hold the standing foot while he turns over it.
       // Taken up only once he faced the way he was going (globalThis.__strollAlignOn), the play's footwork turned him, its far foot
       // stepping first across the near one, the shins through each other; taken up while turning without the plants, the planted
