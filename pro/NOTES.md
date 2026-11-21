@@ -868,3 +868,11 @@ still in the air, both in a stroke's finish, for two or three frames.
   Measured in the movement lab: frames moving on two planted feet 11% → 4.5%; presses of 0.35-0.5 s stay shuffles, a 0.9 s run
   turns at 0.6 s and pulls up turned. The roster audit (three pairs, one with Manual footwork): legs through each other 0.033% →
   0.032%, feet through each other 0.082% → 0.065%, arm in trunk 0.005% → 0.002%.
+- **Two-handed backhands finish over the far shoulder** (`twoHandWrap` in `js/motion.js`, the racket in `js/figure.js`): Nadal's
+  finished with both hands in the middle in front of his face and the racket standing straight up (side-on clips: how far across
+  the hands were was not seen). From when the hands come up to the shoulders after contact (in a match the whole swing is moved
+  up to a higher ball), they are taken across to the far shoulder, 20 cm over and 20 cm up, elbows up in front, the racket up and
+  back over that shoulder behind the head, as the Cincinnati 2013 footage has him. Applies to every two-hander whose clip finishes
+  that high (most of Nadal's and Djokovic's). The audit's "chicken wing" (an elbow out with the forearm folded in) now counts the
+  top arm folded across the chest in that finish, 0.46% → 0.65%; arm in trunk unchanged. `__bhWrapOld`.
+- Nadal's serve was checked against the footage from the side and behind (trophy, racket drop, contact, landing) and left as is.

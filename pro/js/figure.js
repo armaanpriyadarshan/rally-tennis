@@ -1678,6 +1678,12 @@ export class Figure {
       const x = Math.min(OC.n - 1, Math.max(0, (cu - OC.u0) * OC.fps)), i = Math.min(OC.n - 2, Math.floor(x)), lw = (OC.lasso[i] + (OC.lasso[i + 1] - OC.lasso[i]) * (x - i)) * armW;
       if (lw > 0.001) { const cf = _laF.set(0, 0, -1).applyQuaternion(qChest), tg = _laT.copy(cf).multiplyScalar(-0.85).addScaledVector(cRight, (hs > 0 ? 1 : -1) * -0.3).addScaledVector(UP, 0.2).normalize();
         const d0 = _laD.copy(dir); dir.lerp(tg, lw).normalize(); nrm.applyQuaternion(_laQ.setFromUnitVectors(d0, dir)).normalize(); } }
+    // ...and a two-handed backhand's finish over the far shoulder: the racket behind his head, up and back over that shoulder (from
+    // the shared keys' finish it stood straight up over his head, in front of his face)
+    if (OC && OC.wrap && armW > 0.001 && st && st.wing === 'bh' && !globalThis.__bhWrapOld) {
+      const x = Math.min(OC.n - 1, Math.max(0, (cu - OC.u0) * OC.fps)), i = Math.min(OC.n - 2, Math.floor(x)), lw = (OC.wrap[i] + (OC.wrap[i + 1] - OC.wrap[i]) * (x - i)) * armW;
+      if (lw > 0.001) { const cf = _laF.set(0, 0, -1).applyQuaternion(qChest), tg = _laT.copy(cf).multiplyScalar(-0.62).addScaledVector(cRight, (hs > 0 ? 1 : -1) * 0.38).addScaledVector(UP, 0.55).normalize();
+        const d0 = _laD.copy(dir); dir.lerp(tg, lw).normalize(); nrm.applyQuaternion(_laQ.setFromUnitVectors(d0, dir)).normalize(); } }
     const hu = st && HEAD_UP[(this.look.name || '') + '/' + st.wing];
     if (hu && armW > 0.001 && !/^(serve|smash|volley|block|slice|drop)$/.test(st.__dk || st.kind)) {
       const w = armW * sm5((u - hu[0]) / 0.1) * (1 - sm5((u - hu[1]) / 0.12)), hl = Math.hypot(dir.x, dir.z);
