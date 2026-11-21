@@ -941,3 +941,12 @@ still in the air, both in a stroke's finish, for two or three frames.
   feet through each other 0.085% → 0.069%, knee bent backwards max 0.76% → 0.48%, arm in trunk 0.003% → 0.005% (a few 5-7 cm
   touches, photographed, not visible), held feet sliding on the court 0-0.3% for the first server and 0.9-1.7% for the other, almost
   all the deliberate pull-up slide.
+- **The walk's fade, measured and left** (`tools/steps_labmove.mjs` TOP and the fade/fadeIn numbers, feet on the court while the walk
+  fades out or in): walking back at 1.45 m/s and stopping, feet on the court move up to 1.8 m/s as the walk fades out (16 of 171
+  foot-frames over 0.5 m/s) and up to 3.3 m/s as it fades in, setting off (45 of 84). Pinning a foot on the court through the fade
+  fixed both in the lab (16 → 1-4, 45 → 6), but in play it held feet together mid-stride (shins through each other) and threw a
+  pinned foot as the walk lifted it (one-frame pops, up to 32 m/s when eased); four versions, all reverted. The serve walk is not
+  affected (pinned there, short taps left a foot behind).
+- The running free arm's "hand on hip" count (1.5%) photographed again: the back of the arm swing, elbow back and a little out, by
+  the hip; the audit's test (hand out from the hip at hip height, elbow back and over 5 cm out) is the back of any runner's swing.
+  Pointing the elbow straight back changed nothing (1.57% → 1.52%) and was taken out.
