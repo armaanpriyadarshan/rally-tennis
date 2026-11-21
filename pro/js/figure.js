@@ -554,7 +554,10 @@ export class Figure {
       // back only in the last steps. Booked nine-tenths of a second ahead, the stroke's take-back came in at once and held him
       // facing the net with the racket out to the side for the whole run, shuffling sideways at a sprint to a ball far from him.
       if (!globalThis.__prepLateOld && st.kind !== 'serve' && st.kind !== 'smash') { const tcL = st.tc != null ? st.tc : st.tcPlan, left = tcL != null ? tcL - t : 0.9;
-        const want = sm((speed - (globalThis.__prepRunV ?? 2.2)) / 1.2) * sm((left - (globalThis.__prepLead ?? 0.5)) / 0.25);
+        // (and running round the ball, away from the side he will hit on, the take-back waits for the last third of a second: he runs
+        // the run-around and pivots into the shot, where with the racket taken back he galloped sideways square to the net)
+        const lxR = p.vx * s, ra = !globalThis.__runAroundOld && st.wing && Math.abs(lxR) > 0.5 * speed && Math.sign(lxR) !== (st.wing === 'fh' ? 1 : -1) * Math.sign(hs || 1);
+        const want = sm((speed - (globalThis.__prepRunV ?? 2.2)) / 1.2) * sm((left - (ra ? 0.3 : (globalThis.__prepLead ?? 0.5))) / (ra ? 0.12 : 0.25));
         this.prepLate = this.inited && dt > 0 && this.prepLateSt === st ? this.prepLate + (want - this.prepLate) * (1 - Math.exp(-dt * (want < this.prepLate ? 9 : 14))) : want; this.prepLateSt = st;
         sw *= 1 - this.prepLate; }
     }

@@ -876,3 +876,8 @@ still in the air, both in a stroke's finish, for two or three frames.
   that high (most of Nadal's and Djokovic's). The audit's "chicken wing" (an elbow out with the forearm folded in) now counts the
   top arm folded across the chest in that finish, 0.46% → 0.65%; arm in trunk unchanged. `__bhWrapOld`.
 - Nadal's serve was checked against the footage from the side and behind (trophy, racket drop, contact, landing) and left as is.
+- **The run round the ball**: running away from the side he will hit on, the take-back now waits for the last 0.3 s (it waited
+  for the last 0.5 s only on a run to the stroke's own side), so a long run-around is run and pivoted out of. Most run-arounds
+  last about 0.6 s, too short to turn and turn back; those stay a closed-stance side step into a wide last step, which is what a
+  player does in that time. Audit (three pairs): legs through each other 0.033% → 0.028%, sideways gallop 2.83% → 2.75%, arm in
+  trunk 0.017% → 0.023%. `__runAroundOld`.
