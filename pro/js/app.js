@@ -7,12 +7,14 @@ import { Audio } from './audio.js';
 import { PLAYERS, TOURNAMENTS, DIFFICULTY, ROUND_NAME, playerByName, lookAt, surfaceEdge, eventEdge, SURFACE_PLAY, kitEvent, eventSeeding } from './data.js';
 import { loadPerson } from './people.js';
 import { renderPortraits } from './portraits.js';
+import { PORTRAIT_FILES } from './portraitfiles.js';
 import { rollWeather } from './skies.js';
 import { Season, Draw, simMatch, scoreLine, rng } from './season.js';
 import { TIMING } from './sim.js';
 import { Net } from './net.js';
 
 const $ = s => document.querySelector(s);
+const BLANK_IMG = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';   // a card's picture until his portrait is drawn
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const pname = id => PLAYERS[id].facts.name;
 const TIER = { slam: ['#ffffff', 'Grand Slam'], m1000: ['var(--gold)', 'Masters 1000'], 500: ['var(--silver)', 'ATP 500'], finals: ['var(--lime)', 'Finals'] };
@@ -62,11 +64,18 @@ class App {
   async boot() {
     await this.attract();
     // every player's picture for the menus, from his own figure
-    try { this.model = await loadPerson('m04'); for (const [id, v] of Object.entries(renderPortraits(this.gfx.renderer, this.model, PLAYERS, id => lookAt(id, 'default')))) this.faces[id + '|default'] = v; } catch (e) { console.warn('portraits', e); }
+    // (drawn in the background a few a frame, not all before the menu opens: twenty-eight figures built, posed and read back in
+    // one go held the loading screen up for seconds, longest on a Mac's Safari)
+    // (and baked ahead of time where they can be, tools/steps_bakeportraits.mjs: the menus then only load pictures, and the figure
+    // to draw any other is loaded behind the menu, not before it)
+    if (globalThis.__faceSyncOld) { try { this.model = await loadPerson('m04'); for (const [id, v] of Object.entries(renderPortraits(this.gfx.renderer, this.model, PLAYERS, id => lookAt(id, 'default')))) this.faces[id + '|default'] = v; } catch (e) { console.warn('portraits', e); } }
+    else { PLAYERS.forEach((P, id) => { const f = PORTRAIT_FILES[P.facts.name + '|default']; if (f) this.faces[id + '|default'] = f; else this.wantFace(id, 'default'); });
+      loadPerson('m04').then(m => { this.model = m; }).catch(e => console.warn('portraits', e)); }
     this.home(); this.unwipe();
   }
   loop(now) {
     requestAnimationFrame(t => this.loop(t));
+    this.pumpFaces();
     // how often this screen asks for a picture
     const gap = now - (this.prevNow || now); this.prevNow = now;
     if (gap > 2 && gap < 50) this.gapAvg = this.gapAvg ? this.gapAvg * 0.95 + gap * 0.05 : gap;
@@ -152,14 +161,29 @@ class App {
 
   // ---------- players and events as cards ----------
   // his picture in the kit he wears at that event (each major has its own), drawn the first time it is wanted
+  // (asked for and not yet drawn, it is queued and the card shows his default kit, or nothing, until it is: drawn there and then for
+  // every card on the screen, the player list's first opening froze the game for seconds)
   face(id, T) {
     const ek = T ? kitEvent(T.key) : 'default', k = id + '|' + ek;
-    if (!this.faces[k] && this.model) { try { this.faces[k] = renderPortraits(this.gfx.renderer, this.model, [PLAYERS[id]], i => lookAt(i, ek))[id]; } catch (e) { console.warn('portrait', e); } }
+    if (!this.faces[k] && !globalThis.__faceSyncOld && PORTRAIT_FILES[PLAYERS[id].facts.name + '|' + ek]) this.faces[k] = PORTRAIT_FILES[PLAYERS[id].facts.name + '|' + ek];
+    if (!this.faces[k] && this.model) { if (globalThis.__faceSyncOld) { try { this.faces[k] = renderPortraits(this.gfx.renderer, this.model, [PLAYERS[id]], i => lookAt(i, ek))[id]; } catch (e) { console.warn('portrait', e); } } else this.wantFace(id, ek); }
     return this.faces[k] || this.faces[id + '|default'];
   }
+  wantFace(id, ek) { const k = id + '|' + ek; this.faceWant = this.faceWant || new Set(); this.faceQ = this.faceQ || []; if (this.faces[k] || this.faceWant.has(k)) return; this.faceWant.add(k); this.faceQ.push({ id, ek, k }); }
+  // a few portraits a frame, about ten milliseconds' worth, and every card waiting for one is given it as it comes
+  pumpFaces() {
+    if (!this.faceQ || !this.faceQ.length || !this.model || this.mode === 'match') return;
+    const t0 = performance.now();
+    while (this.faceQ.length && performance.now() - t0 < 10) {
+      const q = this.faceQ.shift(); if (this.faces[q.k]) continue;
+      try { this.faces[q.k] = renderPortraits(this.gfx.renderer, this.model, [PLAYERS[q.id]], i => lookAt(i, q.ek))[q.id]; } catch (e) { console.warn('portrait', e); continue; }
+      for (const im of document.querySelectorAll('img[data-k="' + q.k + '"]')) im.src = this.faces[q.k];
+      if (q.ek === 'default') for (const im of document.querySelectorAll('img[data-d="' + q.id + '"]')) if (im.dataset.blank) { delete im.dataset.blank; if (!this.faces[im.dataset.k]) im.src = this.faces[q.k]; }
+    }
+  }
   card(id, who, cls, T) {
-    const P = PLAYERS[id], f = P.facts, b = P.base, L = T ? lookAt(id, T.key) : P.look, img = this.face(id, T);
-    return `<button class="pl ${cls || ''}" data-p="${id}"><span class="kit" style="background:radial-gradient(120% 90% at 50% 0%, ${L.top} 0%, transparent 62%)"></span>${img ? `<img src="${img}" alt="">` : ''}
+    const P = PLAYERS[id], f = P.facts, b = P.base, L = T ? lookAt(id, T.key) : P.look, img = this.face(id, T), fk = id + '|' + (T ? kitEvent(T.key) : 'default');
+    return `<button class="pl ${cls || ''}" data-p="${id}"><span class="kit" style="background:radial-gradient(120% 90% at 50% 0%, ${L.top} 0%, transparent 62%)"></span><img data-k="${fk}" data-d="${id}" ${img ? `src="${img}"` : `src="${BLANK_IMG}" data-blank="1"`} alt="">
       ${who ? `<span class="who">${who}</span>` : ''}${T ? this.edge(id, T, 'card') : ''}
       <span class="nums"><span><b>${Math.round(b.s1Kmh)}</b><span class="lab">Serve</span></span><span><b>${Math.round(b.fhKmh)}</b><span class="lab">Forehand</span></span></span>
       <span class="nm"><b>${esc(f.name)}</b><span>${esc(f.country || '')} · ${f.cm} cm · ${f.lefty ? 'Left' : 'Right'}${f.oneHandBh ? ' · One-hand' : ''}</span></span></button>`;

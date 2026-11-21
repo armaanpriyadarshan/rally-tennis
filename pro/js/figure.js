@@ -484,7 +484,12 @@ export class Figure {
       // game turns into a volley at the net) changes where the ball goes, not the arms, once the swing is under way; swapped
       // a sixth of a second before contact, the arms were thrown from one swing's shape to another's at the ball.
       { const ue = st.tc != null ? t - st.tc : st.tcPlan != null ? t - st.tcPlan : -9;
-        if (st.__dk == null || st.kind === 'serve' || st.kind === 'smash' || st.__dk === 'serve' || st.__dk === 'smash' || ue < -0.3) st.__dk = st.kind;
+        // (but a drive turned into a drop shot or a lob as he lets go, ↓ or ↑ held with the press, is shown as one until a tenth of a
+        // second before the ball, eased across from the drive's shape over that time: locked a third of a second out, every drop shot
+        // the player called himself was swung as a drive)
+        const lateOwn = !globalThis.__dkLateOld && st.__dk != null && st.kind !== st.__dk && /^(drive|flat|loop|lob|drop)$/.test(st.__dk) && /^(drop|lob)$/.test(st.kind) && ue < -0.1;
+        if (lateOwn && ue >= -0.3 && this.poseLast && this.lpLast) { this.xfT = t; this.xfD = clamp(-ue * 0.75, 0.06, 0.2); this.xfPose = this.poseLast; (this.xfLP || (this.xfLP = new Float32Array(N3))).set(this.lpLast); }
+        if (st.__dk == null || st.kind === 'serve' || st.kind === 'smash' || st.__dk === 'serve' || st.__dk === 'smash' || ue < -0.3 || lateOwn) st.__dk = st.kind;
         // A groundstroke begun with under a third of a second to the ball, nothing set up for it (pressed late, or a ball the
         // planner had not prepared him for), is played as what a player does then: a short blocked swing, the racket taken back
         // only a little and pushed through. (Played as the full stroke, the whole take-back and swing were crammed into a
@@ -736,7 +741,7 @@ export class Figure {
     const settling = m.phase === 'over' && m.phaseT < 0.4;            // the point over, he straightens up as he reacts
     const strolling = between || (!live && !settling), serving = !!st && (st.kind === 'serve' || st.kind === 'smash') && sw > 0.2;
     const upright = strolling || serverWait || serving;
-    const LP = this.loco.update(dt, vR / H, vF / H, speed / H, upright), go = this.loco.w.go;
+    const LP = this.loco.update(dt, vR / H, vF / H, speed / H, upright, this.legScale ? this.legScale / H : 1, this.strollK || 0), go = this.loco.w.go;
     // his own stroke, where one was tracked: the whole body comes from the clip
     const srvSt = !!st && st.kind === 'serve' && (m.phase === 'toss' || st.tc != null);
     let OC = null, clipW = 0, clipWA = 0, cu = u;
@@ -876,7 +881,7 @@ export class Figure {
     const cdir = (a, b, out) => out.set(0, 0, 0).addScaledVector(right, LP[b * 3] - LP[a * 3]).addScaledVector(UP, LP[b * 3 + 1] - LP[a * 3 + 1]).addScaledVector(fwd, LP[b * 3 + 2] - LP[a * 3 + 2]).normalize();
     const seg = (a, b) => Math.hypot(LP[b * 3] - LP[a * 3], LP[b * 3 + 1] - LP[a * 3 + 1], LP[b * 3 + 2] - LP[a * 3 + 2]);
     // the clip's legs against this body's: everything below the hips is scaled by that
-    const legC = (seg(J.lhip, J.lknee) + seg(J.lknee, J.lankle) + seg(J.rhip, J.rknee) + seg(J.rknee, J.rankle)) / 2, r = (D.thigh + D.shank) / legC;
+    const legC = (seg(J.lhip, J.lknee) + seg(J.lknee, J.lankle) + seg(J.rhip, J.rknee) + seg(J.rknee, J.rankle)) / 2, r = (D.thigh + D.shank) / legC; if (this.loco.w.up > 0.5 && this.loco.w.go > 0.5) this.legScale = this.legScale ? this.legScale + (r - this.legScale) * 0.05 : r;
     const hmx = (LP[J.lhip * 3] + LP[J.rhip * 3]) / 2, hmy = (LP[J.lhip * 3 + 1] + LP[J.rhip * 3 + 1]) / 2, hmz = (LP[J.lhip * 3 + 2] + LP[J.rhip * 3 + 2]) / 2;
     // hips: at the clip's height, or where the stroke wants them (low to load, rising through the ball)
     const strokeK = Math.max(sw * (1 - 0.55 * go), (pose.set || 0) * (1 - go)) * (1 - clipW), clipY = (hmy - ANKLE_H) * r + D.ankle;
@@ -966,6 +971,13 @@ export class Figure {
     // serving stance, feet in line along the baseline, had them four centimetres apart, one shoe inside the other. They are
     // set apart along the line between them, so the stance keeps its shape. A foot already planted is not moved: this sets
     // where it comes down.)
+    // Strolling between points the feet are the walk's own: the clip's ankles where it puts them, its planted foot still on the
+    // court because the cycle runs at the pace its feet cover the ground. (Run through the locks and catch-up steps kept for
+    // play, the walker's planted foot was held down a beat long, the body went on, the hips sank to reach it and a step of the
+    // game's own, short and low, took over: both feet off the court a hand's breadth apart, the knees bent, every few steps.)
+    { const want = !globalThis.__strollFaithOld && between && !serverWait && !this.posed && !(st && sw > 0.05) ? clamp(this.loco.w.up, 0, 1) * sm((speed - 0.35) / 0.4) * (1 - sm((speed - 2.2) / 0.6)) : 0;   /* (only on the walk back, 'between': brought in as the point ended, while he was still pulling up out of a run, play's running feet were thrown across to the walk's in a few frames) */   /* (walking, not standing: stood still after a point, the feet are play's, planted where they are) */
+      this.strollK = !this.inited || dt <= 0 ? want : (this.strollK || 0) + (want - (this.strollK || 0)) * (1 - Math.exp(-dt * 8)); }
+    const stK = this.strollK || 0;
     const sepO = this.sepOff || (this.sepOff = [V(), V()]); sepO[0].set(0, 0, 0); sepO[1].set(0, 0, 0);
     if (!globalThis.__footSepOld) { const tg = [0, 1].map(i => { const ja = LEG_J[i][2]; return _sfT[i].set(px, 0, pz).addScaledVector(right, LP[ja * 3] * r * (1 + 0.15 * clipW) + widen[i]).addScaledVector(fwd, LP[ja * 3 + 2] * r); });
       const lowK = (1 - sm(((LP[LEG_J[0][2] * 3 + 1] - ANKLE_H) * r - 0.06 * H) / (0.05 * H))) * (1 - sm(((LP[LEG_J[1][2] * 3 + 1] - ANKLE_H) * r - 0.06 * H) / (0.05 * H))) * (1 - sm((speed - 2.2) / 1.4));
@@ -1086,6 +1098,17 @@ export class Figure {
           if (Lk.ox0 || Lk.oz0) { Lk.oT += dt; const q = Lk.oT / 0.045, f = (1 + q) * Math.exp(-q); Lk.ox = Lk.ox0 * f; Lk.oz = Lk.oz0 * f;
             if (f < 0.002) { Lk.ox0 = Lk.oz0 = 0; Lk.ox = Lk.oz = 0; } ankle.x += Lk.ox; ankle.z += Lk.oz; }
         } }
+      if (stK > 0.001) { let cx = px + right.x * LP[ja * 3] * r + fwd.x * LP[ja * 3 + 2] * r, cz = pz + right.z * LP[ja * 3] * r + fwd.z * LP[ja * 3 + 2] * r; const cy = Math.max(D.ankle, (LP[ja * 3 + 1] - ANKLE_H) * r + D.ankle);
+        // (a foot that comes down once he is walking stays where it landed until the walk lifts it, and is let go of smoothly, the
+        // step taking up the difference (setting off and pulling up, the stand and the walk are blended and the feet follow the
+        // blend: planted from a standstill, the first foot was left a stride behind as he got going): followed exactly, the walker's heel still travelling forward as it touched down slid
+        // the landing foot ten centimetres along the court)
+        if (!globalThis.__strollPlantOld) { const sl = this.sfLock || (this.sfLock = [{ on: false, x: 0, z: 0, ox: 0, oz: 0 }, { on: false, x: 0, z: 0, ox: 0, oz: 0 }]), L = sl[i];
+          if (cy - D.ankle < 0.02 * H && dt > 0 && (L.on || go > (globalThis.__plantGo ?? 0.92))) { if (!L.on) { L.on = true; L.x = cx + L.ox; L.z = cz + L.oz; L.ox = L.oz = 0; } else if (globalThis.__plantPull) { const k = 1 - Math.exp(-dt * globalThis.__plantPull); L.x += (cx - L.x) * k; L.z += (cz - L.z) * k; } cx = L.x; cz = L.z; }
+          else { if (L.on) { L.on = false; L.ox = L.x - cx; L.oz = L.z - cz; } const k = Math.exp(-dt * 18); L.ox *= k; L.oz *= k; cx += L.ox; cz += L.oz; } }
+        ankle.x += (cx - ankle.x) * stK; ankle.z += (cz - ankle.z) * stK; ankle.y += (cy - ankle.y) * stK;
+        if (stK > 0.5) { const Lk = this.lockF[i]; Lk.step = null; Lk.on = cy - D.ankle < 0.03 * H; Lk.x = ankle.x; Lk.z = ankle.z; Lk.ox = Lk.oz = Lk.ox0 = Lk.oz0 = 0; Lk.toe = false; } }
+      else if (this.sfLock) { const L = this.sfLock[i]; L.on = false; L.ox = L.oz = 0; }   /* (not strolling: the walk's plant is let go of, or the next walk back began by dragging a foot to where it stood on the last one) */
       ft.p.set(ankle.x, 0, ankle.z); ft.lift = ankle.y - D.ankle;
       if (this.dbgOn) { (this.dbgFt || (this.dbgFt = {}))['o' + i] = [+(this.lockF[i].ox || 0).toFixed(3), +(this.lockF[i].ox0 || 0).toFixed(3), +(this.lockF[i].oT || 0).toFixed(3), +(this.plW || 0).toFixed(2)]; (this.dbgFt)['w' + i] = [+(this.widenOff ? this.widenOff[i] : 0).toFixed(3), +(this.sepOff ? this.sepOff[i].x : 0).toFixed(3), +(this.sepOff ? this.sepOff[i].z : 0).toFixed(3), +px.toFixed(3), +pz.toFixed(3), +right.x.toFixed(3), +right.z.toFixed(3), +r.toFixed(3)]; (this.dbgFt)['s1' + i] = [+(ankle.x - px).toFixed(3), +(ankle.z - pz).toFixed(3)]; (this.dbgFt)['raw' + i] = [+(LP[ja * 3] * r).toFixed(3), +(LP[ja * 3 + 2] * r).toFixed(3)]; }
     }
@@ -1102,7 +1125,7 @@ export class Figure {
     // (not in a serve, whose stance brings the feet together on purpose: let go of over a tenth of a second as one begins or
     // waits, taken up again after it; and a foot coming down or leaving the court takes little of it, so a planted foot does not
     // slide)
-    const sepK = this.sepK = !this.inited || dt <= 0 ? ((srvSt || serverWait) ? 0 : 1) : (this.sepK ?? 1) + (((srvSt || serverWait) ? 0 : 1) - (this.sepK ?? 1)) * (1 - Math.exp(-dt * 10));
+    const sepT = ((srvSt || serverWait) ? 0 : 1) * (1 - stK), sepK = this.sepK = !this.inited || dt <= 0 ? sepT : (this.sepK ?? 1) + (sepT - (this.sepK ?? 1)) * (1 - Math.exp(-dt * 10));   /* (and not strolling: the walk's feet are its own) */
     if (!globalThis.__softSepOld && this.inited && this.lpW && this.lpWPt === this.placedT && sepK > 0.001) { const pw0 = this.lpW, f0 = (1 - pw0[0]) ** 2, f1 = (1 - pw0[1]) ** 2, fs0 = f0 + f1;
       if (fs0 > 0.02) { const gmin = (globalThis.__sepMin ?? 0.06) * H, soft = (globalThis.__sepSoft ?? 0.04) * H, sep = (_an[1].x - _an[0].x) * right.x + (_an[1].z - _an[0].z) * right.z, x0 = sep - gmin, eff = gmin + 0.5 * (x0 + Math.sqrt(x0 * x0 + soft * soft)), dd = (eff - sep) * sepK;
         if (dd > 1e-4) { const pl0 = !globalThis.__plantHoldOld && this.lockF[0].on && !this.lockF[0].step, pl1 = !globalThis.__plantHoldOld && this.lockF[1].on && !this.lockF[1].step, k0 = pl0 ? 0 : dd * f0 / fs0, k1 = pl1 ? 0 : dd * f1 / fs0; _an[0].x -= right.x * k0; _an[0].z -= right.z * k0; _an[1].x += right.x * k1; _an[1].z += right.z * k1; this.feet[0].p.set(_an[0].x, 0, _an[0].z); this.feet[1].p.set(_an[1].x, 0, _an[1].z); } } }
@@ -1120,7 +1143,7 @@ export class Figure {
             const sideW = this.footSide || (this.footSide = [0, 0]); if (!sideW[i]) sideW[i] = Math.sign(side) * ((nx * fwd.x + nz * fwd.z) >= 0 ? 1 : -1); const sg = sideW[i] * ((nx * fwd.x + nz * fwd.z) >= 0 ? 1 : -1);
             const want = Math.sqrt(Math.max(0, minD * minD - along * along)), cur = Math.max(0, (dx * nx + dz * nz) * sg);
             if (this.dbgOn) (this.dbgFt || (this.dbgFt = {}))['pr' + i] = [+side.toFixed(3), sideW[i], +along.toFixed(3), +d.toFixed(3), +wB.toFixed(2)];
-            if (want > cur) { const k = (want - cur) * sg * Math.min(1, wB); a.x += nx * k; a.z += nz * k; this.feet[i].p.set(a.x, 0, a.z); this.dbgFP = { t: +t.toFixed(2), i, k: +k.toFixed(3), d: +d.toFixed(3) }; } } } }
+            if (want > cur) { const k = (want - cur) * sg * Math.min(1, wB) * (1 - stK); a.x += nx * k; a.z += nz * k; this.feet[i].p.set(a.x, 0, a.z); this.dbgFP = { t: +t.toFixed(2), i, k: +k.toFixed(3), d: +d.toFixed(3) }; } } } }
       for (let i = 0; i < 2; i++) { ap[i].copy(globalThis.__apPreOld ? _an[i] : lpPre[i]); apOk[i] = true; if (this.footSide && this.lockF[i].on && !this.lockF[i].step) this.footSide[i] = 0; } }   /* (the way a foot is going read from where the stride takes it, not where this pushed it: read with the push, a foot hovering by the other was pushed one way, read as going that way, and pushed back the other, flicking fifteen centimetres every frame) */
     // upright, the legs carry the hips: as high as the leg on the ground allows with the knee just soft
     // (and in a stretch the hips go as low as it takes for both legs to reach the court: the trailing leg nearly straight, the
@@ -1136,9 +1159,13 @@ export class Figure {
       // player walked back to the line, and stood at it, in a crouch, like a man creeping; a walker's knee is near straight but for
       // the moment the weight comes on, which the foot landing ahead gives him here, the hips coming down to reach it)
       let cap = 1e9; const L = (D.thigh + D.shank) * (globalThis.__walkStraightOld ? 0.982 : (globalThis.__walkReach ?? 0.995));
-      for (let i = 0; i < 2; i++) { if (this.feet[i].lift > 0.035 * H) continue; const jh = LEG_J[i][0], hx = px + right.x * LP[jh * 3] * r + fwd.x * LP[jh * 3 + 2] * r, hz = pz + right.z * LP[jh * 3] * r + fwd.z * LP[jh * 3 + 2] * r, dh = Math.hypot(_an[i].x - hx, _an[i].z - hz); if (dh < L) cap = Math.min(cap, _an[i].y + Math.sqrt(L * L - dh * dh)); }
+      // (strolling, a foot up on its toes behind him counts too: left out, the hips rode too high for that leg to reach it as it
+      // pushed off, and the planted foot was dragged along the court under him)
+      const liftMax = (0.035 + (globalThis.__strollToeOld ? 0 : 0.065 * stK)) * H;
+      for (let i = 0; i < 2; i++) { if (this.feet[i].lift > liftMax) continue; const jh = LEG_J[i][0], hx = px + right.x * LP[jh * 3] * r + fwd.x * LP[jh * 3 + 2] * r, hz = pz + right.z * LP[jh * 3] * r + fwd.z * LP[jh * 3 + 2] * r, dh = Math.hypot(_an[i].x - hx, _an[i].z - hz); if (dh < L) cap = Math.min(cap, _an[i].y + Math.sqrt(L * L - dh * dh)); }
       if (cap < 1e8) wantY = lerp(wantY, Math.min(cap, D.hipY + 0.012 * H), upW);
     }
+
     // (and always low enough for a planted foot to reach the court: in a wide stance, pulling up out of a run, the hips were
     // kept at standing height, the leg could not reach the foot held at its place, and the foot was drawn hanging in the air
     // up to a fifth of a metre above the court)
@@ -2156,8 +2183,11 @@ export class Figure {
         // somewhere else (a wide forehand's hand brought in to the front of the stomach, the clip's still out at the side), the
         // clip's elbow taken against its own arm's line lay on the inside of this one, and the elbow went through his stomach)
         if (fw > 0.001) { const mid = _a.copy(sh[i]).add(cWr[i]).multiplyScalar(0.5), off2 = _v9.copy(cEl[i]).sub(mid), ext = off2.length() / Math.max(1e-3, D.upper), bent = sm((ext - 0.06) / 0.22);
-          if (!globalThis.__elClipOld) { mid.copy(sh[i]).add(wrist[i]).multiplyScalar(0.5); off2.copy(cEl[i]).sub(mid); }
-          if (bent > 0.001 && off2.lengthSq() > 1e-8) pole.lerp(off2.normalize(), fw * bent).normalize(); } } if (this.dbgOn) { const DP = this.dbgPole || (this.dbgPole = [{}, {}]); DP[i].p2 = pole.clone(); }
+          // (and only as far as that elbow stands off this arm's line: lying on it, the way to it is noise, and a clip elbow a few
+          // centimetres inside the line turned Becker's elbow inward a frame before the swing brought the hand in, through his chest)
+          let bentU = bent; if (!globalThis.__elClipOld) { mid.copy(sh[i]).add(wrist[i]).multiplyScalar(0.5); off2.copy(cEl[i]).sub(mid);
+            if (!globalThis.__elOffOld) { const dA = _bp0.copy(wrist[i]).sub(sh[i]).normalize(), perp = Math.sqrt(Math.max(0, off2.lengthSq() - off2.dot(dA) ** 2)); bentU = Math.min(bent, sm((perp / Math.max(1e-3, D.upper) - 0.06) / 0.22)); } }
+          if (bentU > 0.001 && off2.lengthSq() > 1e-8) pole.lerp(off2.normalize(), fw * bentU).normalize(); } } if (this.dbgOn) { const DP = this.dbgPole || (this.dbgPole = [{}, {}]); DP[i].p2 = pole.clone(); }
       // a pole lying along the arm says nothing about where the elbow goes, and the least change in it would spin the elbow
       // round the arm: as it comes into line, the elbow is let hang down and a little out instead
       { const dS = _b.copy(wrist[i]).sub(sh[i]).normalize(), pd = pole.dot(dS), perp = Math.sqrt(Math.max(0, 1 - pd * pd));

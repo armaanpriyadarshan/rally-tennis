@@ -214,7 +214,11 @@ export class Human {
           // the shoulders that is not coming too fast to take the pace off), ↑ a lob over a man at the net, or with him back
           // a deeper ball
           const bl = m.ball, cy = plan && plan.cp ? plan.cp.y : bl.y, vin = Math.hypot(bl.vx, bl.vy, bl.vz);
-          const own = fk < 0 && cy < 1.75 && vin < 22 ? 'drop' : fk > 0 && oppUp ? 'lob' : null, deep = fk > 0 && !oppUp;
+          // (and a drop shot the wind-up already showed, ↓ held through it, stays one: judged again at the press from the ball's speed
+          // after its bounce instead of the estimate the wind-up used, a heavy ball came out a drive swung with a drop's arms, or the
+          // other way round)
+          const shownDrop = !globalThis.__ownKindOld && fk < 0 && p.stroke && p.stroke.kind === 'drop' && p.stroke.__kind0;
+          const own = fk < 0 && cy < 1.75 && (vin < 22 || shownDrop) ? 'drop' : fk > 0 && oppUp ? 'lob' : null, deep = fk > 0 && !oppUp;
           const ch = own ? null : this.choice;
           const kind = own || (ch ? (deep && !/^(drive|flat|loop)$/.test(ch.kind) ? 'drive' : ch.kind) : 'drive');
           m.prep(i, kind);                                                    // the racket goes back at once

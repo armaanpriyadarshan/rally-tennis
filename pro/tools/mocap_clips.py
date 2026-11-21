@@ -6,6 +6,8 @@
 # the origin. A clip also records how fast the body really travelled, so the game can play it at
 # the speed the feet actually cover ground.
 #   python3 -I tools/mocap_clips.py <out.js> <dir with NN.asf / NN_TT.amc> [more dirs]
+# (In js/locodata.js today `walk` is the footage walk from tools/walk_into_loco.py, and `stroll`, the walk back between points,
+# is CMU 35_01 raised 0.046 m so its flat ankle is at ANKLE_H; see NOTES.md 2026-11-21.)
 # Trials used: 16_15 walk, 16_36 jog, 127_07 (or 16_45) run, 143_01 sprint, 143_39 backwards,
 # 78_30 basketball defensive slides (the side shuffle and the low ready stance).
 import sys, os, math, json
@@ -243,4 +245,4 @@ def main():
         f.write('};\n')
     print('\n'.join(report)); print('wrote', outp, os.path.getsize(outp) // 1024, 'kB')
 
-main()
+if __name__ == '__main__': main()

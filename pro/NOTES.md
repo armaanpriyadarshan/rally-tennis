@@ -733,3 +733,47 @@ still in the air, both in a stroke's finish, for two or three frames.
   from 2.6 m/s, and never holding square at a sprint (over 4.3 m/s). Looked at from the broadcast and behind cameras, the
   computer's counted gallops at about 3 m/s are side steps out of a finish into a turn and read as such; the one that reads
   as a jumping jack is the run round the ball with an arrow held, at 3-3.6 m/s, still there.
+
+## 2026-11-21: a standard walk, played as it is; menus that do not freeze; drop shots you call; replays
+
+- **The walk back between points is a standard motion-capture walk, played as it is** (`js/locodata.js` clip `stroll`,
+  `js/motion.js`, `js/figure.js`). "The new ones are trash too": the lab walk and the footage walk had both gone through the
+  footwork kept for play, and it was that as much as the data. The stroll is CMU 35_01, an ordinary walk at 1.41 m/s (the game
+  strolls at about 1.45; the old 16_15's knee never straightened past 158 degrees), raised so its flat ankle is at `ANKLE_H`.
+  It is its own clip, used only on the walk back (`strollK`: the 'between' phase, walking, not running, not to serve); play
+  keeps its slowest gait (`walk`) and its footwork as they were. Strolling:
+  - the feet are the walk's own ankles, not play's locks and catch-up steps (run through those, the walker's planted foot was
+    held a beat long, the hips sank to reach it and a short low step of the game's own took over); a foot that comes down once
+    he is walking stays where it landed until the walk lifts it (followed exactly, the walker's heel still travelling as it
+    touched down slid it 10 cm), let go of whenever he is not strolling; play's locks are kept where the feet are, so play takes
+    over cleanly; the soft separation and the pass-around are off;
+  - the cycle runs at the pace its planted foot covers the ground (its hips rock within each step: timed by their average speed
+    it ran 8% slow) and at the figure's size (`walkScale`, the legs about 0.86 of the clip's);
+  - the hips stay as high as the planted legs allow counting a foot up on its toes behind him (left out, the hips rode too
+    high for it to be reached as it pushed off, and it was dragged along).
+  Measured on a walk back: one foot always down, the standing knee 161-173 degrees, the hips rising and falling 4-5 cm, a planted
+  foot still. Flags `__strollFaithOld`, `__strollPlantOld`, `__walkScaleOld`, `__strollToeOld`, `__strollClipOld2`.
+  Got wrong on the way (each caught by the roster audit): switching the clip by being upright (that includes waiting to serve
+  and serving: under play's footwork the new clip's feet jumped), switching on as the point ended while still running, and a
+  plant left set from the last walk back (the next began by dragging a foot half a metre).
+- **The run round the ball**: holding sideways speed away from a prepared stroke to a side-step's 2.9 m/s (`js/sim.js`) was
+  tried and taken out: even for the player alone it doubled legs through each other. The gallop there remains.
+- **Menu portraits are baked** (`tools/steps_bakeportraits.mjs` → `assets/portraits/<name>-<kit>.webp`, `js/portraitfiles.js`,
+  140 pictures, 3 MB). Opening the player list the first time drew every card's portrait in the event's kit there and then:
+  a figure built, posed for 120 frames and read back, for each, 6.7 s of a frozen page. Now the menus load pictures (the list
+  opens in 3 ms), the figure for drawing any portrait not baked is loaded behind the menu, and those are drawn a few a frame
+  (`pumpFaces`). The loading screen no longer waits for 28 portraits either. Bake again whenever a look, kit, face or body
+  changes. `__faceSyncOld` for the old way.
+- **Drop shots called with ↓ as he swings are shown as drop shots** (`js/figure.js`, `js/human.js`): the shot shown was
+  locked a third of a second before the ball, and ↓ pressed with the swing comes later, so 11 of 15 such drops were swung as
+  drives. A change to a drop or a lob is now shown until a tenth of a second before contact, eased across from the swing
+  begun. With ↓ pressed only at the swing: 12 of 14 shown as drops (one as a slice, one pressed too late). And a drop the
+  wind-up already showed stays a drop when the press judges the ball's speed again. `__dkLateOld`.
+- **Replays no longer open on a yellow streak** (`js/game.js`): the ball's streak was drawn through the last places it had in
+  the live point. It starts afresh as a replay begins and ends. `__repStreakOld`.
+- **On a Mac**: checked in WebKit 26 (Safari's engine, run here from Playwright with three Ubuntu libraries unpacked into its
+  own folder, no system changes): the page loads, the menu opens, the 3D scene renders (WebGL 2), portraits load (WebP), no
+  console errors. Headless WebKit's screenshots of WebGL come out black; read the pixels instead.
+- The clip's elbow is followed only as far as it stands off this arm's line (Becker's elbow through his chest). `__elOffOld`.
+- Tools: `tools/roster_audit.sh OUT [FLAGS]`, `tools/audit_cmp.py A B`, `tools/steps_menuperf.mjs` (menu open time, list
+  opening block, frames after), `tools/steps_droptest.mjs` (called drops: kind played against kind shown).

@@ -366,10 +366,13 @@ export class Game {
     for (const f of this.fig) { f.inited = false; f.handInit = false; f.setFirstPerson(false); }
     this.match.timer += (end - from) / speed + 0.2;
     this.cam.snap = true;
+    // (the ball's streak starts afresh: drawn through the last places it had in the live point, the replay opened on a yellow streak
+    // from wherever the point ended to where the replay begins)
+    if (this.fx && !globalThis.__repStreakOld) this.fx.reset();
     if (this.ui && this.ui.replay) this.ui.replay(true);
   }
   endReplay() {
-    this.replay = null;
+    this.replay = null; if (this.fx && !globalThis.__repStreakOld) this.fx.reset();
     // straight on to the next point: the cut that would have come after the replay comes now
     const m = this.match; if (m.phase === 'over' && !m.score.over) m.timer = Math.min(m.timer, 1e-3);
     for (const f of this.fig) { f.inited = false; f.handInit = false; } this.fig[0].setFirstPerson(this.camMode === 'fp'); this.cam.snap = true;
