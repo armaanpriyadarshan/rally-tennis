@@ -554,9 +554,9 @@ export class Figure {
       // back only in the last steps. Booked nine-tenths of a second ahead, the stroke's take-back came in at once and held him
       // facing the net with the racket out to the side for the whole run, shuffling sideways at a sprint to a ball far from him.
       if (!globalThis.__prepLateOld && st.kind !== 'serve' && st.kind !== 'smash') { const tcL = st.tc != null ? st.tc : st.tcPlan, left = tcL != null ? tcL - t : 0.9;
-        // (and running round the ball, away from the side he will hit on, the take-back waits for the last third of a second: he runs
-        // the run-around and pivots into the shot, where with the racket taken back he galloped sideways square to the net)
-        const lxR = p.vx * s, ra = !globalThis.__runAroundOld && st.wing && Math.abs(lxR) > 0.5 * speed && Math.sign(lxR) !== (st.wing === 'fh' ? 1 : -1) * Math.sign(hs || 1);
+        // (globalThis.__runAroundOn: running round the ball, away from the side he will hit on, the take-back waits for the last third
+        // of a second; off, because a take-back begun that late swung the racket arm through his body to catch up, McEnroe's lob)
+        const lxR = p.vx * s, ra = !!globalThis.__runAroundOn && st.wing && Math.abs(lxR) > 0.5 * speed && Math.sign(lxR) !== (st.wing === 'fh' ? 1 : -1) * Math.sign(hs || 1);
         const want = sm((speed - (globalThis.__prepRunV ?? 2.2)) / 1.2) * sm((left - (ra ? 0.3 : (globalThis.__prepLead ?? 0.5))) / (ra ? 0.12 : 0.25));
         this.prepLate = this.inited && dt > 0 && this.prepLateSt === st ? this.prepLate + (want - this.prepLate) * (1 - Math.exp(-dt * (want < this.prepLate ? 9 : 14))) : want; this.prepLateSt = st;
         sw *= 1 - this.prepLate; }
@@ -1392,7 +1392,7 @@ export class Figure {
       if (trunkE(_stQ.copy(h).add(mv)) >= need - 1e-4) return; let lo = 0, hi = 1; for (let it = 0; it < 7; it++) { const sv = (lo + hi) / 2; if (trunkE(_stQ.copy(h).addScaledVector(mv, sv)) < need - 1e-4) hi = sv; else lo = sv; } mv.multiplyScalar(lo); };
     // how much of the runner's arm swing the racket arm takes: all of it strolling, about half flat out
     // (eased: from strolling between points to the ready position it went from all of it to half in a frame)
-    const carry = this.posed ? 0 : clamp(ease(this, 'carryE', strolling ? 1 : lerp(0.12 + (globalThis.__runCarryOld ? 0.38 : globalThis.__armSwingOld ? 0.2 : 0.3) * free, 1, walkSv), 12, dt), 0, 1);   /* (the racket arm swings less than the free one at a run) */
+    const carry = this.posed ? 0 : clamp(ease(this, 'carryE', strolling ? 1 : lerp(0.12 + (globalThis.__runCarryOld ? 0.38 : 0.2) * free, 1, walkSv), 12, dt), 0, 1);   /* (the racket arm swings less than the free one at a run) */
     // waiting to serve, the ball hand works in front of him at the waist (the keyed bounce), not where his tracked
     // address clip lets it hang at his side, where the ball is lost against his leg
     this.addrHandW = damp(this.addrHandW || 0, serverWait && m.ball && m.ball.held === p.i ? 1 - (globalThis.__srvStrollOld ? 0.7 : 1) * (this.srvWalkK || 0) : 0, 10, dt);   /* (walking, the ball hand hangs at his side with the ball in it) */
@@ -1543,8 +1543,9 @@ export class Figure {
           // (but running, the free hand swings back past the hip as a runner's does: held at least 22 cm in front of the shoulders,
           // the arm pumped a hand's breadth in front of his stomach and the run looked like a man carrying a tray)
           // (and swinging back, it stays out at the width of his shoulder, beside the hip, not drawn in toward his middle, where the
-          // trunk is and it was sent forward again; its elbow goes straight back, not out)
-          const rK = globalThis.__armSwingOld ? 0 : sm((speed - 2.6) / 2.0) * (1 - sm(sw / 0.3)), zMin = 0.22 - 0.36 * rK, xMax = -0.06 + 0.07 * rK; this.runSwingK = rK * band / Math.max(1e-6, zw);
+          // trunk is and it was sent forward again; its elbow goes straight back, not out. The trunk's margin for it is 3 cm, not 5: at
+          // 1.2 the upper arm grazed his side at a sprint as the shoulders turned against the hips)
+          const rK = globalThis.__armSwingOld ? 0 : sm((speed - 2.6) / 2.0) * (1 - sm(sw / 0.3)), zMin = 0.22 - 0.30 * rK, xMax = -0.06 + 0.07 * rK; this.runSwingK = rK * band / Math.max(1e-6, zw);
           tgt[off].addScaledVector(cF, soft(zMin - z) * band).addScaledVector(oU, -soft(x - xMax) * band); }
         if (this.dbgOn && this.dbg) { this.dbg.zw = zw; this.dbg.band = band; }
         // (and the racket hand, carried on a run, in front of the stomach toward the middle, as the racket is carried: left level
@@ -1848,7 +1849,7 @@ export class Figure {
           let mgI = mg; const eAt = q => { const rel = _stR.copy(q).sub(pelvis), al = rel.dot(ax); if (al < 0 || al > L * 1.05) return 9; const nk = al < 0.4 * L ? 0.75 + 0.25 * al / (0.4 * L) : al > 0.9 * L ? 0.75 : 1, dx = rel.dot(rt), dz = rel.dot(fw), mgq = dz < 0 ? mgI : mg; return Math.hypot(dx / (shW * 0.39 * nk + mgq), dz / ((dz > 0 ? shW * 0.25 : shW * 0.32) * nk + mgq)); };
           // (the free arm swinging back as he runs passes close beside the hip, not five centimetres clear of it: held to the margin,
           // the hand at the back of a runner's swing counted as inside him and was sent forward again)
-          for (let i = 0; i < 2; i++) { mgI = i === off && !globalThis.__armSwingOld ? mg + (0.012 - mg) * clamp(this.runSwingK || 0, 0, 1) : mg; if (eAt(tgt[i]) >= 1) continue; const T0 = _inT.copy(tgt[i]); let lo = 0, hi = 0.6; for (let it = 0; it < 9; it++) { const mid = (lo + hi) / 2; if (eAt(_stQ.copy(T0).addScaledVector(fw, mid)) < 1) lo = mid; else hi = mid; }
+          for (let i = 0; i < 2; i++) { mgI = i === off && !globalThis.__armSwingOld ? mg + (0.03 - mg) * clamp(this.runSwingK || 0, 0, 1) : mg; if (eAt(tgt[i]) >= 1) continue; const T0 = _inT.copy(tgt[i]); let lo = 0, hi = 0.6; for (let it = 0; it < 9; it++) { const mid = (lo + hi) / 2; if (eAt(_stQ.copy(T0).addScaledVector(fw, mid)) < 1) lo = mid; else hi = mid; }
             // (globalThis.__tgtSideOn: a hand behind the middle of him goes out to its own side of the hip if that is the shorter way
             // clear; tried for the runner's backswing, it flared the elbow out behind him, the hand on the hip)
             let ax2 = fw, hv = hi; if (globalThis.__tgtSideOn && _stR.copy(T0).sub(pelvis).dot(fw) < 0) { const sd = _stX2.copy(rt).multiplyScalar(i === 0 ? -1 : 1); let lo2 = 0, hi2 = 0.4; for (let it = 0; it < 9; it++) { const mid = (lo2 + hi2) / 2; if (eAt(_stQ.copy(T0).addScaledVector(sd, mid)) < 1) lo2 = mid; else hi2 = mid; } if (hi2 < hi) { ax2 = sd; hv = hi2; } }
@@ -3236,7 +3237,7 @@ const FH_SLICE = track([
 // (the racket hand in a celebration hangs relaxed, the racket nearly upright down the leg, its head a little forward: it was held
 // out from the leg and half way to level, forty-five degrees forward and tipped out, the wrist cocked to hold it there, as
 // nobody holds a racket while pumping the other fist. `__hangOld` before load.)
-const HANG = globalThis.__hangOld ? { R: [0.27, 0.92, 0.12], dir: [0.15, -0.70, 0.70], nrm: [1, 0, 0] } : { R: [0.25, 0.87, 0.08], dir: [0.04, -0.90, 0.43], nrm: [1, 0, 0] };
+const HANG = globalThis.__hangOld ? { R: [0.27, 0.92, 0.12], dir: [0.15, -0.70, 0.70], nrm: [1, 0, 0] } : { R: [0.27, 0.91, 0.12], dir: [0.04, -0.90, 0.43], nrm: [1, 0, 0] };   /* (the hand where it was, out from the hip: drawn in to it, McEnroe's forearm went into his side) */
 const REACT_ANIM = {
   // (the fist pump as players do it: the fist up to the chin with the elbow tucked down by the ribs, then pulled hard down to
   // the hip, the trunk crunching forward into it, twice. It was a fist held out at the stomach, the forearm level, moving a

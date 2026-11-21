@@ -881,3 +881,10 @@ still in the air, both in a stroke's finish, for two or three frames.
   last about 0.6 s, too short to turn and turn back; those stay a closed-stance side step into a wide last step, which is what a
   player does in that time. Audit (three pairs): legs through each other 0.033% → 0.028%, sideways gallop 2.83% → 2.75%, arm in
   trunk 0.017% → 0.023%. `__runAroundOld`.
+- **Settled by the full roster audit** (14 pairs, against this morning's): the running free arm's trunk margin is 3 cm (at 1.2 the
+  upper arm grazed the side at a sprint, Medvedev 0.16% of frames), so it swings back to the hip but not past it; the racket
+  arm's share of the run's swing is back to 0.32; the run-around's late take-back is off (`__runAroundOn`: begun that late it
+  swung the racket arm through the body, McEnroe's lob); the celebration's hanging hand is back out from the hip (the racket
+  angle stays relaxed). Roster: foot pops 0.014% → 0.005%, legs through each other 0.014% → 0.009%, feet through each other
+  0.085% → 0.075%, sideways gallop 2.82% → 2.71%, arm in trunk 0.003% → 0.008% (the rest: serve and forehand finishes as before,
+  and an overhead prepared as a point ended, McEnroe backing off the net, the free arm 7.7 cm in for two frames).
