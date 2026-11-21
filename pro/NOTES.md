@@ -832,3 +832,8 @@ still in the air, both in a stroke's finish, for two or three frames.
   (8 cm off a raised hand) and the arms' loosening after the rally (4 cm); both now give way with the reaction's weight.
   `__raiseOld`, `__fistOld` (before load), `__reactHangOld`. `tools/steps_reactprobe.mjs` prints the reaction's hand targets
   against the drawn hands; `tools/steps_film.mjs` takes RSEED (the same strokes every run).
+- **The racket in a celebration hangs relaxed** (`HANG`, `REACT_ANIM.vamos`; "the racket is held weirdly during the
+  celebrations"): the racket hand of the fist pump, the calm nod, the fist in the air and the end of every reaction held it out
+  from the leg and half way to level, 45 degrees forward and tipped out, a cocked wrist; it now hangs nearly upright down the
+  leg, its head a little forward. In the vamos it pointed straight out in front at waist height like a sword; now down and
+  forward. `__hangOld` (before load).

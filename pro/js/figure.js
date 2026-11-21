@@ -3186,7 +3186,10 @@ const FH_SLICE = track([
 // the vamos pulled down into the crouch and again, the fist up to the crowd shaken, the strings fiddled with. (Held as one pose
 // blended in and out, every one of them was a statue that slid into place: the fist a racket held up by the face, the free fist
 // laid on the far shoulder, the hands on the head brought down across the chest.) Racket hand R, free hand L, for a right-hander.
-const HANG = { R: [0.27, 0.92, 0.12], dir: [0.15, -0.70, 0.70], nrm: [1, 0, 0] };
+// (the racket hand in a celebration hangs relaxed, the racket nearly upright down the leg, its head a little forward: it was held
+// out from the leg and half way to level, forty-five degrees forward and tipped out, the wrist cocked to hold it there, as
+// nobody holds a racket while pumping the other fist. `__hangOld` before load.)
+const HANG = globalThis.__hangOld ? { R: [0.27, 0.92, 0.12], dir: [0.15, -0.70, 0.70], nrm: [1, 0, 0] } : { R: [0.25, 0.87, 0.08], dir: [0.04, -0.90, 0.43], nrm: [1, 0, 0] };
 const REACT_ANIM = {
   // (the fist pump as players do it: the fist up to the chin with the elbow tucked down by the ribs, then pulled hard down to
   // the hip, the trunk crunching forward into it, twice. It was a fist held out at the stomach, the forearm level, moving a
@@ -3208,12 +3211,13 @@ const REACT_ANIM = {
     { u: 0.92, ...HANG, L: [-0.21, 1.00, 0.12], twist: 0.14, lean: 0.16, crouch: 0.08, stance: 0.27, lgrip: 0, head: 0.06 },
     { u: 1.40, ...HANG, L: [-0.24, 0.88, 0.07], twist: 0.04, lean: 0.08, crouch: 0.03, stance: 0.24, lgrip: 0, head: 0.00 },
   ]),
+  // (the racket in the other fist points down in front of him as he crouches, not out level like a sword)
   vamos: track([
-    { u: 0.00, R: [0.24, 1.10, 0.34], L: [-0.22, 1.12, 0.34], dir: [0.35, 0.20, 0.90], nrm: [1, 0, 0], twist: 0.1, lean: 0.28, crouch: 0.12, stance: 0.36, lgrip: 0, head: 0.15 },
-    { u: 0.14, R: [0.26, 0.96, 0.16], L: [-0.25, 0.95, 0.14], dir: [0.40, -0.30, 0.85], nrm: [1, 0, 0], twist: 0.12, lean: 0.42, crouch: 0.24, stance: 0.40, lgrip: 0, head: 0.30 },
-    { u: 0.32, R: [0.25, 1.06, 0.28], L: [-0.23, 1.08, 0.28], dir: [0.38, 0.05, 0.90], nrm: [1, 0, 0], twist: 0.1, lean: 0.34, crouch: 0.18, stance: 0.40, lgrip: 0, head: 0.22 },
-    { u: 0.48, R: [0.26, 0.94, 0.14], L: [-0.26, 0.92, 0.12], dir: [0.40, -0.35, 0.84], nrm: [1, 0, 0], twist: 0.14, lean: 0.44, crouch: 0.26, stance: 0.40, lgrip: 0, head: 0.32 },
-    { u: 0.85, R: [0.26, 0.98, 0.18], L: [-0.25, 0.98, 0.18], dir: [0.35, -0.30, 0.88], nrm: [1, 0, 0], twist: 0.1, lean: 0.36, crouch: 0.20, stance: 0.38, lgrip: 0, head: 0.20 },
+    { u: 0.00, R: [0.24, 1.10, 0.34], L: [-0.22, 1.12, 0.34], dir: [0.22, -0.55, 0.80], nrm: [1, 0, 0], twist: 0.1, lean: 0.28, crouch: 0.12, stance: 0.36, lgrip: 0, head: 0.15 },
+    { u: 0.14, R: [0.26, 0.96, 0.16], L: [-0.25, 0.95, 0.14], dir: [0.20, -0.72, 0.66], nrm: [1, 0, 0], twist: 0.12, lean: 0.42, crouch: 0.24, stance: 0.40, lgrip: 0, head: 0.30 },
+    { u: 0.32, R: [0.25, 1.06, 0.28], L: [-0.23, 1.08, 0.28], dir: [0.22, -0.60, 0.77], nrm: [1, 0, 0], twist: 0.1, lean: 0.34, crouch: 0.18, stance: 0.40, lgrip: 0, head: 0.22 },
+    { u: 0.48, R: [0.26, 0.94, 0.14], L: [-0.26, 0.92, 0.12], dir: [0.20, -0.75, 0.63], nrm: [1, 0, 0], twist: 0.14, lean: 0.44, crouch: 0.26, stance: 0.40, lgrip: 0, head: 0.32 },
+    { u: 0.85, R: [0.26, 0.98, 0.18], L: [-0.25, 0.98, 0.18], dir: [0.20, -0.70, 0.68], nrm: [1, 0, 0], twist: 0.1, lean: 0.36, crouch: 0.20, stance: 0.38, lgrip: 0, head: 0.20 },
     { u: 1.20, ...HANG, L: [-0.22, 0.96, 0.14], twist: 0.05, lean: 0.16, crouch: 0.08, stance: 0.30, lgrip: 0, head: 0.05 },
   ]),
   free: track([
