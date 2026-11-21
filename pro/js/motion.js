@@ -32,6 +32,8 @@ if (!globalThis.__shuffleOld && SHUF !== 'old') for (const k of ['shuffleR', 'sh
     for (let j = 0; j < NJ; j++) a[j * 3 + 1] -= drop;
     const dx = a[J.rankle * 3] - a[J.lankle * 3], need = 0.34; if (SHUF !== 'nosep' && Math.abs(dx) < need) { const sg = dx >= 0 ? 1 : -1, d = (need - Math.abs(dx)) / 2; for (const n of legL) if (J[n] != null) a[J[n] * 3] -= sg * d * (n === 'lknee' ? 0.6 : 1); for (const n of legR) if (J[n] != null) a[J[n] * 3] += sg * d * (n === 'rknee' ? 0.6 : 1); }
     if (SHUF !== 'nolow') for (let j = 0; j < NJ; j++) if (!low.has(JOINTS[j])) a[j * 3 + 1] -= 0.05; } }
+// (the stroll's foot pitch at its flat foot, per foot: the walker's sole is pitched against it, onto the figure's own flat foot)
+if (CL.stroll) { const c = CL.stroll; c.flatP = [[J.lankle, J.ltoe], [J.rankle, J.rtoe]].map(([a, o]) => { let mn = 9; for (const f of c.F) mn = Math.min(mn, f[a * 3 + 1]); const ps = c.F.filter(f => f[a * 3 + 1] < mn + 0.008).map(f => Math.atan2(f[o * 3 + 1] - f[a * 3 + 1], Math.hypot(f[o * 3] - f[a * 3], f[o * 3 + 2] - f[a * 3 + 2]))).sort((x, y) => x - y); return ps[ps.length >> 1]; }); }
 export const CLIPS = CL;
 
 // the pose at phase `ph` (0..1) of a clip that closes on itself
@@ -525,11 +527,15 @@ export class Loco {
     // pace is a quick shuffle of quarter-metre steps, the legs reaching for a full stride and caught by the planted feet. The
     // stride shortens with the pace (to about four-fifths at 0.8 m/s, at a person's one and a half steps a second) and the
     // legs' reach is drawn in to match it (below), so the feet still cover the ground they stand on.
-    const upF = globalThis.__walkStrideOld ? 0 : c01(w.up) * w.f * (fa === CL.walk ? 1 - t : 0), kSa = globalThis.__walkKSa ?? 1, kS = 1 + (Math.min(1, Math.max(0.5, kSa + (1 - kSa) * speed / CL.walk.speed)) - 1) * upF
+    const upF = globalThis.__walkStrideOld ? 0 : c01(w.up) * w.f * (fa === CL.walk ? 1 - t : 0), kSa = globalThis.__walkKSa ?? 1;
+    let kS = 1 + (Math.min(1, Math.max(0.5, kSa + (1 - kSa) * speed / CL.walk.speed)) - 1) * upF
       // (and faster than the filmed walkers walk, longer steps, not quicker ones, as a person's are: their stride, a little over a
       // metre and a fifth at a metre and a seventh a second, played at the game's walk of nearly a metre and a half a second was a
       // march of a hundred and thirty steps a minute)
       + (globalThis.__walkLongOld ? 0 : (Math.min(1.25, Math.pow(Math.max(1, speed / (SR ? CL.walk.speed + (SR.speed - CL.walk.speed) * uS : CL.walk.speed)), 0.6)) - 1) * upF);
+    // (strolling slower than the walk was filmed, a person takes shorter steps, not the same ones slower: at the half-speed walk
+    // along the line to serve, the filmed stride played at its own length took most of a second a step, a slow-motion walk)
+    if (uS > 0.001 && !globalThis.__strollShortOld) kS *= 1 + (Math.max(0.6, Math.min(1, Math.sqrt(speed / SR.speed))) - 1) * uS;
     const strideM = (w.f * strideF * kS + w.b * CL.back.stride + (w.r + w.l) * CL.shuffleR.stride) / sum, rateF = speed / Math.max(0.3, strideM);
     this.dbgRate = { speed: +speed.toFixed(3), strideF: +strideF.toFixed(3), kS: +kS.toFixed(3), strideM: +strideM.toFixed(3), rateF: +rateF.toFixed(3), walkScale: walkScale ? +walkScale.toFixed(3) : null };
     if (globalThis.__noSync) { this.phF = (this.phF + dt * Math.min(3.2, speed * ((w.f / strideF) + (w.b / CL.back.stride)) / Math.max(1e-6, w.f + w.b))) % 1; this.phS = (this.phS + dt * Math.min(3.4, speed / CL.shuffleR.stride)) % 1; }
@@ -542,7 +548,7 @@ export class Loco {
     sampleLoop(CL.ready, 0, P); if (w.up > 0.001) mix(P, sampleLoop(CL.stand, 0, B), w.up);
     if (w.go > 0.001) {
       const ph = this.phF;
-      sampleLoop(fa, at(fa, ph), A); if (uS > 0.001) mix(A, sampleLoop(SR, at(SR, ph), B), uS); if (t > 0.001) mix(A, sampleLoop(fb, at(fb, ph), B), t);
+      sampleLoop(fa, at(fa, ph), A); if (uS > 0.001) { sampleLoop(SR, at(SR, ph), B); if (SR.flatP) { const sp = this.stPitch || (this.stPitch = [0, 0]); for (let q = 0; q < 2; q++) { const a = q ? J.rankle : J.lankle, o = q ? J.rtoe : J.ltoe; sp[q] = Math.atan2(B[o * 3 + 1] - B[a * 3 + 1], Math.hypot(B[o * 3] - B[a * 3], B[o * 3 + 2] - B[a * 3 + 2])) - SR.flatP[q]; } } mix(A, B, uS); } if (t > 0.001) mix(A, sampleLoop(fb, at(fb, ph), B), t);
       if (w.up > 0.001 && fa !== CL.walk) mix(A, sampleLoop(CL.walk, at(CL.walk, ph), B), w.up * 0.7);
       if (kS < 0.999 || kS > 1.001) for (const j of [J.lknee, J.rknee, J.lankle, J.rankle, J.ltoe, J.rtoe]) A[j * 3 + 2] *= kS;
       this.FW.set(A);

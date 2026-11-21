@@ -181,6 +181,7 @@ function follow(cur, tgt, F, dt, thr, first, al = 0.6, be = 0.5) {
 // forward from those. (Turns of the arm are limited against this, the frame they are seen in: measured against the chest's
 // own turn, which runs ahead of the skeleton's in a fast twist, an arm held to 36 degrees a frame there still swung 46
 // against the body as it is drawn.)
+const _sbF = new THREE.Vector3(), _sbR = new THREE.Vector3();
 const _lpO0 = new THREE.Vector3(), _lpO1 = new THREE.Vector3(), _rkQi = new THREE.Quaternion(), _rkQ = new THREE.Quaternion(), _rkQ2 = new THREE.Quaternion(), _rkD = new THREE.Vector3(), _rkN = new THREE.Vector3(), _rgSh = new THREE.Vector3(), _rr1 = new THREE.Vector3(), _rr2 = new THREE.Vector3(), _rr3 = new THREE.Vector3(), _rr4 = new THREE.Vector3(), _rr5 = new THREE.Vector3(), _rr6 = new THREE.Vector3();
 const _ecP = new THREE.Vector3(), _ecU = new THREE.Vector3(), _ecA = new THREE.Vector3(), _ecB = new THREE.Vector3(), _ecF = new THREE.Vector3(), _ecS = new THREE.Vector3(), _ecE = new THREE.Vector3(), _ecW = new THREE.Vector3(), _ecX = new THREE.Vector3(), _ecT = new THREE.Vector3(), _ecQ = new THREE.Vector3();
 function bodyFrame(person, pelvis, cR, cU, cF) {
@@ -743,7 +744,18 @@ export class Figure {
     const settling = m.phase === 'over' && m.phaseT < 0.4;            // the point over, he straightens up as he reacts
     const strolling = between || (!live && !settling), serving = !!st && (st.kind === 'serve' || st.kind === 'smash') && sw > 0.2;
     const upright = strolling || serverWait || serving;
-    const LP = this.loco.update(dt, vR / H, vF / H, speed / H, upright, this.legScale ? this.legScale / H : 1, this.strollK || 0), go = this.loco.w.go;
+    // (setting off upright from a standstill sideways, the foot on the side he is going steps first, as anyone's does: left to
+    // wherever the cycle stood, half the time the far foot went first, across the near one, and the legs crossed in an X as he
+    // turned to walk along the line)
+    if (!globalThis.__walkLeadOld && this.loco.w.go < 0.03 && this.loco.w.up > 0.5 && speed > 0.03 && Math.abs(vR) > 0.5 * speed) this.loco.phF = this.loco.phS = vR < 0 ? 0.47 : 0.95;   /* (the walk lifts its left foot at 0.51-0.56 of the cycle, its right at 0.97-1.0) */
+    // Strolling, the walk is laid out the way he is going, not the way he faces: turning to walk along the line, a quarter turn in
+    // a third of a second, the walk's feet laid out the way he faced were swept round under him with the body, the planted foot
+    // at two to four metres a second, and the walk set off as a sideways shuffle first. The body turns over the walk's feet.
+    let vRl = vR, vFl = vF; { const kT = !globalThis.__strollTravelOld && speed > 0.05 ? (this.strollK || 0) * sm((speed - 0.1) / 0.3) : 0; this.tBf = null;
+      if (kT > 0.001) { const tx = p.vx / speed, tz = p.vz / speed, an = Math.atan2(fx0 * tz - fz0 * tx, fx0 * tx + fz0 * tz) * kT, ca = Math.cos(an), sa = Math.sin(an);   /* (turned through the angle between, not blended as vectors: going the opposite way, a blend passed through nothing and spun) */
+        const bx = fx0 * ca - fz0 * sa, bz = fx0 * sa + fz0 * ca; this.tBf = [bx, bz]; vRl = p.vx * -bz + p.vz * bx; vFl = p.vx * bx + p.vz * bz; } }
+    this.vRl = vRl; this.vFl = vFl;
+    const LP = this.loco.update(dt, vRl / H, vFl / H, speed / H, upright, this.legScale ? this.legScale / H : 1, this.strollK || 0), go = this.loco.w.go;
     // his own stroke, where one was tracked: the whole body comes from the clip
     const srvSt = !!st && st.kind === 'serve' && (m.phase === 'toss' || st.tc != null);
     let OC = null, clipW = 0, clipWA = 0, cu = u;
@@ -977,7 +989,11 @@ export class Figure {
     // court because the cycle runs at the pace its feet cover the ground. (Run through the locks and catch-up steps kept for
     // play, the walker's planted foot was held down a beat long, the body went on, the hips sank to reach it and a step of the
     // game's own, short and low, took over: both feet off the court a hand's breadth apart, the knees bent, every few steps.)
-    { const want = !globalThis.__strollFaithOld && between && !serverWait && !this.posed && !(st && sw > 0.05) ? clamp(this.loco.w.up, 0, 1) * sm((speed - 0.35) / 0.4) * (1 - sm((speed - 2.2) / 0.6)) : 0;   /* (only on the walk back, 'between': brought in as the point ended, while he was still pulling up out of a run, play's running feet were thrown across to the walk's in a few frames) */   /* (walking, not standing: stood still after a point, the feet are play's, planted where they are) */
+    { const want = !globalThis.__strollFaithOld && (between && !serverWait || (serverWait && this.srvWalking && !globalThis.__srvStrollFaithOld)) && !this.posed && !(st && sw > 0.05) ? clamp(this.loco.w.up, 0, 1) * sm((speed - 0.35) / 0.4) * (1 - sm((speed - 2.2) / 0.6)) * (!globalThis.__strollAlignOn ? 1 : sm((Math.cos(this.yaw - Math.atan2(p.vx * s, -p.vz * s)) - 0.82) / 0.14)) * (globalThis.__strollBackOld ? 1 : sm((Math.cos(this.yaw - Math.atan2(p.vx * s, -p.vz * s)) + 0.5) / 0.3)) : 0;   /* (not stepping back facing the net: walked forwards under a body going backwards, laid out the way he went, the walk turned half round under him in a sixth of a second; that is play's backpedal) */   /* (and walking along the line to serve: left to play's footwork, it walked there on bent knees with catch-up steps) */   /* (only on the walk back, 'between': brought in as the point ended, while he was still pulling up out of a run, play's running feet were thrown across to the walk's in a few frames) */   /* (walking, not standing: stood still after a point, the feet are play's, planted where they are) */
+      // (from the moment he sets off, turning or not: the walk's own plants (below) hold the standing foot while he turns over it.
+      // Taken up only once he faced the way he was going (globalThis.__strollAlignOn), the play's footwork turned him, its far foot
+      // stepping first across the near one, the shins through each other; taken up while turning without the plants, the planted
+      // foot was swept round under him at two to four metres a second)
       this.strollK = !this.inited || dt <= 0 ? want : (this.strollK || 0) + (want - (this.strollK || 0)) * (1 - Math.exp(-dt * 8)); }
     const stK = this.strollK || 0;
     const sepO = this.sepOff || (this.sepOff = [V(), V()]); sepO[0].set(0, 0, 0); sepO[1].set(0, 0, 0);
@@ -1100,17 +1116,32 @@ export class Figure {
           if (Lk.ox0 || Lk.oz0) { Lk.oT += dt; const q = Lk.oT / 0.045, f = (1 + q) * Math.exp(-q); Lk.ox = Lk.ox0 * f; Lk.oz = Lk.oz0 * f;
             if (f < 0.002) { Lk.ox0 = Lk.oz0 = 0; Lk.ox = Lk.oz = 0; } ankle.x += Lk.ox; ankle.z += Lk.oz; }
         } }
-      if (stK > 0.001) { let cx = px + right.x * LP[ja * 3] * r + fwd.x * LP[ja * 3 + 2] * r, cz = pz + right.z * LP[ja * 3] * r + fwd.z * LP[ja * 3 + 2] * r; const cy = Math.max(D.ankle, (LP[ja * 3 + 1] - ANKLE_H) * r + D.ankle);
+      if (stK > 0.001) { const tb = this.tBf, bfx = tb ? tb[0] : fwd.x, bfz = tb ? tb[1] : fwd.z, brx = tb ? -bfz : right.x, brz = tb ? bfx : right.z; let cx = px + brx * LP[ja * 3] * r + bfx * LP[ja * 3 + 2] * r, cz = pz + brz * LP[ja * 3] * r + bfz * LP[ja * 3 + 2] * r; const cy = Math.max(D.ankle, (LP[ja * 3 + 1] - ANKLE_H) * r + D.ankle);
         // (a foot that comes down once he is walking stays where it landed until the walk lifts it, and is let go of smoothly, the
         // step taking up the difference (setting off and pulling up, the stand and the walk are blended and the feet follow the
         // blend: planted from a standstill, the first foot was left a stride behind as he got going): followed exactly, the walker's heel still travelling forward as it touched down slid
         // the landing foot ten centimetres along the court)
+        // (and a foot planted by the walk stays where it was set down until the walk lifts it, by its height and its speed over the
+        // court both, so the walker's heel, still travelling as it touches, is let come to rest first; what the planted foot and the
+        // walk's have drifted apart by is taken up through the next swing, in the air. And as the walk begins, each foot starts where
+        // it is: the standing foot stays planted, the one the walk has in the air goes from where it stood. Blended in from the stance's
+        // footwork instead, both feet slid from where they stood to where the walk had them, half a metre a second, and with the body
+        // turning a quarter turn to walk along the line, swept round under him)
+        if (!globalThis.__strollLockOld) { const sl = this.stLock || (this.stLock = [{ on: false, x: 0, z: 0, ox: 0, oz: 0, sT: 9, px: null, pz: null }, { on: false, x: 0, z: 0, ox: 0, oz: 0, sT: 9, px: null, pz: null }]), L = sl[i];
+          // (its speed over the court read in the walk's own frame, the clip's foot against the body's going: read from the court, the
+          // body turning over a planted foot made it look to be moving, and it was let go of)
+          const lx = LP[ja * 3] * r, lz = LP[ja * 3 + 2] * r, fresh = (this.stKPrev || 0) < 0.002 || L.px == null, cv = fresh || dt <= 0 ? 0 : globalThis.__stLockWorldV ? Math.hypot(cx - L.px, cz - L.pz) / dt : Math.hypot((lx - L.lx) / dt + (this.vRl || 0), (lz - L.lz) / dt + (this.vFl || 0)); L.px = cx; L.pz = cz; L.lx = lx; L.lz = lz;
+          const downC = cy - D.ankle < (L.on ? 0.016 : 0.01) * H && (L.on ? cv < 1.0 : cv < 0.6);
+          if (fresh) { L.on = downC; if (downC) { L.x = ankle.x; L.z = ankle.z; } else { L.ox = ankle.x - cx; L.oz = ankle.z - cz; L.sT = 0; } }
+          if (downC) { if (!L.on) { const f = 1 - sm(L.sT / 0.3); L.on = true; L.x = cx + L.ox * f; L.z = cz + L.oz * f; } cx = L.x; cz = L.z; }
+          else { if (L.on) { L.on = false; L.ox = L.x - cx; L.oz = L.z - cz; L.sT = 0; } else if (dt > 0) L.sT += dt; const f = 1 - sm(L.sT / 0.3); cx += L.ox * f; cz += L.oz * f; } }
         if (globalThis.__strollPlantOn) { const sl = this.sfLock || (this.sfLock = [{ on: false, x: 0, z: 0, ox: 0, oz: 0 }, { on: false, x: 0, z: 0, ox: 0, oz: 0 }]), L = sl[i];
           if (cy - D.ankle < 0.02 * H && dt > 0 && (L.on || go > (globalThis.__plantGo ?? 0.92))) { if (!L.on) { L.on = true; L.x = cx + L.ox; L.z = cz + L.oz; L.ox = L.oz = 0; } else if (globalThis.__plantPull) { const k = 1 - Math.exp(-dt * globalThis.__plantPull); L.x += (cx - L.x) * k; L.z += (cz - L.z) * k; } cx = L.x; cz = L.z; }
           else { if (L.on) { L.on = false; L.ox = L.x - cx; L.oz = L.z - cz; } const k = Math.exp(-dt * 18); L.ox *= k; L.oz *= k; cx += L.ox; cz += L.oz; } }
         ankle.x += (cx - ankle.x) * stK; ankle.z += (cz - ankle.z) * stK; ankle.y += (cy - ankle.y) * stK;
-        if (stK > 0.5) { const Lk = this.lockF[i]; Lk.step = null; Lk.on = cy - D.ankle < 0.03 * H; Lk.x = ankle.x; Lk.z = ankle.z; Lk.ox = Lk.oz = Lk.ox0 = Lk.oz0 = 0; Lk.toe = false; } }
-      else if (this.sfLock) { const L = this.sfLock[i]; L.on = false; L.ox = L.oz = 0; }   /* (not strolling: the walk's plant is let go of, or the next walk back began by dragging a foot to where it stood on the last one) */
+        if (stK > (globalThis.__strollResetOld ? 0.5 : 0.95)) { const Lk = this.lockF[i]; Lk.step = null; Lk.on = cy - D.ankle < 0.03 * H; Lk.x = ankle.x; Lk.z = ankle.z; Lk.ox = Lk.oz = Lk.ox0 = Lk.oz0 = 0; Lk.toe = false; } }
+      else if (this.sfLock) { const L = this.sfLock[i]; L.on = false; L.ox = L.oz = 0; }
+      if (stK <= 0.001 && this.stLock) { const L = this.stLock[i]; L.on = false; L.px = null; }   /* (not strolling: the walk's plant is let go of, or the next walk back began by dragging a foot to where it stood on the last one) */
       ft.p.set(ankle.x, 0, ankle.z); ft.lift = ankle.y - D.ankle;
       if (this.dbgOn) { (this.dbgFt || (this.dbgFt = {}))['o' + i] = [+(this.lockF[i].ox || 0).toFixed(3), +(this.lockF[i].ox0 || 0).toFixed(3), +(this.lockF[i].oT || 0).toFixed(3), +(this.plW || 0).toFixed(2)]; (this.dbgFt)['w' + i] = [+(this.widenOff ? this.widenOff[i] : 0).toFixed(3), +(this.sepOff ? this.sepOff[i].x : 0).toFixed(3), +(this.sepOff ? this.sepOff[i].z : 0).toFixed(3), +px.toFixed(3), +pz.toFixed(3), +right.x.toFixed(3), +right.z.toFixed(3), +r.toFixed(3)]; (this.dbgFt)['s1' + i] = [+(ankle.x - px).toFixed(3), +(ankle.z - pz).toFixed(3)]; (this.dbgFt)['raw' + i] = [+(LP[ja * 3] * r).toFixed(3), +(LP[ja * 3 + 2] * r).toFixed(3)]; }
     }
@@ -1118,6 +1149,7 @@ export class Figure {
     // lifted to where it lands, a crossover step or a turn on the spot took the moving foot through the other ankle and the
     // shins through each other. It is moved across its own way a foot's width clear of the other, on the side it is on
     // (in front when it is passing straight through).
+    this.stKPrev = stK;
     const lpPre = [_lpO0.copy(_an[0]), _lpO1.copy(_an[1])];
     // The stride's feet kept from crossing over each other, softly: the sideways gap between them (right foot's side positive)
     // is kept to at least about a tenth of his height, eased into as it closes (a smooth curve of where the stride puts them, so
@@ -1297,8 +1329,10 @@ export class Figure {
     const free = ease(this, 'armFree', strolling ? 1 - Math.max(this.reactK || 0, this.touchK || 0) : lerp(sm((speed - gP0) / (gP1 - gP0)) * sustain * (1 - sm(sw / 0.4)), 1, walkSv), strolling || walkSv > 0.5 ? 7 : this.sinceSw < 0.5 ? 8 : 19, dt);   /* (after a point the arms loosen slowly) */
     const sh = [shL, shR], cEl = _el2, cWr = _wr2, CJ = ARM_J;
     // the way each knee bends (see below): a function, so either leg's can be had while the other is solved
+    // (strolling, the knees bend the way the walk's feet go, in the walk's frame)
+    const sbF = this.tBf ? _sbF.set(this.tBf[0], 0, this.tBf[1]) : fwd, sbR = this.tBf ? _sbR.set(-this.tBf[1], 0, this.tBf[0]) : right;
     const kpFor = (i, out) => { const jh = LEG_J[i][0], jk = LEG_J[i][1], ja = LEG_J[i][2];
-      const kp = out.set(0, 0, 0).addScaledVector(right, LP[jk * 3] - (LP[jh * 3] + LP[ja * 3]) / 2).addScaledVector(UP, LP[jk * 3 + 1] - (LP[jh * 3 + 1] + LP[ja * 3 + 1]) / 2).addScaledVector(fwd, LP[jk * 3 + 2] - (LP[jh * 3 + 2] + LP[ja * 3 + 2]) / 2);
+      const kp = out.set(0, 0, 0).addScaledVector(sbR, LP[jk * 3] - (LP[jh * 3] + LP[ja * 3]) / 2).addScaledVector(UP, LP[jk * 3 + 1] - (LP[jh * 3 + 1] + LP[ja * 3 + 1]) / 2).addScaledVector(sbF, LP[jk * 3 + 2] - (LP[jh * 3 + 2] + LP[ja * 3 + 2]) / 2);
       if (kp.lengthSq() < 1e-4) kp.copy(fwd); kp.addScaledVector(fwd, 0.05);
       // A knee bends out over its own toes, never in toward the other knee. Tracking from video loses depth, and its
       // knees fall inward (knock-kneed at a serve's trophy): what of the bend points in toward the other leg is taken
@@ -2449,7 +2483,12 @@ export class Figure {
       else if (this.legSepA && this.legSepA[i]) { const LS = this.legSepA, mxS = 0.1 * Math.max(dt * 60, 0.5); LS[i] -= clamp(LS[i], -mxS, mxS); const ax = _lsF.copy(ankle).sub(hip), al = ax.length(); if (al > 1e-3 && Math.abs(LS[i]) > 1e-4) { ax.multiplyScalar(1 / al); kn.copy(_lsG.copy(kn).sub(hip).applyAxisAngle(ax, LS[i]).add(hip)); } }
       const Fs = person.setLimb(S, 'leg', kn, ankle, qPel, hip, _qa, _qb);
       // the foot: along the clip's ankle-to-ball line, flat once it is down
-      const fd = cdir(ja, jt, _v8), down = (1 - sm((ankle.y - air * 0.9 - D.ankle) / (0.05 * H))) * (this.heel[i] > 0.005 ? 0 : 1); if (this.heel[i] > 0.005) { fd.copy(person.dir['foot' + S]).applyQuaternion(qPel); fd.y -= this.heel[i] * 6; fd.normalize(); } if (down > 0) { const rest = _v9.copy(person.dir['foot' + S]).applyQuaternion(qYaw); fd.y = lerp(fd.y, rest.y, down); fd.normalize(); }
+      const fd = this.tBf ? _v8.set(0, 0, 0).addScaledVector(sbR, LP[jt * 3] - LP[ja * 3]).addScaledVector(UP, LP[jt * 3 + 1] - LP[ja * 3 + 1]).addScaledVector(sbF, LP[jt * 3 + 2] - LP[ja * 3 + 2]).normalize() : cdir(ja, jt, _v8), down = (1 - sm((ankle.y - air * 0.9 - D.ankle) / (0.05 * H))) * (this.heel[i] > 0.005 ? 0 : 1); if (this.heel[i] > 0.005) { fd.copy(person.dir['foot' + S]).applyQuaternion(qPel); fd.y -= this.heel[i] * 6; fd.normalize(); } if (down > 0) { const rest = _v9.copy(person.dir['foot' + S]).applyQuaternion(qYaw); fd.y = lerp(fd.y, rest.y, down); fd.normalize(); }
+      // (strolling, the foot is pitched as the walker's was, against his own flat foot: laid flat whenever it was near the court, the
+      // walker's heel coming down still travelling was drawn as a flat shoe sliding along the court a hand's length at every step,
+      // where he lands on his heel with the toes up and rolls onto the sole)
+      { const stK = this.strollK || 0, sp = this.loco.stPitch; if (stK > 0.001 && sp && !globalThis.__strollPitchOld) { const rest = _v9.copy(person.dir['foot' + S]).applyQuaternion(qYaw), rp = Math.asin(clamp(rest.y, -1, 1)), wy = Math.sin(clamp(rp + sp[i], -1.5, 1.5));
+        fd.y = lerp(fd.y, wy, stK); const hz = Math.hypot(fd.x, fd.z) || 1, k = Math.sqrt(Math.max(0, 1 - fd.y * fd.y)) / hz; fd.x *= k; fd.z *= k; } }
       // (and never tipped into the court: a heel up on its toes, the toes stay on the surface, the foot no steeper than
       // that; tilted further, the front of the shoe went down through the court a few centimetres)
       // (a foot on its way somewhere carries its toes clear of the court, more the faster it goes: pitched down a couple of

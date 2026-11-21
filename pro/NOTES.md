@@ -790,3 +790,29 @@ still in the air, both in a stroke's finish, for two or three frames.
 - The clip's elbow is followed only as far as it stands off this arm's line (Becker's elbow through his chest). `__elOffOld`.
 - Tools: `tools/roster_audit.sh OUT [FLAGS]`, `tools/audit_cmp.py A B`, `tools/steps_menuperf.mjs` (menu open time, list
   opening block, frames after), `tools/steps_droptest.mjs` (called drops: kind played against kind shown).
+- **The walk along the line to serve** ("the walk side to side before the serve is still fucked"). Measured every frame by
+  `tools/steps_srvwalkprobe.mjs` (six players, the arrows held in a script of long walks, short taps, stops and reversals both
+  ways): the walk there was play's footwork on the footage walk, catch-up steps and all; given the stroll as it was, the feet
+  slid (the lower toe, always a planted contact in a walk, moved at a median 0.45 m/s against 0.11 in the clip itself). Causes
+  and fixes, each behind a flag:
+  - the stroll covers walking to serve too, and walking slower than the clip the steps get shorter (to about three quarters at
+    0.8 m/s), not slower (`__srvStrollFaithOld`, `__strollShortOld`);
+  - the walk is laid out the way he is going, not the way he faces, and the body turns over it: turning a quarter turn to walk
+    along the line, the walk's feet laid out the way he faced were swept round with him, the planted one at 2-4 m/s
+    (`__strollTravelOld`); turned through the angle between, and not at all stepping back facing the net (that stays play's
+    backpedal: a short step back after a point, the walk laid out the opposite way to his facing spun half round under him in a
+    sixth of a second, the shins through each other; `__strollBackOld`);
+  - a foot the walk sets down stays where it is until the walk lifts it, judged by its height and its speed in the walk's own
+    frame (so the heel, still travelling as it touches, comes to rest first); what it and the walk drift apart by is taken up
+    over the next swing, in the air; and the walk starts from where the feet are (`__strollLockOld`);
+  - setting off sideways from a standstill, the foot on the side he is going steps first (the far foot went first half the
+    time, across the near one, the shins through each other) (`__walkLeadOld`);
+  - the foot is pitched as the walker's was, against his own flat foot, so he lands on his heel and rolls onto the sole (laid
+    flat whenever it was near the court, the heel still travelling as it came down was drawn as a flat shoe sliding a hand's
+    length) (`__strollPitchOld`);
+  - play's locks are set to the feet only once the walk has all but taken over (at half, a step under way was cut off and the
+    foot jumped 15 cm in a frame) (`__strollResetOld`).
+  Six players, before → after: legs through each other 0-6 → 0-1 frames, foot pops 0-1 → 0-1, the lower toe's median speed
+  walking 0.21-0.24 → 0.15-0.19 m/s; the stops settle in 1-3 steps either way, with fewer frames of the shoes together.
+  Between points the same changes take the planted toe's median from 0.15-0.18 to 0.09-0.11 m/s (p90 0.4 → 0.3-0.37).
+  `tools/steps_strollskate.mjs` measures that; `tools/steps_walkfilm.mjs` now takes VIEWS (low: the feet at shin height) and FLAGS.
