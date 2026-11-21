@@ -1183,6 +1183,14 @@ export class Figure {
           if (cy - D.ankle < 0.02 * H && dt > 0 && (L.on || go > (globalThis.__plantGo ?? 0.92))) { if (!L.on) { L.on = true; L.x = cx + L.ox; L.z = cz + L.oz; L.ox = L.oz = 0; } else if (globalThis.__plantPull) { const k = 1 - Math.exp(-dt * globalThis.__plantPull); L.x += (cx - L.x) * k; L.z += (cz - L.z) * k; } cx = L.x; cz = L.z; }
           else { if (L.on) { L.on = false; L.ox = L.x - cx; L.oz = L.z - cz; } const k = Math.exp(-dt * 18); L.ox *= k; L.oz *= k; cx += L.ox; cz += L.oz; } }
         ankle.x += (cx - ankle.x) * stK; ankle.z += (cz - ankle.z) * stK; ankle.y += (cy - ankle.y) * stK;
+        // (and as the walk fades in, a foot leaving the spot play's footwork holds it on, the walk already carrying it, lifts as it goes,
+        // by how far it has gone: blended, the walk's foot moving low and play's on the court, it was drawn sliding over the court up to
+        // two metres a second for a tenth of a second)
+        if (!globalThis.__fadeLiftOld) { const FL = this.fadeLift || (this.fadeLift = [0, 0]); let want = 0;
+          if (between && !serverWait && stK < 0.95 && stK > (this.stKPrev || 0) + 1e-4 && !(this.stLock && this.stLock[i].on)) { const Lk = this.lockF[i]; if (Lk.on && !Lk.step) want = Math.min(0.06 * H, 0.6 * Math.hypot(ankle.x - Lk.x, ankle.z - Lk.z)); }
+          // (let down over a tenth of a second when it no longer applies, as a foot comes down, not dropped in a frame)
+          FL[i] = dt > 0 ? Math.max(want, FL[i] - Math.max(FL[i] * (1 - Math.exp(-dt / 0.05)), 0.004 * H * dt * 60)) : want; if (FL[i] < 1e-4) FL[i] = 0;
+          if (FL[i] > 0) ankle.y = Math.max(ankle.y, D.ankle + FL[i]); }
         if (stK > (globalThis.__strollResetOld ? 0.5 : 0.95)) { const Lk = this.lockF[i]; Lk.step = null; Lk.on = cy - D.ankle < 0.03 * H; Lk.x = ankle.x; Lk.z = ankle.z; Lk.ox = Lk.oz = Lk.ox0 = Lk.oz0 = 0; Lk.toe = false; } }
       else if (this.sfLock) { const L = this.sfLock[i]; L.on = false; L.ox = L.oz = 0; }
       if (stK <= 0.001 && this.stLock) { const L = this.stLock[i]; L.on = false; L.px = null; }   /* (not strolling: the walk's plant is let go of, or the next walk back began by dragging a foot to where it stood on the last one) */

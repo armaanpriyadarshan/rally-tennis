@@ -966,3 +966,9 @@ still in the air, both in a stroke's finish, for two or three frames.
   Not in a take-back or an early recovery (tucked there, the forearm went into the hip: arm in trunk 0.003% → 0.015%; away from
   strokes 0.007%, the rest photographed, not visible). The audit's hand-on-hip test counts an elbow back and 5 cm out, which this
   is, so its number does not fall (1.41% → 1.48%); the pictures are what changed.
+- **Setting off on the walk back, a foot leaving its spot lifts** (`js/figure.js`, `__fadeLiftOld`): traced in play (every frame of the
+  walk's fade-in, both players of a seeded match), the sliding foot was always one play's footwork still held on the court while the
+  walk, fading in, already carried it low: the blend dragged it along the court at 1-2.8 m/s for a tenth of a second. Now, while the
+  walk fades in, such a foot is lifted by how far it has moved from its held spot (0.6 x the distance, at most 11 cm), so it steps;
+  the lift is let down over a twentieth of a second when the walk takes the foot (dropped in a frame, it popped). Federer-Sinner,
+  300 s, both players: foot-frames sliding on the court in the fade 88 → 23, pops 0 → 0. Serve walk and four-pair audit unchanged.
