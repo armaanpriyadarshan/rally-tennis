@@ -292,7 +292,7 @@ function twoHandWrap(F, n, fps, u0, lefty) {
   const side = lefty ? -1 : 1;
   for (let f = 0; f < n; f++) { const w = Q[f]; if (w < 1e-3) continue; const a = F[f], fr = CF[f], out = fr.rt.map(x => x * side);
     const mid = [0, 1, 2].map(c => (a[J.lsho * 3 + c] + a[J.rsho * 3 + c]) / 2), hm = [0, 1, 2].map(c => (a[J.lwri * 3 + c] + a[J.rwri * 3 + c]) / 2);
-    const T = [0, 1, 2].map(c => mid[c] + out[c] * 0.2 + fr.up[c] * 0.2 + fr.fw[c] * 0.08), d = [0, 1, 2].map(c => (T[c] - hm[c]) * w);
+    const T = [0, 1, 2].map(c => mid[c] + out[c] * 0.2 + fr.up[c] * 0.16 + fr.fw[c] * (globalThis.__bhWrapFwOld ? 0.08 : 0.22)), d = [0, 1, 2].map(c => (T[c] - hm[c]) * w);   /* (22 cm in front of the shoulders: at eight, the top arm crossed his throat inside the chest, Djokovic running out of a backhand) */
     for (const j of [J.lwri, J.rwri, J.lhand, J.rhand]) for (let c = 0; c < 3; c++) a[j * 3 + c] += d[c];
     for (const j of [J.lelb, J.relb]) for (let c = 0; c < 3; c++) a[j * 3 + c] += d[c] * 0.6 + fr.up[c] * 0.06 * w; }
   void sg; return Q;

@@ -928,3 +928,8 @@ still in the air, both in a stroke's finish, for two or three frames.
   upright with the walk, turned the way he goes, and settles into his stance as he stops; counted as play, he went there crouched
   in the ready stance on play's footwork (in the lab, frames gliding on both planted feet 9% → 5%). Roster (four pairs, off → on):
   neutral within noise. `tools/steps_labmove.mjs` takes PHASE and SERVER.
+- **The two-hander's finish brought out in front** (`twoHandWrap`, `__bhWrapFwOld`): the hands go to the far shoulder 22 cm in front of
+  the shoulders, not 8 (and 16 cm up, not 20). At 8, running out of a backhand, Djokovic's top arm crossed his throat six
+  centimetres in front, inside the chest: the 17 arm-in-trunk frames of his audit match (a backhand finish at 6 m/s, not the
+  forehand it was first taken for). Djokovic's pair: arm in trunk 17 → 1 frame, chicken wing 1.50% → 0.76%; Nadal's: 0 → 0 and
+  0.83% → 0.78%. Filmed: both finish over the far shoulder with the arms across the front of the face.
