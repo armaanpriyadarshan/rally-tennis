@@ -1187,7 +1187,7 @@ export class Figure {
         // by how far it has gone: blended, the walk's foot moving low and play's on the court, it was drawn sliding over the court up to
         // two metres a second for a tenth of a second)
         if (!globalThis.__fadeLiftOld) { const FL = this.fadeLift || (this.fadeLift = [0, 0]); let want = 0;
-          if (between && !serverWait && stK < 0.95 && stK > (this.stKPrev || 0) + 1e-4 && !(this.stLock && this.stLock[i].on)) { const Lk = this.lockF[i]; if (Lk.on && !Lk.step) want = Math.min(0.06 * H, 0.6 * Math.hypot(ankle.x - Lk.x, ankle.z - Lk.z)); }
+          if (between && !serverWait && stK < 0.95 && stK > (this.stKPrev || 0) + 1e-4 && !(this.stLock && this.stLock[i].on)) { const Lk = this.lockF[i]; if (Lk.on && !Lk.step) want = Math.min(0.06 * H, (globalThis.__fadeLiftK ?? 1.2) * Math.hypot(ankle.x - Lk.x, ankle.z - Lk.z)); }
           // (let down over a tenth of a second when it no longer applies, as a foot comes down, not dropped in a frame)
           FL[i] = dt > 0 ? Math.max(want, FL[i] - Math.max(FL[i] * (1 - Math.exp(-dt / 0.05)), 0.004 * H * dt * 60)) : want; if (FL[i] < 1e-4) FL[i] = 0;
           if (FL[i] > 0) ankle.y = Math.max(ankle.y, D.ankle + FL[i]); }

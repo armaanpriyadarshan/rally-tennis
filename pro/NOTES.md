@@ -971,4 +971,4 @@ still in the air, both in a stroke's finish, for two or three frames.
   walk, fading in, already carried it low: the blend dragged it along the court at 1-2.8 m/s for a tenth of a second. Now, while the
   walk fades in, such a foot is lifted by how far it has moved from its held spot (0.6 x the distance, at most 11 cm), so it steps;
   the lift is let down over a twentieth of a second when the walk takes the foot (dropped in a frame, it popped). Federer-Sinner,
-  300 s, both players: foot-frames sliding on the court in the fade 88 → 23, pops 0 → 0. Serve walk and four-pair audit unchanged.
+  300 s, both players: foot-frames sliding on the court in the fade 88 → 23, pops 0 → 0. Serve walk and four-pair audit unchanged. The lift is 1.2 x the distance (`__fadeLiftK`), not 0.6: at 0.6 a foot moved five centimetres before it cleared the court; slides 23 → 10 in the same 300 s, no pops (2 x brought pops back); four-pair audit unchanged.
