@@ -181,7 +181,7 @@ function follow(cur, tgt, F, dt, thr, first, al = 0.6, be = 0.5) {
 // forward from those. (Turns of the arm are limited against this, the frame they are seen in: measured against the chest's
 // own turn, which runs ahead of the skeleton's in a fast twist, an arm held to 36 degrees a frame there still swung 46
 // against the body as it is drawn.)
-const _sbF = new THREE.Vector3(), _sbR = new THREE.Vector3(); const _stX2 = new THREE.Vector3();
+const _sbF = new THREE.Vector3(), _sbR = new THREE.Vector3(); const _fcC = new THREE.Vector3(), _fcR = new THREE.Vector3(), _fcW = new THREE.Vector3(); const _stX2 = new THREE.Vector3();
 const _laT = new THREE.Vector3(), _laF = new THREE.Vector3(), _laD = new THREE.Vector3(), _laQ = new THREE.Quaternion();
 const _lpO0 = new THREE.Vector3(), _lpO1 = new THREE.Vector3(), _rkQi = new THREE.Quaternion(), _rkQ = new THREE.Quaternion(), _rkQ2 = new THREE.Quaternion(), _rkD = new THREE.Vector3(), _rkN = new THREE.Vector3(), _rgSh = new THREE.Vector3(), _rr1 = new THREE.Vector3(), _rr2 = new THREE.Vector3(), _rr3 = new THREE.Vector3(), _rr4 = new THREE.Vector3(), _rr5 = new THREE.Vector3(), _rr6 = new THREE.Vector3();
 const _ecP = new THREE.Vector3(), _ecU = new THREE.Vector3(), _ecA = new THREE.Vector3(), _ecB = new THREE.Vector3(), _ecF = new THREE.Vector3(), _ecS = new THREE.Vector3(), _ecE = new THREE.Vector3(), _ecW = new THREE.Vector3(), _ecX = new THREE.Vector3(), _ecT = new THREE.Vector3(), _ecQ = new THREE.Vector3();
@@ -2188,6 +2188,15 @@ export class Figure {
             /* (sooner than it was, but never more than three centimetres a frame: at its old pace a two-hander's hands crossed to the far hip a tenth of a second ahead of the push, and the arm lay through the stomach) */ const mxF = (globalThis.__frontCap ?? 0.09) * dt * 60; if (Math.abs(fg[i] - f0) > mxF) { fg[i] = f0 + Math.sign(fg[i] - f0) * mxF; fv[i] *= 0.5; } } else { fg[i] = fp[i]; fv[i] = 0; }
           if (fg[i] > 1e-4 && globalThis.__frontOld) { const fw0 = pw[i].dot(tFw); if (fw0 < fg[i]) pw[i].addScaledVector(tFw, fg[i] - fw0); } } }
       for (let i = 0; i < 2; i++) want[i].copy(pw[i]);
+      // A forehand's free arm folds in across the front of the chest at contact and through the finish, at the height of the chest:
+      // not up at the neck with the forearm across the throat and the elbow raised, which is where a drive shown for a late block
+      // folded it, the forearm ten centimetres into his chest for five frames (del Potro). No higher than a little under the
+      // shoulders, and at least a quarter of a metre out in front of the chest.
+      if (!globalThis.__foldCapOld && st && st.wing === 'fh' && !/^(serve|smash)$/.test(st.__dk || st.kind) && st.tc != null) {
+        const uc = t - st.tc, k = sm5((uc + 0.25) / 0.12) * (1 - sm5((uc - 0.6) / 0.25));
+        if (k > 0.001) { const w = _fcW.copy(wrist[off]).add(want[off]), cap = sh[off].y - 0.06; if (w.y > cap) w.y += (cap - w.y) * k;
+          const cz = _fcC.copy(sh[0]).add(sh[1]).multiplyScalar(0.5), z = _fcR.copy(w).sub(cz).dot(tFw); if (z < 0.24) w.addScaledVector(tFw, (0.24 - z) * k);
+          want[off].copy(w).sub(wrist[off]); if (this.dbgOn) this.dbgFold = { k: +k.toFixed(2), z: +z.toFixed(3), y: +w.y.toFixed(3), cap: +cap.toFixed(3) }; } }
       if (this.dbgOn && this.dbg) { this.dbg.fp = (this.frontWant || []).map(x => +x.toFixed(3)); this.dbg.fg = (this.frontGot || []).map(x => +x.toFixed(3)); this.dbg.gw = +gripW.toFixed(2); }
       if (this.dbgOn && this.dbg) this.dbg.w1 = want.map(q => [q.dot(tRt), q.dot(tAx), q.dot(tFw)].map(x => +x.toFixed(2)));
       // (not with both hands on the handle on the way back: then the bottom arm lies across the front of the body as it

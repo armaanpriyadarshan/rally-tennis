@@ -888,3 +888,8 @@ still in the air, both in a stroke's finish, for two or three frames.
   angle stays relaxed). Roster: foot pops 0.014% → 0.005%, legs through each other 0.014% → 0.009%, feet through each other
   0.085% → 0.075%, sideways gallop 2.82% → 2.71%, arm in trunk 0.003% → 0.008% (the rest: serve and forehand finishes as before,
   and an overhead prepared as a point ended, McEnroe backing off the net, the free arm 7.7 cm in for two frames).
+- **A forehand's free arm folds in front of the chest** (`js/figure.js`, `__foldCapOld`): through contact and the finish the free
+  wrist is kept a little under the shoulders and at least 24 cm in front of the chest. A drive shown for a late block (del Potro,
+  102.4 s of the audit match) folded it up at the neck, forearm across the throat, ten centimetres into the chest for five frames;
+  gone (his arm in trunk 0.07% → 0.01%). Federer's finishes, filmed from the front, unchanged to the eye (the free forearm across
+  the stomach under the racket).
