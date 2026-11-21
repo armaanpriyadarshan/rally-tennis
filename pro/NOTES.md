@@ -901,3 +901,15 @@ still in the air, both in a stroke's finish, for two or three frames.
   8 cm): McEnroe's serve finishes (the racket forearm brushing his stomach, 5-6 cm) and an overhead's free arm bent in front of the
   chest as a point ended (7.7 cm) are not visible from behind or the side. The racket-hand-on-hip count's rise (0.84% → 1.06%)
   photographed: forehand take-backs and recoveries while running, the racket back by the hip, as a take-back is.
+- **Djokovic** ("djokovics animations are also pretty weird"), filmed in play from the front and behind:
+  - his forehands had been given Nadal's over-the-head finish (any clip whose hand rose above the head after contact), the racket
+    hung behind his head; that finish is now Nadal's alone (`LASSO_OWN` in `js/motion.js`, `__lassoAllOld`), and any other
+    player's forehand finishing high in the middle or on its own side is taken across to the far shoulder (`crossFinish`,
+    `__crossFinOld`), as his do;
+  - his running backhand clip (alt 1) is retired (`ALT_BAD`): the tracker lost both hands after contact, which drop to the knees
+    and drift a metre off, so it finished with the racket pointing at his feet in a crouch. Running backhands use his others;
+  - his serve and his slices (the shared keys; low balls finish lower) were checked and left as they are.
+  Note for bisecting: these act when clips are built and when the game loads, before the audit sets its flags, so test them by
+  reverting the file; and any change to what a figure does shifts the audit match's rallies (the serve ritual's timing), so a
+  pair's counts move with it: Djokovic's arm-in-trunk 3 → 17 frames here are other rallies, a topspin forehand finishing with
+  both hands up over his head (the free hand catching the racket), not these changes.

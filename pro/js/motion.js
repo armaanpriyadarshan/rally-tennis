@@ -255,6 +255,26 @@ function hitHandFinish(F, n, fps, u0, lefty) {
   for (let f = 0; f < n; f++) { const push = Q[f], a = F[f], fr = CF[f]; if (push < 1e-4) continue;
     for (const [j, k] of [[W, 1], [J[hs + 'hand'], 1], [J[hs + 'elb'], 0.7]]) for (let c = 0; c < 3; c++) a[j * 3 + c] += fr.fw[c] * push * k; }
 }
+// Everyone else's forehand finishes across the body: the racket hand up by the far shoulder, the racket over it. Where a clip has
+// the hand finish high in the middle or on its own side (Djokovic's second set clip, filmed from in front, its hand ending above
+// his head; given Nadal's over-the-head finish it hung the racket behind his head like Nadal's), it is taken across to the far
+// shoulder, by how high it is and how far it is from across, eased over the frames around.
+const LASSO_OWN = new Set(['Nadal']);
+function crossFinish(F, n, fps, u0, lefty) {
+  const CF = chestFrames(F, n), hs = lefty ? 'l' : 'r', S = J[hs + 'sho'], E = J[hs + 'elb'], W = J[hs + 'wri'], Hd = J[hs + 'hand'], sg = lefty ? -1 : 1;
+  const P = new Float32Array(n);
+  for (let f = 0; f < n; f++) { const u = u0 + f / fps, a = F[f]; if (u < 0.06) continue; const fr = CF[f];
+    const sy = (a[J.lsho * 3 + 1] + a[J.rsho * 3 + 1]) / 2, mid = [0, 1, 2].map(c => (a[J.lsho * 3 + c] + a[J.rsho * 3 + c]) / 2);
+    const across = -[0, 1, 2].reduce((t, c) => t + (a[Hd * 3 + c] - mid[c]) * fr.rt[c], 0) * sg;   // how far over to the other side
+    P[f] = sm((u - 0.06) / 0.12) * sm((a[Hd * 3 + 1] - sy + 0.06) / 0.12) * (1 - sm((across - 0.12) / 0.12)); }
+  if (Math.max(...P) < 0.2) return;
+  const sgm = 0.04 * fps, G = Math.ceil(3 * sgm), Q = P.map((_, f) => { let s = 0, w = 0; for (let k = -G; k <= G; k++) { const e = Math.exp(-k * k / (2 * sgm * sgm)); s += P[Math.min(n - 1, Math.max(0, f + k))] * e; w += e; } return s / w; });
+  for (let f = 0; f < n; f++) { const w = Q[f]; if (w < 1e-3) continue; const a = F[f], fr = CF[f], other = fr.rt.map(x => -x * sg);
+    const mid = [0, 1, 2].map(c => (a[J.lsho * 3 + c] + a[J.rsho * 3 + c]) / 2);
+    const T = [0, 1, 2].map(c => mid[c] + other[c] * 0.26 + fr.up[c] * 0.1 + fr.fw[c] * 0.18), d = [0, 1, 2].map(c => (T[c] - a[Hd * 3 + c]) * w);
+    for (const j of [Hd, W]) for (let c = 0; c < 3; c++) a[j * 3 + c] += d[c];
+    for (let c = 0; c < 3; c++) a[E * 3 + c] += d[c] * 0.55 + fr.fw[c] * 0.05 * w; }
+}
 // A two-handed backhand's finish goes up across to the other shoulder: both hands by the far ear, the elbows up in front, the
 // racket over that shoulder behind the head. Tracked side-on, how far across the hands were could not be seen; worked out from
 // the arms' length, they finished up in the middle in front of his face with the racket standing straight up over his head. Once
@@ -477,7 +497,7 @@ export function strokeClip(lib, name, key, lefty) {
     for (let pass = 0; pass < 2; pass++) if (!repairClip(F, n, c.fps || 60, key === 'serve' || key === 'smash')) break;
     if (key !== 'serve' && key !== 'smash') { uprightClip(F, n, c.fps || 60); bridgeFoldedArm(F, n, c.fps || 60, c.u0 || 0, lefty); }
     if (key === 'serve' && !globalThis.__srvPaceOld) evenServeArm(F, n, c.fps || 60, c.u0 || 0, lefty);
-    if (key === 'fh') { frontOffArm(F, n, c.fps || 60, c.u0 || 0, lefty); freeHandInFront(F, n, c.fps || 60, c.u0 || 0, lefty); hitHandFinish(F, n, c.fps || 60, c.u0 || 0, lefty); if (!globalThis.__lassoOld) lasso = lassoFinish(F, n, c.fps || 60, c.u0 || 0, lefty); }
+    if (key === 'fh') { frontOffArm(F, n, c.fps || 60, c.u0 || 0, lefty); freeHandInFront(F, n, c.fps || 60, c.u0 || 0, lefty); hitHandFinish(F, n, c.fps || 60, c.u0 || 0, lefty); const own = String(name).split('#')[0]; if (!globalThis.__lassoOld && (globalThis.__lassoAllOld || LASSO_OWN.has(own))) lasso = lassoFinish(F, n, c.fps || 60, c.u0 || 0, lefty); else if (!globalThis.__crossFinOld) crossFinish(F, n, c.fps || 60, c.u0 || 0, lefty); }
     if (key === 'bh') { if (!frontTwoHands(F, n, c.fps || 60, c.u0 || 0)) frontOneHand(F, n, c.fps || 60, c.u0 || 0, lefty); else { twoHandsInFront(F, n, c.fps || 60, c.u0 || 0); if (!globalThis.__bhWrapOld) wrap = twoHandWrap(F, n, c.fps || 60, c.u0 || 0, lefty); } }
     if (key !== 'serve' && key !== 'smash') { despikeArms(F, n); bridgeArmJumps(F, n, c.fps || 60); }
     // A groundstroke is played from the ground: where the tracking has him hanging in the air (a hop into

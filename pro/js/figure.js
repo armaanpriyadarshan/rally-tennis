@@ -2999,7 +2999,9 @@ const CLIP_END = { 'Agassi/fh': 0.24 };
 // or at the ball, fifteen centimetres for Federer's second, thirteen for Alcaraz's high one, ten at contact for Djokovic's first)
 // (and two backhands: Sinner's fourth, its free arm through the chest in the finish, and Djokovic's fifth, its top hand a
 // tenth of a metre off the handle at the ball; each has others of the same kind of ball)
-const ALT_BAD = new Set(['Federer/fh/0', 'Federer/fh/1', 'Alcaraz/fh/1', 'Djokovic/fh/0', 'Sinner/bh/3', 'Djokovic/bh/4']);
+// (Djokovic/bh/1, his running backhand: the tracker lost both hands after contact, which drop to his knees and drift a metre off
+// to his left, so the finish was the racket pointing down at his feet in a crouch)
+const ALT_BAD = new Set(['Federer/fh/0', 'Federer/fh/1', 'Alcaraz/fh/1', 'Djokovic/fh/0', 'Sinner/bh/3', 'Djokovic/bh/4', ...(globalThis.__djBh1Old ? [] : ['Djokovic/bh/1'])]);
 const DONORS = (key, lefty, oneHand) => key === 'serve' ? (lefty ? ['Nadal', 'Federer'] : ['Federer', 'Djokovic', 'Sinner', 'Alcaraz', 'Nadal'])
   : key === 'fh' ? (lefty ? ['Federer', 'Nadal'] : ['Federer', 'Djokovic', 'Sinner', 'Alcaraz', 'Nadal'])   /* (a left-hander with none of his own borrows Federer's classic forehand mirrored, not Nadal's lasso finish over the head, which is Nadal's alone) */
   : key === 'bh' ? (oneHand ? ['Federer'] : lefty ? ['Nadal', 'Djokovic', 'Sinner', 'Alcaraz', 'Agassi'] : ['Djokovic', 'Sinner', 'Alcaraz', 'Nadal', 'Agassi']) : [];
