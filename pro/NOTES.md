@@ -893,3 +893,11 @@ still in the air, both in a stroke's finish, for two or three frames.
   102.4 s of the audit match) folded it up at the neck, forearm across the throat, ten centimetres into the chest for five frames;
   gone (his arm in trunk 0.07% → 0.01%). Federer's finishes, filmed from the front, unchanged to the eye (the free forearm across
   the stomach under the racket).
+- **Every player looked at, broadcast and behind** (`tools/steps_rosterfilm.mjs`: a seeded computer match per pair, every 0.7 s of
+  live play the game's broadcast frame cropped about each player and a camera 3.4 m behind him; 28 players x 12 shots each way).
+  No arm or foot error seen. The one thing that stands out in stills is the walk back's swinging foot early in its swing, heel up
+  and sole to the camera (Becker, Zverev, Kyrgios): it is the captured walk's own (knee bent, shank back, ankle neutral).
+- The audit's remaining "arm inside trunk" frames, photographed (`steps_audit.mjs PENPIC=0.05` lowers the picture threshold from
+  8 cm): McEnroe's serve finishes (the racket forearm brushing his stomach, 5-6 cm) and an overhead's free arm bent in front of the
+  chest as a point ended (7.7 cm) are not visible from behind or the side. The racket-hand-on-hip count's rise (0.84% → 1.06%)
+  photographed: forehand take-backs and recoveries while running, the racket back by the hip, as a take-back is.
