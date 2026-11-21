@@ -1,11 +1,13 @@
 // Film one player's strokes in a computer match: frames every STEP/60 s from 0.6 s before contact to 0.4 s after,
 // from a fixed camera behind him (or VIEW=side|front), tiled into one image per stroke. env: P0 P1 WHO KIND WING N STEP VIEW OUT
+// RSEED (the same strokes every run), DBG=1 ARM=hit|off (per-frame arm numbers)
 export default async function ({ ev, sleep, shot }) {
   const P0 = process.env.P0 || 'Federer', P1 = process.env.P1 || 'Nadal', WHO = +(process.env.WHO || 0), WING = process.env.WING || 'bh', N = +(process.env.N || 2), STEP = +(process.env.STEP || 3), VIEW = process.env.VIEW || 'back', OUT = process.env.OUT || '/tmp/rally-work2/film';
   console.log(await ev(`(async () => {
     const A = window.__app, D = await import('./js/data.js');
     const T = D.TOURNAMENTS.find(t => t.key === ${JSON.stringify(process.env.VEN || '')}) || D.TOURNAMENTS.find(t => !t.indoor && t.surface === 'hard') || D.TOURNAMENTS[0];
     const ix = n => D.PLAYERS.findIndex(p => (p.facts && p.facts.name || '').includes(n));
+    if (${+(process.env.RSEED || 0)}) { let rs = ${+(process.env.RSEED || 0)}; Math.random = () => (rs = (rs * 48271) % 2147483647) / 2147483647; }   // (RSEED: the same strokes every run)
     A.mode = 'match'; A.covered = false; window.__noOvr = ${!!process.env.NOOVR}; if (${JSON.stringify(process.env.PICK || '')} !== '') window.__forcePick = +${JSON.stringify(process.env.PICK || '0')}; document.querySelectorAll('#hud,#overlay,#ui,#shade,#bug,#strap,#tip,#cut,#wipe').forEach(e => e.style && (e.style.display = 'none'));
     await A.game.start({ T, weather: 'clear', p0: ix(${JSON.stringify(P0)}), p1: ix(${JSON.stringify(P1)}), demo: true, cam: 'tv', pace: 1, format: 'atp3' });
     A.game.running = false; window.__g = A.game; if (${!!process.env.STILL}) { const mm = A.game.match, mp = mm.movePlayer.bind(mm); mm.movePlayer = (p, dt) => { if (p.i === ${WHO} && mm.phase === 'live' && !(p.stroke && p.stroke.kind === 'serve')) { p.vx = 0; p.vz = 0; return; } mp(p, dt); }; } A.game._r = A.game.gfx.render.bind(A.game.gfx); A.game.gfx.render = () => {}; return 'ok';

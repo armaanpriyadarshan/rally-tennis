@@ -816,3 +816,19 @@ still in the air, both in a stroke's finish, for two or three frames.
   walking 0.21-0.24 → 0.15-0.19 m/s; the stops settle in 1-3 steps either way, with fewer frames of the shoes together.
   Between points the same changes take the planted toe's median from 0.15-0.18 to 0.09-0.11 m/s (p90 0.4 → 0.3-0.37).
   `tools/steps_strollskate.mjs` measures that; `tools/steps_walkfilm.mjs` now takes VIEWS (low: the feet at shin height) and FLAGS.
+- **Nadal's forehand finished over his head** (`lassoFinish` in `js/motion.js`, the racket in `js/figure.js`): his reverse
+  (buggy-whip) finish, on the run and moving in, came out as the arm straight up half a metre out to the side with the racket
+  pointing away from his head, like a man hailing a taxi. Those clips were filmed side-on, so how far out the hand was could
+  not be seen, and the racket's angle is not tracked at all. Where a forehand's hand rises above the head after contact, the
+  hand is brought over the top of the head (a little behind it), the elbow folded at forehead height in front and out on the
+  hitting side, and the racket hung behind his head pointing back, as the Cincinnati 2013 practice footage (Essential Tennis)
+  has it. Finishes across the body are untouched. `__lassoOld`.
+- **The racket raised to the crowd and the fist pump, redone** (`REACT_ANIM.raise`, `.fist`; "look terrible"). The raise was the
+  forearm folded up in front of the face, the racket out of sight, the free hand on the hip with the elbow out: now the arm goes
+  up nearly straight over the shoulder, strings to the crowd, sways once, the other arm hanging loose. The fist pump was a fist
+  held out at the stomach, forearm level, moving a hand's breadth: now the fist comes up to the chin with the elbow down by the
+  ribs and is pulled hard to the front of the hip, the trunk crunching into it, twice (in 0.12 s; its first pump had been lost in
+  the 0.25 s fade-in). Two things had flattened every reaction's hands: the hanging-arm rule still letting go on its own spring
+  (8 cm off a raised hand) and the arms' loosening after the rally (4 cm); both now give way with the reaction's weight.
+  `__raiseOld`, `__fistOld` (before load), `__reactHangOld`. `tools/steps_reactprobe.mjs` prints the reaction's hand targets
+  against the drawn hands; `tools/steps_film.mjs` takes RSEED (the same strokes every run).

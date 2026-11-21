@@ -255,6 +255,31 @@ function hitHandFinish(F, n, fps, u0, lefty) {
   for (let f = 0; f < n; f++) { const push = Q[f], a = F[f], fr = CF[f]; if (push < 1e-4) continue;
     for (const [j, k] of [[W, 1], [J[hs + 'hand'], 1], [J[hs + 'elb'], 0.7]]) for (let c = 0; c < 3; c++) a[j * 3 + c] += fr.fw[c] * push * k; }
 }
+// A forehand finished up over the head (Nadal's lasso, the reverse finish of a ball hit on the run or moving in) ends with the
+// forearm over the top of the head: the hand on top of it and a little behind, the elbow bent high in front of his face out on
+// the hitting side, the racket hanging behind his head. Filmed side-on, the camera cannot see how far out to the side the hand
+// is; worked out from the arm's length it was put half a metre out and as far up as the arm reaches, the arm straight up beside
+// him like a man hailing a taxi. Where the hand rises above the head after contact, it is brought over the top of the head and
+// the elbow folded in front, by how far above the head it is, eased over the frames around; returns, per frame, how much
+// (`lasso`, for the racket: figure.js hangs it behind his head by that much).
+function lassoFinish(F, n, fps, u0, lefty) {
+  const CF = chestFrames(F, n), hs = lefty ? 'l' : 'r', S = J[hs + 'sho'], E = J[hs + 'elb'], W = J[hs + 'wri'], Hd = J[hs + 'hand'], sg = lefty ? -1 : 1;
+  const P = new Float32Array(n);
+  for (let f = 0; f < n; f++) { const u = u0 + f / fps, a = F[f]; if (u < 0.03) continue;
+    P[f] = sm((u - 0.03) / 0.1) * sm((a[Hd * 3 + 1] - a[J.head * 3 + 1] + 0.02) / 0.14); }
+  if (Math.max(...P) < 0.3) return null;
+  const sgm = 0.04 * fps, G = Math.ceil(3 * sgm), Q = P.map((_, f) => { let s = 0, w = 0; for (let k = -G; k <= G; k++) { const e = Math.exp(-k * k / (2 * sgm * sgm)); s += P[Math.min(n - 1, Math.max(0, f + k))] * e; w += e; } return s / w; });
+  for (let f = 0; f < n; f++) { const w = Q[f]; if (w < 1e-3) continue; const a = F[f], fr = CF[f], out = fr.rt.map(x => x * sg);
+    const hd = [0, 1, 2].map(c => a[J.head * 3 + c]), sh = [0, 1, 2].map(c => a[S * 3 + c]);
+    // the hand: on top of the head (the clip's head is at the ears), 6 cm out to the hitting side, 19 cm up, 9 cm back; the wrist
+    // goes with it
+    const T = [0, 1, 2].map(c => hd[c] + out[c] * 0.06 + fr.up[c] * 0.19 - fr.fw[c] * 0.09), dH = [0, 1, 2].map(c => (T[c] - a[Hd * 3 + c]) * w);
+    for (const j of [Hd, W]) for (let c = 0; c < 3; c++) a[j * 3 + c] += dH[c];
+    // the elbow: at the height of his forehead, in front and out on the hitting side (lower, the forearm crossed his eyes)
+    const Et = [0, 1, 2].map(c => sh[c] + out[c] * 0.18 + fr.up[c] * 0.33 + fr.fw[c] * 0.19);
+    for (let c = 0; c < 3; c++) a[E * 3 + c] += (Et[c] - a[E * 3 + c]) * w; }
+  return Q;
+}
 // ...and with both hands on the racket, the grip crossing the middle of the body is in front of the chest, never in it: the
 // trackers put Connors' and Nadal's (and some of Alcaraz's and Sinner's) a few centimetres off the shoulders' plane, or behind
 // it, as the racket came through and round. The game pushed both hands out of the chest frame by frame, up to ten centimetres a
@@ -416,7 +441,7 @@ export function strokeClip(lib, name, key, lefty) {
   const id = name + '/' + key + '/' + (lefty ? 'L' : 'R'); if (_strokes.has(id)) return _strokes.get(id);
   const c = (lib[name] && lib[name][key]) || (lib._pooled && lib._pooled[key]) || null; let out = null;
   if (c && c.J && c.J.pelvis) {
-    const n = c.J.pelvis.length / 3, flip = (c.hand === 'L') !== !!lefty, F = [], TJ = steadyTracks(c);
+    const n = c.J.pelvis.length / 3, flip = (c.hand === 'L') !== !!lefty, F = [], TJ = steadyTracks(c); let lasso = null;
     for (let f = 0; f < n; f++) {
       const a = new Float32Array(N3), px = TJ.pelvis[f * 3], pz = TJ.pelvis[f * 3 + 2];
       for (let j = 0; j < NJ; j++) {
@@ -430,7 +455,7 @@ export function strokeClip(lib, name, key, lefty) {
     for (let pass = 0; pass < 2; pass++) if (!repairClip(F, n, c.fps || 60, key === 'serve' || key === 'smash')) break;
     if (key !== 'serve' && key !== 'smash') { uprightClip(F, n, c.fps || 60); bridgeFoldedArm(F, n, c.fps || 60, c.u0 || 0, lefty); }
     if (key === 'serve' && !globalThis.__srvPaceOld) evenServeArm(F, n, c.fps || 60, c.u0 || 0, lefty);
-    if (key === 'fh') { frontOffArm(F, n, c.fps || 60, c.u0 || 0, lefty); freeHandInFront(F, n, c.fps || 60, c.u0 || 0, lefty); hitHandFinish(F, n, c.fps || 60, c.u0 || 0, lefty); }
+    if (key === 'fh') { frontOffArm(F, n, c.fps || 60, c.u0 || 0, lefty); freeHandInFront(F, n, c.fps || 60, c.u0 || 0, lefty); hitHandFinish(F, n, c.fps || 60, c.u0 || 0, lefty); if (!globalThis.__lassoOld) lasso = lassoFinish(F, n, c.fps || 60, c.u0 || 0, lefty); }
     if (key === 'bh') { if (!frontTwoHands(F, n, c.fps || 60, c.u0 || 0)) frontOneHand(F, n, c.fps || 60, c.u0 || 0, lefty); else twoHandsInFront(F, n, c.fps || 60, c.u0 || 0); }
     if (key !== 'serve' && key !== 'smash') { despikeArms(F, n); bridgeArmJumps(F, n, c.fps || 60); }
     // A groundstroke is played from the ground: where the tracking has him hanging in the air (a hop into
@@ -439,7 +464,7 @@ export function strokeClip(lib, name, key, lefty) {
       const lift = F.map(a => Math.max(0, Math.min(a[J.lankle * 3 + 1], a[J.rankle * 3 + 1]) - ANKLE_H));
       for (let f = 0; f < n; f++) { let d = 0, w = 0; for (let k = -2; k <= 2; k++) { const g = Math.min(n - 1, Math.max(0, f + k)); d += lift[g]; w++; } d /= w; for (let j = 0; j < NJ; j++) F[f][j * 3 + 1] -= d; }
     }
-    out = { id, n, fps: c.fps || 60, u0: c.u0 || 0, F, span: [c.u0 || 0, (c.u0 || 0) + (n - 1) / (c.fps || 60)], ok: c.ok };
+    out = { id, n, fps: c.fps || 60, u0: c.u0 || 0, F, span: [c.u0 || 0, (c.u0 || 0) + (n - 1) / (c.fps || 60)], ok: c.ok, lasso };
   }
   _strokes.set(id, out); return out;
 }

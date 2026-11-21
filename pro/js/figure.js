@@ -182,6 +182,7 @@ function follow(cur, tgt, F, dt, thr, first, al = 0.6, be = 0.5) {
 // own turn, which runs ahead of the skeleton's in a fast twist, an arm held to 36 degrees a frame there still swung 46
 // against the body as it is drawn.)
 const _sbF = new THREE.Vector3(), _sbR = new THREE.Vector3();
+const _laT = new THREE.Vector3(), _laF = new THREE.Vector3(), _laD = new THREE.Vector3(), _laQ = new THREE.Quaternion();
 const _lpO0 = new THREE.Vector3(), _lpO1 = new THREE.Vector3(), _rkQi = new THREE.Quaternion(), _rkQ = new THREE.Quaternion(), _rkQ2 = new THREE.Quaternion(), _rkD = new THREE.Vector3(), _rkN = new THREE.Vector3(), _rgSh = new THREE.Vector3(), _rr1 = new THREE.Vector3(), _rr2 = new THREE.Vector3(), _rr3 = new THREE.Vector3(), _rr4 = new THREE.Vector3(), _rr5 = new THREE.Vector3(), _rr6 = new THREE.Vector3();
 const _ecP = new THREE.Vector3(), _ecU = new THREE.Vector3(), _ecA = new THREE.Vector3(), _ecB = new THREE.Vector3(), _ecF = new THREE.Vector3(), _ecS = new THREE.Vector3(), _ecE = new THREE.Vector3(), _ecW = new THREE.Vector3(), _ecX = new THREE.Vector3(), _ecT = new THREE.Vector3(), _ecQ = new THREE.Vector3();
 function bodyFrame(person, pelvis, cR, cU, cF) {
@@ -1314,7 +1315,7 @@ export class Figure {
     // that bent both arms, hands at the waist, elbows out behind: a gunslinger's stance from the camera behind him. (Eased in
     // and out; not in a reaction, which places its own hands, nor waiting to serve.)
     // (not while he is still running out the point: hanging straight down at a sprint, the free hand sat on his hip)
-    { const want = !live && !this.posed && !serverWait ? (1 - Math.max(this.reactK || 0, this.touchK || 0)) * (1 - sm(sw / 0.2)) * (1 - sm((speed - 2.0) / 1.5)) : 0, wH = clamp(ease(this, 'hangW', want, 13, dt), 0, 1);
+    { const want = !live && !this.posed && !serverWait ? (1 - Math.max(this.reactK || 0, this.touchK || 0)) * (1 - sm(sw / 0.2)) * (1 - sm((speed - 2.0) / 1.5)) : 0, wH = clamp(ease(this, 'hangW', want, 13, dt), 0, 1) * (globalThis.__reactHangOld ? 1 : 1 - Math.max(this.reactK || 0, this.touchK || 0));   /* (and let go of with the reaction's own weight, not after it on its own spring: a fist pumped up to the chin was held 8 cm down by the hanging arm still letting go) */
       if (wH > 0.001) { const shs = [shL, shR]; for (let i = 0; i < 2; i++) { const hy = shs[i].y - (D.upper + D.fore) * 0.97; if (tgt[i].y > hy) tgt[i].y = lerp(tgt[i].y, hy, wH); } } }
     // running flat out, or strolling between points, the arms are the clip's own: they swing
     // (coming out of a stroke the arms are handed to the run as the stroke lets go of them, not at once below some mark, and
@@ -1395,7 +1396,7 @@ export class Figure {
         if (pp.lengthSq() > 1e-6) { pp.normalize(); const th = Math.acos(clamp(need, -1, 1)); fd.copy(ud).multiplyScalar(Math.cos(th)).addScaledVector(pp, Math.sin(th)); } }
       // (the free arm running back into position carries itself: a third of the way it stays with the ready position's
       // hold, so it swings less than a sprinter's; flat out, a sprinter's swing from the clip would flail round the body)
-      cWr[i].copy(cEl[i]).addScaledVector(fd, Fl); let fw = freeOf(i); if (i === off && !strolling && swA < 0.4) fw = Math.min(fw, 1 - 0.35 * free * (1 - sm(swA / 0.4))); if (fw > 0.001) tgt[i].lerp(cWr[i], fw); }
+      cWr[i].copy(cEl[i]).addScaledVector(fd, Fl); let fw = freeOf(i); if (i === off && !strolling && swA < 0.4) fw = Math.min(fw, 1 - 0.35 * free * (1 - sm(swA / 0.4))); if (!globalThis.__reactHangOld) fw *= 1 - (this.reactK || 0); if (fw > 0.001) tgt[i].lerp(cWr[i], fw); }   /* (a reaction places both hands itself: the arms' loosening after the rally took 4 cm off the top of a fist pump) */
     if (this.dbgOn) this.dbg = { cWr: cWr.map(v => v.clone()), cEl: cEl.map(v => v.clone()), tgt1: tgt.map(v => v.clone()), freeOff: freeOf(off), armW, clipWA, sh: sh.map(v => v.clone()), keyH: _keyHand.clone(), keyOff: this._keyOff ? this._keyOff.clone() : null, free, rw, freeA, carry, swA, sw, clipFeet: Math.hypot(LP[J.lankle * 3] - LP[J.rankle * 3], LP[J.lankle * 3 + 2] - LP[J.rankle * 3 + 2]) * H, clipW, locks: this.lockF.map(l => (l.on ? 'on' : l.step ? 'step' : 'air')), cR: cRight.clone(), cU: _v9.set(0, 1, 0).applyQuaternion(qChest).clone() };
     // Both hands on one handle: the clip's two wrists are two measurements of where that handle is (the tracker often
     // has one of them, hidden behind the body, a hand's length or more out), so the bottom hand goes where the two agree
@@ -1638,6 +1639,13 @@ export class Figure {
     // Djokovic keeps the racket's head up through his turn, the racket upright beside him before it goes back: his own
     // arm carries the shared keys' racket out flat at the height of his head there, which from behind is a racket laid
     // over his head. Its head is kept at least this far above level until the carry has it upright of itself.
+    // A forehand finished over the head (the clip's `lasso`, motion.js): the racket hangs behind his head, pointing back and a
+    // little across, as the footage has Nadal's. Carried by the forearm from the shared keys, made for a finish across the body,
+    // it pointed straight out from the raised hand, away from his head.
+    if (OC && OC.lasso && armW > 0.001 && st && st.wing === 'fh' && !globalThis.__lassoOld) {
+      const x = Math.min(OC.n - 1, Math.max(0, (cu - OC.u0) * OC.fps)), i = Math.min(OC.n - 2, Math.floor(x)), lw = (OC.lasso[i] + (OC.lasso[i + 1] - OC.lasso[i]) * (x - i)) * armW;
+      if (lw > 0.001) { const cf = _laF.set(0, 0, -1).applyQuaternion(qChest), tg = _laT.copy(cf).multiplyScalar(-0.85).addScaledVector(cRight, (hs > 0 ? 1 : -1) * -0.3).addScaledVector(UP, 0.2).normalize();
+        const d0 = _laD.copy(dir); dir.lerp(tg, lw).normalize(); nrm.applyQuaternion(_laQ.setFromUnitVectors(d0, dir)).normalize(); } }
     const hu = st && HEAD_UP[(this.look.name || '') + '/' + st.wing];
     if (hu && armW > 0.001 && !/^(serve|smash|volley|block|slice|drop)$/.test(st.__dk || st.kind)) {
       const w = armW * sm5((u - hu[0]) / 0.1) * (1 - sm5((u - hu[1]) / 0.12)), hl = Math.hypot(dir.x, dir.z);
@@ -2983,7 +2991,7 @@ function blendPose(a, b, w) {
 // Poses in the strokes' terms (hitting hand R, free hand L, for a right-hander; mirrored for a left-hander).
 const REACT = {
   // won
-  fist:    { adur: 1.55, R: [0.26, 1.38, 0.22], L: [-0.22, 1.0, 0.18], dir: [0.3, 0.3, -0.9], nrm: [1, 0, 0], twist: 0.2, lean: 0.12, crouch: 0.06, stance: 0.24, lgrip: 0, head: 0.1, fist: 1, shout: 0.22 },
+  fist:    { adur: 1.55, R: [0.26, 1.38, 0.22], L: [-0.22, 1.0, 0.18], dir: [0.3, 0.3, -0.9], nrm: [1, 0, 0], twist: 0.2, lean: 0.12, crouch: 0.06, stance: 0.24, lgrip: 0, head: 0.1, fist: 1, shout: 0.22, ...(globalThis.__fistOld ? {} : { poleL: [0.35, -0.92, 0.0], in: 0.12 }) },
   vamos:   { adur: 1.35, R: [0.24, 1.00, 0.30], L: [-0.22, 0.98, 0.32], dir: [0.4, -0.2, 0.9], nrm: [1, 0, 0], twist: 0.1, lean: 0.36, crouch: 0.20, stance: 0.38, lgrip: 0, head: 0.2, fist: 1, shout: 0.32, in: 0.15, dur: 1.2 },
   free:    { adur: 1.55, R: [0.26, 0.92, 0.12], L: [-0.30, 1.42, 0.10], dir: [0.15, -0.9, 0.35], nrm: [1, 0, 0], twist: -0.45, lean: 0.10, crouch: 0.06, stance: 0.26, lgrip: 0, head: 0.12, fist: 1, shout: 0.26 },
   raise:   { adur: 1.75, R: [0.18, 1.86, 0.18], L: [-0.24, 1.00, 0.10], dir: [0.1, 0.95, 0.2], nrm: [1, 0, 0], twist: 0.1, lean: 0.04, crouch: 0.02, stance: 0.26, lgrip: 0, head: 0.3, shout: 0.18, dur: 1.3 },
@@ -3180,7 +3188,10 @@ const FH_SLICE = track([
 // laid on the far shoulder, the hands on the head brought down across the chest.) Racket hand R, free hand L, for a right-hander.
 const HANG = { R: [0.27, 0.92, 0.12], dir: [0.15, -0.70, 0.70], nrm: [1, 0, 0] };
 const REACT_ANIM = {
-  fist: track([
+  // (the fist pump as players do it: the fist up to the chin with the elbow tucked down by the ribs, then pulled hard down to
+  // the hip, the trunk crunching forward into it, twice. It was a fist held out at the stomach, the forearm level, moving a
+  // hand's breadth up and down: a man holding a cup. `__fistOld` for it.)
+  fist: globalThis.__fistOld ? track([
     { u: 0.00, ...HANG, L: [-0.22, 1.18, 0.32], twist: 0.1, lean: 0.10, crouch: 0.05, stance: 0.26, lgrip: 0, head: 0.05 },
     { u: 0.16, ...HANG, L: [-0.24, 1.40, 0.34], twist: 0.12, lean: 0.08, crouch: 0.05, stance: 0.26, lgrip: 0, head: 0.12 },
     { u: 0.30, ...HANG, L: [-0.26, 1.10, 0.18], twist: 0.18, lean: 0.18, crouch: 0.10, stance: 0.27, lgrip: 0, head: 0.22 },
@@ -3188,6 +3199,14 @@ const REACT_ANIM = {
     { u: 0.62, ...HANG, L: [-0.26, 1.08, 0.17], twist: 0.18, lean: 0.18, crouch: 0.10, stance: 0.27, lgrip: 0, head: 0.22 },
     { u: 0.95, ...HANG, L: [-0.24, 1.16, 0.24], twist: 0.12, lean: 0.12, crouch: 0.06, stance: 0.26, lgrip: 0, head: 0.10 },
     { u: 1.40, ...HANG, L: [-0.22, 0.95, 0.14], twist: 0.05, lean: 0.08, crouch: 0.03, stance: 0.24, lgrip: 0, head: 0.00 },
+  ]) : track([
+    { u: 0.00, ...HANG, L: [-0.22, 1.20, 0.20], twist: 0.10, lean: 0.06, crouch: 0.04, stance: 0.27, lgrip: 0, head: 0.10 },
+    { u: 0.18, ...HANG, L: [-0.16, 1.43, 0.26], twist: 0.06, lean: 0.02, crouch: 0.03, stance: 0.27, lgrip: 0, head: 0.18 },
+    { u: 0.33, ...HANG, L: [-0.19, 1.01, 0.15], twist: 0.20, lean: 0.24, crouch: 0.12, stance: 0.29, lgrip: 0, head: 0.06 },
+    { u: 0.47, ...HANG, L: [-0.16, 1.45, 0.25], twist: 0.08, lean: 0.06, crouch: 0.05, stance: 0.29, lgrip: 0, head: 0.16 },
+    { u: 0.62, ...HANG, L: [-0.19, 0.99, 0.14], twist: 0.22, lean: 0.26, crouch: 0.14, stance: 0.29, lgrip: 0, head: 0.04 },
+    { u: 0.92, ...HANG, L: [-0.21, 1.00, 0.12], twist: 0.14, lean: 0.16, crouch: 0.08, stance: 0.27, lgrip: 0, head: 0.06 },
+    { u: 1.40, ...HANG, L: [-0.24, 0.88, 0.07], twist: 0.04, lean: 0.08, crouch: 0.03, stance: 0.24, lgrip: 0, head: 0.00 },
   ]),
   vamos: track([
     { u: 0.00, R: [0.24, 1.10, 0.34], L: [-0.22, 1.12, 0.34], dir: [0.35, 0.20, 0.90], nrm: [1, 0, 0], twist: 0.1, lean: 0.28, crouch: 0.12, stance: 0.36, lgrip: 0, head: 0.15 },
@@ -3206,13 +3225,23 @@ const REACT_ANIM = {
     { u: 1.10, ...HANG, L: [-0.28, 1.48, 0.28], twist: -0.2, lean: 0.08, crouch: 0.03, stance: 0.26, lgrip: 0, head: 0.10 },
     { u: 1.40, ...HANG, L: [-0.22, 1.00, 0.18], twist: 0, lean: 0.08, crouch: 0.02, stance: 0.24, lgrip: 0, head: 0.00 },
   ]),
-  raise: track([
+  // (the racket held up to the crowd: the arm up almost straight over his shoulder, the strings toward them, swayed once side
+  // to side, the other arm hanging loose. It was the forearm folded up in front of his face, the racket out of sight above it,
+  // and the free hand on his hip with the elbow out. `__raiseOld` for it.)
+  raise: globalThis.__raiseOld ? track([
     { u: 0.00, R: [0.24, 1.40, 0.32], L: [-0.22, 0.98, 0.14], dir: [0.20, 0.90, 0.30], nrm: [1, 0, 0], twist: 0.1, lean: 0.06, crouch: 0.03, stance: 0.26, lgrip: 0, head: 0.15 },
     { u: 0.30, R: [0.20, 1.98, 0.16], L: [-0.22, 0.98, 0.14], dir: [0.05, 0.98, 0.15], nrm: [1, 0, 0], twist: 0.1, lean: 0.04, crouch: 0.02, stance: 0.26, lgrip: 0, head: 0.30 },
     { u: 0.70, R: [0.24, 1.95, 0.18], L: [-0.22, 0.98, 0.14], dir: [0.18, 0.97, 0.10], nrm: [1, 0, 0], twist: 0.12, lean: 0.04, crouch: 0.02, stance: 0.26, lgrip: 0, head: 0.30 },
     { u: 1.00, R: [0.17, 1.98, 0.14], L: [-0.22, 0.98, 0.14], dir: [-0.06, 0.98, 0.15], nrm: [1, 0, 0], twist: 0.08, lean: 0.04, crouch: 0.02, stance: 0.26, lgrip: 0, head: 0.28 },
     { u: 1.35, R: [0.25, 1.45, 0.30], L: [-0.22, 0.98, 0.14], dir: [0.20, 0.60, 0.75], nrm: [1, 0, 0], twist: 0.05, lean: 0.06, crouch: 0.02, stance: 0.26, lgrip: 0, head: 0.10 },
     { u: 1.65, ...HANG, L: [-0.22, 0.96, 0.14], twist: 0, lean: 0.08, crouch: 0.02, stance: 0.24, lgrip: 0, head: 0.00 },
+  ]) : track([
+    { u: 0.00, R: [0.24, 1.42, 0.30], L: [-0.25, 0.88, 0.07], dir: [0.12, 0.90, 0.42], nrm: [0, -0.4, 0.92], twist: 0.06, lean: 0.04, crouch: 0.02, stance: 0.26, lgrip: 0, head: 0.15 },
+    { u: 0.30, R: [0.20, 2.16, 0.10], L: [-0.25, 0.87, 0.06], dir: [0.04, 0.99, 0.10], nrm: [0, -0.1, 1], twist: 0.04, lean: -0.02, crouch: 0.01, stance: 0.26, lgrip: 0, head: 0.30 },
+    { u: 0.65, R: [0.24, 2.15, 0.10], L: [-0.25, 0.87, 0.06], dir: [0.22, 0.97, 0.08], nrm: [-0.2, -0.1, 0.97], twist: 0.08, lean: -0.02, crouch: 0.01, stance: 0.26, lgrip: 0, head: 0.30 },
+    { u: 1.00, R: [0.17, 2.16, 0.10], L: [-0.25, 0.87, 0.06], dir: [-0.10, 0.99, 0.10], nrm: [0.1, -0.1, 0.99], twist: 0.02, lean: -0.02, crouch: 0.01, stance: 0.26, lgrip: 0, head: 0.28 },
+    { u: 1.35, R: [0.25, 1.46, 0.28], L: [-0.25, 0.88, 0.07], dir: [0.20, 0.62, 0.75], nrm: [1, 0, 0], twist: 0.04, lean: 0.05, crouch: 0.02, stance: 0.26, lgrip: 0, head: 0.10 },
+    { u: 1.65, ...HANG, L: [-0.23, 0.92, 0.10], twist: 0, lean: 0.08, crouch: 0.02, stance: 0.24, lgrip: 0, head: 0.00 },
   ]),
   calm: track([
     { u: 0.00, ...HANG, L: [-0.22, 0.98, 0.16], twist: 0.05, lean: 0.08, crouch: 0.02, stance: 0.22, lgrip: 0, head: -0.05 },
