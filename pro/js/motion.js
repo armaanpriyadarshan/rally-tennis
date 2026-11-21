@@ -13,7 +13,7 @@ for (const k in LOCO) { const c = LOCO[k], sp = Math.hypot(c.v[0], c.v[1]), dur 
 // (the stroll's stride is the ground its planted foot covers, not its hips: the hips rock forward and back within each step, and
 // timed by their average speed the cycle ran a twelfth slow for the feet, the planted foot drifting forward under him until the
 // game's lock let go of it and a catch-up step of its own took over from the walker's)
-if (CL.stroll) { const c = CL.stroll, n = c.n, sp = [];
+if (CL.stroll && globalThis.__strollFootTimeOn) { const c = CL.stroll, n = c.n, sp = [];   /* (not since the stroll keeps its root motion: timed by its own steady speed, its planted foot is still) */
   for (const j of [5, 6]) { let mn = 9; for (const f of c.F) mn = Math.min(mn, f[j * 3 + 1]); const T = [], Z = [];
     for (let q = 0; q < n; q++) if (c.F[q][j * 3 + 1] < mn + 0.012) { T.push(q / LOCO_FPS); Z.push(c.F[q][j * 3 + 2]); }
     if (T.length > 4) { const mt = T.reduce((a, b) => a + b) / T.length, mz = Z.reduce((a, b) => a + b) / Z.length; let nu = 0, de = 0; for (let q = 0; q < T.length; q++) { nu += (T[q] - mt) * (Z[q] - mz); de += (T[q] - mt) ** 2; } sp.push(-nu / de); } }
@@ -511,7 +511,7 @@ export class Loco {
     w.up = c01(ease(w, 'up', upright ? 1 : 0, upright ? 7 : 15, dt));   /* (up out of the crouch in about half a second once the point is over: at the slower rate he walked back to the line still half in his ready stance) */
     // the forward gait for this speed: the two measured gaits either side of it
     let i = 0; while (i < FWD.length - 2 && speed > FWD[i + 1].speed) i++;
-    const fa = FWD[i], fb = FWD[i + 1], t = sm((speed - fa.speed) / (fb.speed - fa.speed));
+    const fa = FWD[i], fb = FWD[i + 1], SR0 = CL.stroll && !globalThis.__strollClipOld2 ? CL.stroll : null, uS0 = SR0 && fa === CL.walk ? c01(strollW || 0) : 0, faSp = uS0 > 0 ? fa.speed + (SR0.speed - fa.speed) * uS0 : fa.speed, t = sm((speed - faSp) / (fb.speed - faSp));   /* (from the stroll's own speed when strolling: from the play walk's slower one, a fourteenth of the jog's longer stride came in at the stroll's own pace and the cycle ran slow for its feet) */
     // (upright, between points, the slowest gait is the stroll, an ordinary walk played as it is (see figure.js), timed by its own
     // planted foot and at the figure's size; in play it stays the walk the play's footwork was tuned on)
     const SR = CL.stroll && !globalThis.__strollClipOld2 ? CL.stroll : null, uS = SR && fa === CL.walk ? c01(strollW || 0) : 0;   /* (by the stroll itself, not by being upright: upright also covers waiting to serve and serving, and the stroll's clip under play's footwork there made the feet jump) */

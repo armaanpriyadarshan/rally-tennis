@@ -756,8 +756,21 @@ still in the air, both in a stroke's finish, for two or three frames.
   Got wrong on the way (each caught by the roster audit): switching the clip by being upright (that includes waiting to serve
   and serving: under play's footwork the new clip's feet jumped), switching on as the point ended while still running, and a
   plant left set from the last walk back (the next began by dragging a foot half a metre).
+- **The walk, again** ("the elbows invert and each step looks like two"): the stroll clip is now kept in a frame moving at its
+  steady speed (`stroll`, built with its root motion: its hips surge 4 cm within each step and its planted foot is still on the
+  court with the body moving evenly), so the feet follow it exactly with no plant and no catch-up: the plant's catch-up as a
+  foot lifted was the second step. One movement per foot per stride now. The walk-to-jog blend is measured from the stroll's
+  own speed (from the play walk's, 7% of the jog's stride came in at the stroll's pace). The elbows: the walk's arms are nearly
+  straight, and the rules made for a stroke's arms let the elbow come round in front as the hand swung back, the forearm folded
+  backwards; strolling, the elbow is kept behind the line from shoulder to hand, applied last and every frame (applied only when
+  it had strayed, it fought the arm's easing and saw-toothed). And the racket is carried head forward and down: hung straight
+  down, its head reached the court, the rule that keeps it off the court lifted the hand thirty centimetres and the racket arm
+  walked bent and flared, from behind an elbow turned out the wrong way. Measured on a walk back: both elbows fold forward
+  throughout (free 18-31 degrees, racket arm 50-57), steady. Flags `__strollElbBackOld`, `__strollRkOld`; the plant and the
+  foot-timed stride stay available as `__strollPlantOn`, `__strollFootTimeOn`.
 - **The run round the ball**: holding sideways speed away from a prepared stroke to a side-step's 2.9 m/s (`js/sim.js`) was
-  tried and taken out: even for the player alone it doubled legs through each other. The gallop there remains.
+  tried twice and taken out: even for the player alone, eased in, it did not reduce the gallop measured with the arrows
+  (3.9% of frames either way) and added legs through each other. The gallop there remains.
 - **Menu portraits are baked** (`tools/steps_bakeportraits.mjs` → `assets/portraits/<name>-<kit>.webp`, `js/portraitfiles.js`,
   140 pictures, 3 MB). Opening the player list the first time drew every card's portrait in the event's kit there and then:
   a figure built, posed for 120 frames and read back, for each, 6.7 s of a frozen page. Now the menus load pictures (the list

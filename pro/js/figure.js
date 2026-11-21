@@ -300,8 +300,10 @@ export class Figure {
     if (!globalThis.__strollClipOld && F) { const k = Math.min(1, speed / 0.6) * (this.loco.w.go || 0), G = this.hs > 0 ? F : (this.loco.FW2 || F);
       if (k > 0.001) { const cR = [G[J.rhand * 3], G[J.rhand * 3 + 1], G[J.rhand * 3 + 2]], cL = [G[J.lhand * 3], G[J.lhand * 3 + 1], G[J.lhand * 3 + 2]];
         R = R.map((v, q) => v + (cR[q] - v) * k); L = L.map((v, q) => v + (cL[q] - v) * k); } }
-    // (the racket hangs from the hand, its head toward the court and a little forward, as the players carry it walking back)
-    return { R, L, dir: globalThis.__strollClipOld ? [0.05, -0.55, 0.83] : [0.08, -0.86, 0.5], nrm: [1, 0, 0], twist: 0, lean: 0.06, crouch: 0.02, stance: 0.14, lgrip: 0, head: this.lookUp ? 0.02 : -0.25 };
+    // (the racket carried head forward and down, as the players carry it walking back: hung straight down, its head reached the
+    // court, the rule that keeps it off the court lifted the hand, and the arm walked bent and flared, from behind an elbow turned
+    // out the wrong way)
+    return { R, L, dir: globalThis.__strollClipOld ? [0.05, -0.55, 0.83] : globalThis.__strollRkOld ? [0.08, -0.86, 0.5] : [0.08, -0.6, 0.8], nrm: [1, 0, 0], twist: 0, lean: 0.06, crouch: 0.02, stance: 0.14, lgrip: 0, head: this.lookUp ? 0.02 : -0.25 };
   }
   runPose(t, speed) {
     const ph = this.gait * Math.PI * 2, sw = Math.sin(ph) * 0.07 * Math.min(1, speed / 4), up = Math.cos(ph * 2) * 0.012;
@@ -1103,7 +1105,7 @@ export class Figure {
         // step taking up the difference (setting off and pulling up, the stand and the walk are blended and the feet follow the
         // blend: planted from a standstill, the first foot was left a stride behind as he got going): followed exactly, the walker's heel still travelling forward as it touched down slid
         // the landing foot ten centimetres along the court)
-        if (!globalThis.__strollPlantOld) { const sl = this.sfLock || (this.sfLock = [{ on: false, x: 0, z: 0, ox: 0, oz: 0 }, { on: false, x: 0, z: 0, ox: 0, oz: 0 }]), L = sl[i];
+        if (globalThis.__strollPlantOn) { const sl = this.sfLock || (this.sfLock = [{ on: false, x: 0, z: 0, ox: 0, oz: 0 }, { on: false, x: 0, z: 0, ox: 0, oz: 0 }]), L = sl[i];
           if (cy - D.ankle < 0.02 * H && dt > 0 && (L.on || go > (globalThis.__plantGo ?? 0.92))) { if (!L.on) { L.on = true; L.x = cx + L.ox; L.z = cz + L.oz; L.ox = L.oz = 0; } else if (globalThis.__plantPull) { const k = 1 - Math.exp(-dt * globalThis.__plantPull); L.x += (cx - L.x) * k; L.z += (cz - L.z) * k; } cx = L.x; cz = L.z; }
           else { if (L.on) { L.on = false; L.ox = L.x - cx; L.oz = L.z - cz; } const k = Math.exp(-dt * 18); L.ox *= k; L.oz *= k; cx += L.ox; cz += L.oz; } }
         ankle.x += (cx - ankle.x) * stK; ankle.z += (cz - ankle.z) * stK; ankle.y += (cy - ankle.y) * stK;
@@ -2208,7 +2210,13 @@ export class Figure {
       { const runE = Math.max((i === off ? freeOf(off) : carry) * (1 - sm(swA / 0.4)) * sm((speed - 2.5) / 1.5) * (inPlayE ? 1 : 0), hipZone, strollE);
         if (runE > 0.001) { const oU = _rc1.copy(cRight).multiplyScalar(sx), xo = pole.dot(oU);
           if (xo > 0.2) { const pn = _rc2.copy(pole).addScaledVector(oU, (0.2 - xo) * runE), dS = _b.copy(wrist[i]).sub(sh[i]).normalize(); pn.addScaledVector(dS, -pn.dot(dS));
-            if (pn.lengthSq() > 0.04) pole.copy(pn.normalize()); } } } if (this.dbgOn) { const DP = this.dbgPole || (this.dbgPole = [{}, {}]); DP[i].p5 = pole.clone(); }
+            if (pn.lengthSq() > 0.04) pole.copy(pn.normalize()); } } }
+      // (walking back between points the elbows point back, a little out, as a walker's do: the walk's arms are nearly straight,
+      // so which way they bend was left to the rules for a stroke's arms, and as the hand swung behind the hip the elbow came
+      // round in front of it, the forearm bent the wrong way, at every step)
+      { const sK = globalThis.__strollElbBackOld ? 0 : (this.strollK || 0); if (sK > 0.001) { const dS = _b.copy(wrist[i]).sub(sh[i]).normalize(), bk = _rc2.copy(cFwdW).multiplyScalar(-0.9).addScaledVector(cRight, sx * 0.3).addScaledVector(cUpW, -0.15);
+          bk.addScaledVector(dS, -bk.dot(dS)); if (bk.lengthSq() > 1e-4) { bk.normalize(); pole.lerp(bk, sK).normalize(); } } }
+      if (this.dbgOn) { const DP = this.dbgPole || (this.dbgPole = [{}, {}]); DP[i].p5 = pole.clone(); }
       // No chicken wing. An elbow can turn round the line from shoulder to hand, and with the hand at or below the shoulder
       // a real one stays within about sixty degrees of the lowest it could be (a hundred with the hand up level with the
       // shoulder): it does not ride up and out to the side while the hand is down by the chest or the hip. Tracked clips
@@ -2308,7 +2316,12 @@ export class Figure {
             ps.copy(a0).applyAxisAngle(dA, clamp(ang * k, -mx, mx));
           } else ps.lerp(pole, 1 - Math.exp(-dt * 22)).normalize();
         }
-        pole.copy(ps); } if (this.dbgOn) { const DP = this.dbgPole || (this.dbgPole = [{}, {}]); DP[i].p8 = pole.clone(); }
+        pole.copy(ps); }
+      // (and strolling, last of all, the elbow behind the line from shoulder to hand: with the arm hanging nearly straight the rules
+      // after the first one left it free to come round in front, and the racket arm folded backwards at the elbow mid-stride)
+      { const sK = globalThis.__strollElbBackOld ? 0 : (this.strollK || 0); if (sK > 0.001) { const dS = _b.copy(wrist[i]).sub(sh[i]).normalize(), bk = _rc2.copy(cFwdW).multiplyScalar(-0.9).addScaledVector(cRight, sx * 0.3).addScaledVector(cUpW, -0.15);
+          bk.addScaledVector(dS, -bk.dot(dS)); if (bk.lengthSq() > 1e-4) { bk.normalize(); pole.lerp(bk, sK).normalize(); this.poleS[i].copy(pole); } } }
+      if (this.dbgOn) { const DP = this.dbgPole || (this.dbgPole = [{}, {}]); DP[i].p8 = pole.clone(); }
       // The wrist, too, moves round the chest no faster than a hand does away from the swing at the ball: about fifteen
       // centimetres a frame (nine metres a second). Through the stroke itself it is free. (A hand handed from one stroke to
       // another can be asked to be half a metre away in a frame, by a grip let go or a rule switched on; it gets there over a
