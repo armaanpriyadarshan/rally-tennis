@@ -1067,3 +1067,9 @@ still in the air, both in a stroke's finish, for two or three frames.
     the camera is a front quarter (105-127 degrees by where his face points) and the take-back has the racket hand in front of his hips: the
     tracker cannot see how far back the arm goes from in front, the fault that made forehands 3 and 4 useless. The three fastest (22 m/s
     at the wrist) end 0.3-0.45 s after contact, which would be frozen on their last frame. His first clip stays.
+- **Nadal's forehand no longer hangs at the top** (he said "his forehand still hangs too long at the top"): his clips hold the lasso over
+  the head from +0.2 to +0.45 s (the back-fence film holds it to about +0.7 s), and in the game the racket read as hanging there. A
+  finish can now be played faster than filmed from just after contact to the end of its hang (`FINISH_RATE`: Nadal's forehand 1.6 x up to
+  0.45 s of the clip; `__finRateOld`): the hand keeps moving through the top (3.4-4.9 m/s, against near-still before) and comes down
+  0.15 s sooner, at its filmed speed (played faster all the way, it was thrown down at 10 m/s). The fade into the next pose keeps its own
+  length in the clip's time, so the lasso itself is not faded.

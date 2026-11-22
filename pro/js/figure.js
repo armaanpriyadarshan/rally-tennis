@@ -831,7 +831,10 @@ export class Figure {
         const e1 = OC.span[1], hold = st.kind === 'serve' || st.kind === 'smash' ? 0 : clamp(0.82 - e1, 0, 0.4), dS = 0.14;
         if (hold > 0) this.ocHoldU = e1 - dS; if (OC.tb != null) this.ocTbU = OC.tb;
         if (hold > 0 && u > e1 - dS) cu = e1 - dS * Math.exp(-(u - (e1 - dS)) / dS);
-        const cIn = sm5((u - OC.span[0]) / (st.kind === 'serve' || st.kind === 'smash' ? 0.14 : 0.3)), cOut = 1 - sm5((u - (e1 + hold - fo)) / fo); const swF = !globalThis.__finSwOld && st.kind !== 'serve' && st.kind !== 'smash' && st.tc != null && u > 0.05 && (p.stroke === st || p.lastStroke === st) ? 1 : 0;   /* (after contact a groundstroke's clip plays out to its own end and fades into the next pose over its own last third of a second: let go of with the stroke's weight, which falls over a quarter of a second from 0.45 s, Nadal's racket hung still over his head in the lasso and was then thrown down to the ready pose at ten metres a second, a pause and a snap) */
+        // (a finish that hangs at the top is played through faster from just after contact: FINISH_RATE)
+        const FR = st.kind !== 'serve' && st.kind !== 'smash' && !globalThis.__finRateOld ? FINISH_RATE[(this.look.name || '') + '/' + st.wing] : null, fr = FR ? FR[0] : 1, fE = FR ? FR[1] : 0, uF = fr !== 1 && u > 0.12 ? (u < 0.12 + (fE - 0.12) / fr ? 0.12 + (u - 0.12) * fr : fE + (u - 0.12 - (fE - 0.12) / fr)) : u;   /* (faster only through the hang, to fE in the clip's time; the racket comes down at its own speed) */
+        if (fr !== 1 && hold <= 0) cu = uF;
+        const cIn = sm5((u - OC.span[0]) / (st.kind === 'serve' || st.kind === 'smash' ? 0.14 : 0.3)), cOut = 1 - sm5((uF - (e1 + hold - fo)) / fo); const swF = !globalThis.__finSwOld && st.kind !== 'serve' && st.kind !== 'smash' && st.tc != null && u > 0.05 && (p.stroke === st || p.lastStroke === st) ? 1 : 0;   /* (after contact a groundstroke's clip plays out to its own end and fades into the next pose over its own last third of a second: let go of with the stroke's weight, which falls over a quarter of a second from 0.45 s, Nadal's racket hung still over his head in the lasso and was then thrown down to the ready pose at ten metres a second, a pause and a snap) */
         clipW = held ? Math.max(sw, this.addrW) * cOut : Math.min(Math.max(sw, swF), cIn, cOut); clipWA = held ? clipW : Math.min(Math.max(swA, swF), cIn, cOut); }   /* (the least of the three, not their product: two fades at once would go twice as fast) */
       if (OC && OC.tb != null) { const k = 1 - sm5((u - OC.tb) / (OC.tbD || 0.2)); clipW *= k; clipWA *= k; }
       // A stroke that changes part way into one with no tracked swing of its own (a drive turned into a drop shot with
@@ -3068,6 +3071,11 @@ const MAIN_BAD = new Set(globalThis.__djFhOld ? ['McEnroe/bh'] : ['McEnroe/bh', 
 // the hand back behind his hip) are let go of over longer: faded in the usual third of a second, the arm swung through the
 // chest on its way back, twelve centimetres for Sampras and six for Agassi, and forty degrees in a frame.
 const FINISH_FADE = { 'Sampras/fh': 2, 'Agassi/fh': 1.5, 'Laver/bh': 1.4, 'McEnroe/bh': 1.4 };
+// How much faster than filmed a finish is played from just after contact (0.12 s) to the end of its hang. Nadal's forehands hold the
+// lasso over his head for a quarter of a second (+0.2 to +0.45 s) before the racket comes down; in the game it read as the racket
+// hanging at the top. At 1.6 x the top lasts about a sixth of a second; the racket then comes down at its filmed speed (played faster
+// all the way, it was thrown down at 10 m/s).
+const FINISH_RATE = { 'Nadal/fh': [1.6, 0.45] };   // [rate, until this clip time]
 // Tracked clips held from a moment before their end: Agassi's forehand ends, as his windshield-wiper finishes do, with the hand
 // above his right shoulder and then going on behind his head; held there and let go of, the hand came back to the front
 // through his right side at fifteen centimetres a frame and the racket swung round past his hip ninety degrees in one.
