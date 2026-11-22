@@ -181,7 +181,7 @@ function follow(cur, tgt, F, dt, thr, first, al = 0.6, be = 0.5) {
 // forward from those. (Turns of the arm are limited against this, the frame they are seen in: measured against the chest's
 // own turn, which runs ahead of the skeleton's in a fast twist, an arm held to 36 degrees a frame there still swung 46
 // against the body as it is drawn.)
-const _sbF = new THREE.Vector3(), _sbR = new THREE.Vector3(); const _fcC = new THREE.Vector3(), _fcR = new THREE.Vector3(), _fcW = new THREE.Vector3(); const _stX2 = new THREE.Vector3();
+const _sbF = new THREE.Vector3(), _sbR = new THREE.Vector3(); const _lgR = new THREE.Vector3(), _lgF = new THREE.Vector3(); const _fcC = new THREE.Vector3(), _fcR = new THREE.Vector3(), _fcW = new THREE.Vector3(); const _stX2 = new THREE.Vector3();
 const _laT = new THREE.Vector3(), _laF = new THREE.Vector3(), _laD = new THREE.Vector3(), _laQ = new THREE.Quaternion();
 const _lpO0 = new THREE.Vector3(), _lpO1 = new THREE.Vector3(), _rkQi = new THREE.Quaternion(), _rkQ = new THREE.Quaternion(), _rkQ2 = new THREE.Quaternion(), _rkD = new THREE.Vector3(), _rkN = new THREE.Vector3(), _rgSh = new THREE.Vector3(), _rr1 = new THREE.Vector3(), _rr2 = new THREE.Vector3(), _rr3 = new THREE.Vector3(), _rr4 = new THREE.Vector3(), _rr5 = new THREE.Vector3(), _rr6 = new THREE.Vector3();
 const _ecP = new THREE.Vector3(), _ecU = new THREE.Vector3(), _ecA = new THREE.Vector3(), _ecB = new THREE.Vector3(), _ecF = new THREE.Vector3(), _ecS = new THREE.Vector3(), _ecE = new THREE.Vector3(), _ecW = new THREE.Vector3(), _ecX = new THREE.Vector3(), _ecT = new THREE.Vector3(), _ecQ = new THREE.Vector3();
@@ -794,6 +794,16 @@ export class Figure {
     let vRl = vR, vFl = vF; { const kT = !globalThis.__strollTravelOld && speed > 0.05 ? (this.strollK || 0) * sm((speed - 0.1) / 0.3) : 0; this.tBf = null;
       if (kT > 0.001) { const tx = p.vx / speed, tz = p.vz / speed, an = Math.atan2(fx0 * tz - fz0 * tx, fx0 * tx + fz0 * tz) * kT, ca = Math.cos(an), sa = Math.sin(an);   /* (turned through the angle between, not blended as vectors: going the opposite way, a blend passed through nothing and spun) */
         const bx = fx0 * ca - fz0 * sa, bz = fx0 * sa + fz0 * ca; this.tBf = [bx, bz]; vRl = p.vx * -bz + p.vz * bx; vFl = p.vx * bx + p.vz * bz; } }
+    // (and running hard across the court, the run's legs go the way he runs: the body turns to run at most about two thirds of a quarter
+    // turn, the chest kept a little open to the ball, and the run's feet, laid out the way he faced, went twenty-odd degrees off the way he
+    // was going, mixed with a fifth of the side shuffle: the feet landed behind his hips and the legs trailed after him)
+    // (let in and out gradually: not past about seventy-five degrees between facing and going, faded over 63-86 degrees, and the
+    // turn eased in over a tenth of a second; switched on in one frame at a hard cut-off, the feet were thrown up to half a metre)
+    if (!globalThis.__runTravelOld) { let anT = 0;
+      if (!this.tBf && live && speed > 2.5 && !(st && sw > 0.3)) { const tx = p.vx / speed, tz = p.vz / speed, an0 = Math.atan2(fx0 * tz - fz0 * tx, fx0 * tx + fz0 * tz);
+        anT = an0 * sm((speed - 3) / 1) * sm((Math.abs(this.yaw || 0) - 0.8) / 0.3) * (globalThis.__runTravelCut ? (Math.abs(an0) < 1.3 ? 1 : 0) : 1 - sm((Math.abs(an0) - 1.1) / 0.4)); }
+      this.runTrA = this.inited && dt > 0 && !globalThis.__runTravelCut ? damp(this.runTrA || 0, anT, 10, dt) : anT;
+      if (!this.tBf && Math.abs(this.runTrA) > 0.001) { const an = this.runTrA, ca = Math.cos(an), sa = Math.sin(an), bx = fx0 * ca - fz0 * sa, bz = fx0 * sa + fz0 * ca; this.tBf = [bx, bz]; vRl = p.vx * -bz + p.vz * bx; vFl = p.vx * bx + p.vz * bz; } }
     this.vRl = vRl; this.vFl = vFl;
     const LP = this.loco.update(dt, vRl / H, vFl / H, speed / H, upright, this.legScale ? this.legScale / H : 1, this.strollK || 0), go = this.loco.w.go;
     // his own stroke, where one was tracked: the whole body comes from the clip
@@ -1042,8 +1052,11 @@ export class Figure {
       const dx = tg[1].x - tg[0].x, dz = tg[1].z - tg[0].z, d = Math.hypot(dx, dz), mnS = (globalThis.__footMin ?? 0.17) * H;
       if (lowK > 0.001 && d < mnS) { let ux = dx, uz = dz; if (d < 0.02 * H) { ux = right.x; uz = right.z; } const ul = Math.hypot(ux, uz) || 1, k = (mnS - d) * 0.5 * lowK; sepO[0].set(-ux / ul * k, 0, -uz / ul * k); sepO[1].set(ux / ul * k, 0, uz / ul * k); } }
     for (let i = 0; i < 2; i++) {
-      const sx = i === 0 ? -1 : 1, ja = LEG_J[i][2], ft = this.feet[i], ankle = _an[i].set(px, 0, pz).addScaledVector(right, LP[ja * 3] * r * (1 + 0.15 * clipW) + widen[i]).addScaledVector(fwd, LP[ja * 3 + 2] * r).add(sepO[i]);   // (tracked clips come out narrow in the feet: lifting video to 3D squeezes the spread)
+      const lgR = this.tBf && !globalThis.__runTravelOld ? _lgR.set(-this.tBf[1], 0, this.tBf[0]) : right, lgF = this.tBf && !globalThis.__runTravelOld ? _lgF.set(this.tBf[0], 0, this.tBf[1]) : fwd;   /* (the gait's own frame: the way he faces, or the way he goes) */
+      const sx = i === 0 ? -1 : 1, ja = LEG_J[i][2], ft = this.feet[i], ankle = _an[i].set(px, 0, pz).addScaledVector(lgR, LP[ja * 3] * r * (1 + 0.15 * clipW) + widen[i]).addScaledVector(lgF, LP[ja * 3 + 2] * r).add(sepO[i]);   // (tracked clips come out narrow in the feet: lifting video to 3D squeezes the spread)
       ankle.y = Math.max(D.ankle, (LP[ja * 3 + 1] - ANKLE_H) * r + D.ankle) + air * 0.9;
+      // (how fast the gait's own foot is going over the court: a planted one stands still)
+      const tgP = this.tgtPrev || (this.tgtPrev = [null, null]), tgV = tgP[i] && dt > 0 && this.inited ? Math.hypot(ankle.x - tgP[i].x, ankle.z - tgP[i].z) / dt : 0; tgP[i] = { x: ankle.x, z: ankle.z };
       if (this.dbgOn) (this.dbgFt || (this.dbgFt = {}))['a' + i] = [+(ankle.x - px).toFixed(3), +(ankle.z - pz).toFixed(3)];
       // after the serve the back leg kicks up behind for balance, bent, the foot about knee high: the tracked clip
       // flings it to hip height, so a lift above a quarter metre is eased down (softly, so the arc keeps its shape)
@@ -1114,7 +1127,7 @@ export class Figure {
         // (at a walk or a shuffle a foot a few centimetres up in the clip is a foot set down, not a step: counted as in the air it
         // hovered there, and with the other foot stepping, both were off the court together)
         slowK = globalThis.__noSlowDown ? 0 : (1 - sm((speed - (globalThis.__skOld ? 1.8 : 1.2)) / (globalThis.__skOld ? 1.4 : 1.0))) * (1 - this.loco.w.up) * (strolling ? 0 : 1),   /* (not at a shuffle's pace: its steps are that low, and held down as planted the trailing foot was towed after him) */   /* (not walking upright between points: there the walk's own swing foot dips that low, and held down it was dragged into a lunge at every step) */
-        down = (hgt < ((Lk.on ? 0.042 : 0.03) + 0.045 * slowK) * H || (globalThis.__toeLock !== false && toeDown)) && air < 0.005, engage = true, stepD = plW > 0.001 && this.pl.force[i] ? 0.06 * H : Math.abs(this.roomX) > 0.05 && Math.sign(this.roomX) === (i === 0 ? -1 : 1) ? 0.09 * H : (0.19 + 0.09 * clamp(speed - 2, 0, 4)) * H;
+        down = (hgt < ((Lk.on ? 0.042 : 0.03) + 0.045 * slowK) * H || (globalThis.__toeLock !== false && toeDown)) && air < 0.005, engage = globalThis.__runPlantOld || speed < 2.5 || Lk.on || tgV < 1.8 + 0.25 * speed,   /* (running, a foot is held only once the run's own foot has stopped going over the court: held as soon as it came down low, a sprint's foot still sweeping in to touch down was pinned thirty to fifty centimetres short and the legs trailed after him) */ stepD = plW > 0.001 && this.pl.force[i] ? 0.06 * H : Math.abs(this.roomX) > 0.05 && Math.sign(this.roomX) === (i === 0 ? -1 : 1) ? 0.09 * H : (0.19 + 0.09 * clamp(speed - 2, 0, 4)) * H;
         if (Lk.step) {
           // (a step that goes further is lifted higher and takes a little longer: a foot carried a few centimetres off the
           // court across half a metre read as a foot sliding along it)
@@ -1294,6 +1307,18 @@ export class Figure {
     const leanS = (pose.sideLean || 0) * hs * sw;
     const qLean = _q2.setFromAxisAngle(_v6.copy(right), -this.lean).multiply(_q3.setFromAxisAngle(_v7.copy(fwd), -leanS));
     const qChest = frameOf(cdir(J.lsho, J.rsho, _v4), spine, _q4).multiply(_q3.setFromAxisAngle(UP, -this.twist)).premultiply(qLean);
+    // running hard, the trunk leans into the run, the way he is going (not the way he faces: running wide he faces the net):
+    // the run clips are joggers' mocap, near upright at six metres a second, where a tennis player chasing a wide ball is
+    // bent into it. Up to about seven degrees for speed and six more while he is still speeding up, a little back while he
+    // pulls up; none while a stroke is played at all (by its own weight, not the share it has of the pose: running into a take-back
+    // at 7 m/s, the chest leant into the racket arm)
+    if (!globalThis.__runLeanOld) {
+      if (speed > 0.5) { this.runDir = [p.vx / speed, p.vz / speed]; }
+      const lk = globalThis.__runLeanK ?? 1, tgt = live && this.runDir ? lk * (sm((speed - 2.5) / 3) * 0.12 + clamp(along / 6.8, -0.5, 1) * 0.1 * sm((speed - 0.5) / 1.5)) * (globalThis.__runLeanSk ? 1 - strokeK : 1 - sw) : 0;
+      this.runLean = this.inited ? damp(this.runLean || 0, tgt, 6, dt) : tgt;
+      // (from the hips: the pelvis tips forward half as far, so the lean runs down the whole back, not a stoop at the chest)
+      if (Math.abs(this.runLean) > 1e-3 && this.runDir) { _v6.set(this.runDir[1], 0, -this.runDir[0]); qChest.premultiply(_q3.setFromAxisAngle(_v6, this.runLean)); qPel.premultiply(_q3.setFromAxisAngle(_v6, this.runLean * 0.5)); }
+    }
     // (a move of the hand toward the ball, back toward the body, is kept to what leaves the hand a forearm in front of the chest,
     // judged both by which way he faces and which way his chest does: in a turned take-back the two differ by a right angle)
     const backCap = (mv, h) => { const mz = _bcM.copy(sh[0]).add(sh[1]).multiplyScalar(0.5);
@@ -3002,7 +3027,8 @@ const _rpV = new THREE.Vector3();
 const PARTIAL = {};
 // first clips that come out worse than the alternates tracked since (2026-11-14, share of two-hander frames with an arm
 // more than 4 cm inside the trunk: Djokovic's 70% against 24-45% for his others, Nadal's 75% in the finish against 0%)
-const MAIN_WEAK = new Set(['Djokovic/bh', 'Nadal/bh', 'Nadal/fh']);
+// (Nadal's forehand left it on 2026-11-22: re-tracked across the court from a camera behind him; __nadFhWeak puts it back)
+const MAIN_WEAK = new Set(['Djokovic/bh', 'Nadal/bh', ...(globalThis.__nadFhWeak ? ['Nadal/fh'] : [])]);
 // How high (up, as a part of the arm's direction) and how far forward at least a forehand's free arm points through the
 // take-back, in the chest's frame. Djokovic's straightens out toward the ball at the height of his shoulder, mostly forward
 // (his footage, from behind and from the side): his tracked arm, lost against his face, is across in front of the face and

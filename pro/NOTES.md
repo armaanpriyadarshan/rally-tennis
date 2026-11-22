@@ -980,3 +980,43 @@ still in the air, both in a stroke's finish, for two or three frames.
   of the way in a frame: pops up to 47 m/s). Refilmed: the foot steps out over the frames into a stance 0.57 m wide, not 1.08.
   Four pairs: foot jumps 0.013% → 0.007%, feet through each other 0.059% → 0.045%, legs through each other 0.013% → 0.011%, pops
   unchanged. The other pictures (serve foot pops at the trophy, 5-8 cm arm touches) look normal from behind and the side.
+- **The sideways run: legs along the way he goes, feet down where the run puts them, trunk into the run** (`js/figure.js`; he said
+  "running with the legs lagging behind, even the normal side to side run looks pretty bad", and "the shuffle isnt what im complaining
+  about, its the run"). Three causes, measured in the lab (`dev.html?lab=fh`, `tools/steps_labmove.mjs`, Manual keys at 6 m/s):
+  - The body turns at most 1.15 rad to run across the court, so the run's feet, laid out the way he faced, went about 24 degrees off the
+    way he was going, mixed with a fifth of the side shuffle. Running hard (over 3 m/s, turned near that limit) the gait is now laid
+    out along his travel (`__runTravelOld`). It comes in gradually: faded out between 63 and 86 degrees between facing and going, the
+    turn eased in over a tenth of a second (`__runTravelCut` = the first version's hard cut-off at 75 degrees, which threw a foot up to
+    half a metre in the frame it switched on: foot pops 0 → 3 per match at 4-6 m/s; with the fade, back to before).
+  - A running foot was held on the court the moment the gait's foot came low, while the gait still swept it forward: pinned 30-50 cm
+    short of where the stride puts it, the leg trailed. Now a foot is held only once its own target moves slower than 1.8 + 0.25 x speed
+    m/s (`__runPlantOld`): lag behind the gait 0.16 → 0.04 m mean (max 0.51 → 0.18), held-foot slip share 0.079 → 0.06. The audit's
+    loose "planted foot sliding" count (any foot with the toe under 11 cm moving) rises 3.2% → 5.0%: measured in the lab by toe height,
+    all the extra frames are a foot 6-11 cm up in mid-stride; none has the toe within 2 cm of the court (flat-foot skating stays 0).
+  - The run clips are joggers' motion capture, the trunk 8-9 degrees forward at 6 m/s. Running, it now leans the way he goes, from the
+    hips (the pelvis half as far): up to 7 degrees more for speed and 6 more while speeding up, a little back while pulling up, faded by
+    the stroke's own weight (`__runLeanOld`, `__runLeanK`; by the stroke's share of the pose instead, `__runLeanSk`, running into a
+    take-back at 7 m/s leant the chest into the racket arm). Trunk 8.7 → 14.5 degrees at 6 m/s, 17 while accelerating.
+  Filmed from behind and the broadcast camera: the trailing leg folds and comes through, the feet land under him. Four-pair audit: free
+  hand on the hip while running 1.48% → 0.83%, racket hand 0.68% → 0.57%, sideways gallop 2.68% → 2.46%, both feet up at < 3 m/s
+  2.28% → 1.91%; pops, jumps, held-foot slides unchanged.
+- **Nadal's serve and forehand re-tracked across the court from a camera behind him** (he said "i want you to retrack ... find good
+  footage", then "just nadal"). His serve and first forehand were tracked from one side-on camera, so how far across the court the
+  arms are (what the broadcast and behind cameras show) was the pose model's guess. New footage, filmed from behind (all downloaded with
+  `yt-dlp --ignore-config`, kept local in `~/.cache/rally-motion-footage/nb_*`):
+  - forehand: youtube XJ7fWm1gPtY, Essential Tennis "Rafael Nadal Crushing his Forehand from Back Perspective - BNP Paribas" (Indian
+    Wells 2013 practice, back fence, 1080p 24 fps at about real speed: the ball's fall between bounce and contact gives 0.9-1x);
+    camera angle psi -10 from the vanishing point of the court lines; the forehand at 5.34 s.
+  - serve: youtube MGXLV5uwWHM, "Rafa Nadal Serve Practice Slow Motion 0.2X 0.5X (back view)" (US Open practice; 30 fps with every
+    picture shown twice; 1.55x slow MEASURED from the toss, a parabola through 23 ball positions); the serve at 7.43 s.
+  Tracked with track.py --big, built by player_motion.py (sheets checked at 8 phases against the frames), and fused into the clips in
+  the game with `tools/fuse_game.py` (player_motion's fuse, axis x): his main serve, main forehand and second forehand (Cincinnati,
+  backing up) keep their side camera's legs, timing, height and depth and take how far across the court the trunk, head and arms are
+  from behind (mean shift 7-9 cm, up to 0.7 m for an arm). The serve's finish: both cameras lose the racket hand once it crosses in
+  front of him, and both had it end on his left side; the back footage shows the racket brought down through the middle and held by
+  his right hip from +0.39 s, and `tools/serve_finish_nadal.py` sets the hand's across-court path to that (the elbow kept at least 0.2 m
+  out in front of the line of his spine: halfway across at the clip's own depth it sat in his belly). His first forehand is off
+  `MAIN_WEAK` (`__nadFhWeak` puts it back). Filmed from behind: the forehand takes the racket up on his left with the right arm across,
+  loops it down and finishes with the lasso over his head; the serve ends by his right hip as on the footage. Other side-camera tracks
+  that were tried: Indian Wells 2013 serve 2 (youtube 53ow0zuH6BM, 9.8x by its toss) cuts away 0.35 s after each contact, too short
+  to replace the serve clip.
