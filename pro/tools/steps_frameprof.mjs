@@ -1,16 +1,21 @@
-// Where a match frame's JS time goes: wraps match.step, the two figures' update, the arena's, the ball fx, the staff, audio and
-// gfx.render, plays SECS seconds of a computer-vs-computer match at 60 frames a second, prints ms per frame for each.
+// Where a frame's time goes: a seeded computer match, 20 s of play with the picture drawn, each part of the frame timed (simulation
+// steps, the two figures, the arena and crowd, the ball effects, the camera, the render call) and reported for ordinary frames and for
+// the slowest tenth. env: P0 P1 RSEED SECS CAM W H
 export default async function ({ ev }) {
   const E = process.env;
-  for (let i = 0; i < 60 && !(await ev('!!(window.__app && window.__app.game)')); i++) await new Promise(r => setTimeout(r, 250));
-  console.log(await ev(`(async () => { Object.assign(globalThis, ${JSON.stringify(Object.fromEntries((E.FLAGS || '').split(',').filter(Boolean).map(x => [ '__' + x, true ])))}); const A = window.__app, D = await import('./js/data.js'); const T = D.TOURNAMENTS.find(t => t.key === 'ao'); const ix = n => D.PLAYERS.findIndex(p => (p.facts && p.facts.name || '').includes(n));
-    await A.game.start({ T, weather: 'clear', p0: ix(${JSON.stringify(E.P0 || 'Federer')}), p1: ix(${JSON.stringify(E.P1 || 'Nadal')}), format: 'atp3', difficulty: 1, cam: 'tv', intro: false, cpu0: true });
-    A.mode = 'match'; const g = A.game, m = g.match; const FR = g.frame.bind(g); g.frame = () => {}; const acc = {}, wrap = (o, k, lab) => { const f = o[k].bind(o); o[k] = (...a) => { const t0 = performance.now(); const r = f(...a); acc[lab] = (acc[lab] || 0) + performance.now() - t0; return r; }; };
-    m.ctl[0] = m.ctl[1];
-    wrap(m, 'step', 'sim'); for (let i = 0; i < 2; i++) wrap(g.fig[i], 'update', 'figure' + i); if (g.arena && g.arena.update) wrap(g.arena, 'update', 'arena'); if (g.fx && g.fx.update) wrap(g.fx, 'update', 'ballfx'); if (g.staff && g.staff.update) wrap(g.staff, 'update', 'staff'); if (g.audio && g.audio.frame) wrap(g.audio, 'frame', 'audio');
-    wrap(g.gfx, 'render', 'render');
-    const N = ${+(E.SECS || 20)} * 60; let tot = 0;
-    for (let k = 0; k < N; k++) { const t0 = performance.now(); FR(1 / 60); tot += performance.now() - t0; }
-    const o = Object.entries(acc).map(([k, v]) => k + ' ' + (v / N).toFixed(2)).join(' | ');
-    return 'ms/frame total ' + (tot / N).toFixed(2) + ' :: ' + o; })()`));
+  console.log('PROF', await ev(`(async () => {
+    const A = window.__app, D = await import('./js/data.js'); const T = D.TOURNAMENTS.find(t => t.key === 'ao');
+    const ix = n => D.PLAYERS.findIndex(p => (p.facts && p.facts.name || '').includes(n));
+    let rs = ${+(E.RSEED || 11)}; Math.random = () => (rs = (rs * 48271) % 2147483647) / 2147483647;
+    for (const el of document.body.querySelectorAll('body > *:not(canvas)')) el.style.display = 'none';
+    await A.game.start({ T, weather: 'clear', p0: ix(${JSON.stringify(E.P0 || 'Nadal')}), p1: ix(${JSON.stringify(E.P1 || 'Federer')}), format: 'atp3', demo: true, cam: ${JSON.stringify(E.CAM || 'tv')}, intro: false, firstServer: 0 });
+    A.mode = 'match'; const g = A.game; g.running = false; g.audio = null;
+    const acc = {}; const wrap = (obj, name, key) => { const f = obj[name].bind(obj); obj[name] = (...a) => { const t0 = performance.now(); const r = f(...a); acc[key] = (acc[key] || 0) + performance.now() - t0; return r; }; };
+    wrap(g.match, 'step', 'sim'); g.fig.forEach((f, i) => wrap(f, 'update', 'fig' + i)); wrap(g.arena, 'update', 'arena'); wrap(g.fx, 'update', 'fx'); wrap(g, 'updateCamera', 'camera'); wrap(g.gfx, 'render', 'render'); wrap(g, 'markers', 'markers');
+    if (g.ui && g.ui.frame) wrap(g.ui, 'frame', 'ui');
+    for (let f = 0; f < 120; f++) { g.running = true; g.frame(1 / 60); g.running = false; }
+    const rows = []; for (let f = 0; f < 60 * ${+(E.SECS || 20)}; f++) { for (const k in acc) acc[k] = 0; const t0 = performance.now(); g.running = true; g.frame(1 / 60); g.running = false; rows.push({ tot: performance.now() - t0, ...acc }); }
+    rows.sort((a, b) => a.tot - b.tot); const keys = Object.keys(rows[rows.length - 1]);
+    const avg = (rs, k) => +(rs.reduce((s, r) => s + (r[k] || 0), 0) / rs.length).toFixed(2), slow = rows.slice(Math.floor(rows.length * 0.9)), typ = rows.slice(0, Math.floor(rows.length * 0.5));
+    const info = g.gfx.renderer.info; return JSON.stringify({ typical: Object.fromEntries(keys.map(k => [k, avg(typ, k)])), slowest10pc: Object.fromEntries(keys.map(k => [k, avg(slow, k)])), worst: +rows[rows.length - 1].tot.toFixed(1), calls: info.render.calls, triangles: info.render.triangles, geometries: info.memory.geometries, textures: info.memory.textures }); })()`));
 }

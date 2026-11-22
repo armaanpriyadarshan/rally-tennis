@@ -79,13 +79,17 @@ class App {
     // how often this screen asks for a picture
     const gap = now - (this.prevNow || now); this.prevNow = now;
     if (gap > 2 && gap < 50) this.gapAvg = this.gapAvg ? this.gapAvg * 0.95 + gap * 0.05 : gap;
+    // and the screen's own refresh, which a late frame does not change: the shortest gap, followed while gaps stay near it (the
+    // average above grows with every frame that misses the screen, and with it the frame time the resolution is held to, so a game
+    // running at forty frames a second on a sixty hertz screen was never thought slow)
+    if (gap > 3 && gap < 50) { const r = this.refresh || gap; this.refresh = gap < r * 0.97 ? gap : gap < r * 1.4 ? r + (gap - r) * 0.02 : (this.mode !== 'match' && gap < 50) ? r + (gap - r) * 0.002 : r; }
     // a match is drawn about sixty times a second however fast the screen is (every second picture of a
     // 120 Hz screen, so still evenly); the match behind the menus thirty; under a full menu not at all
     const inMenu = this.mode !== 'match', every = Math.max(1, Math.floor((inMenu ? 33.3 : 16.7) / (this.gapAvg || 16.7) + 0.25));
     this.tick = (this.tick || 0) + 1;
     if (this.tick % every) return;
     if (inMenu && this.covered) { this.last = now; return; }
-    this.gfx.expect = every * (this.gapAvg || 16.7); this.gfx.measure = !inMenu;
+    this.gfx.expect = globalThis.__expectOld ? every * (this.gapAvg || 16.7) : Math.max(15, every * (this.refresh || this.gapAvg || 16.7)); this.gfx.measure = !inMenu;   // (a match is held to about sixty, not to a fast screen's every refresh)
     const dt = Math.min(0.05, (now - this.last) / 1000); this.last = now;
     if (this.game.running) this.game.frame(dt);
   }

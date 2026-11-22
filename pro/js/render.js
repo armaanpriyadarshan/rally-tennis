@@ -108,7 +108,7 @@ export class Gfx {
     this.lens = new ShaderPass(LensShader); if (Q.focus) { this.lens.material.defines.FOCUS = 1; this.lens.material.needsUpdate = true; } c.addPass(this.lens);
     this.hasFocus = !!Q.focus; this.frameNo = 0;
   }
-  setQuality(q) { this.q = q; this.scale = QUALITY[q].scale; this.build(); this.resize(); }
+  setQuality(q) { this.q = q; this.scale = QUALITY[q].scale; this.ceil = null; this.probeT = null; this.slow = 0; this.calm = 0; this.build(); this.resize(); }
   resize() {
     const Q = QUALITY[this.q], w = this.canvas.clientWidth || innerWidth, h = this.canvas.clientHeight || innerHeight;
     const dpr = Math.min(window.devicePixelRatio || 1, Q.maxDpr) * this.scale;
@@ -159,14 +159,24 @@ export class Gfx {
     if (A && A.shadowLights) A.shadowLights.forEach(l => { l.shadow.needsUpdate = true; });
     this.composer.render(dt);
     // keep the frame rate: trade resolution for time when the GPU falls behind
-    // Only ever down, and only when frames come late for a good while: each change rebuilds the buffers, and
-    // a picture that sharpens and softens by turns, with a hitch each time, is worse than one a little soft.
+    // Down when frames come late for most of a second, as far as two thirds of the setting's resolution; back up a step only
+    // after ten seconds without a late frame, and never again (for a minute) to a resolution that was tried and came late: each
+    // change rebuilds the buffers, and a picture that sharpens and softens by turns, with a hitch each time, is worse than one a
+    // little soft. (expect is the screen's refresh, app.js: it was the average gap between frames, which grew with the late frames
+    // themselves, and the resolution never came down.)
     if (this.auto && this.measure && dt > 0) {
-      const want = this.expect || 16.7;
-      this.frameMs += (dt * 1000 - this.frameMs) * 0.05;
-      if (this.frameMs > want * 1.3) this.slow++; else this.slow = Math.max(0, this.slow - 1);
-      const base = QUALITY[this.q].scale;
-      if (this.slow > 90 && this.scale > base * 0.8) { this.scale = Math.max(base * 0.8, this.scale - 0.1); this.slow = 0; this.frameMs = want; this.resize(); }
+      const want = this.expect || 16.7, old = globalThis.__autoOld, base = QUALITY[this.q].scale, now = this.time;
+      this.frameMs += (dt * 1000 - this.frameMs) * (old ? 0.05 : 0.1);
+      if (this.frameMs > want * (old ? 1.3 : 1.2)) { this.slow++; this.calm = 0; } else { this.slow = Math.max(0, this.slow - 1); this.calm = (this.calm || 0) + (dt * 1000 < want * 1.25 ? dt : -this.calm); }
+      const floor = base * (old ? 0.8 : 0.67);
+      if (this.slow > (old ? 90 : 40) && this.scale > floor + 1e-3) {
+        if (this.probeT != null && now - this.probeT < 6) this.ceil = { s: this.scale, t: now };       // the step up came late: not again for a while
+        this.scale = Math.max(floor, +(this.scale - 0.1).toFixed(2)); this.slow = 0; this.calm = 0; this.probeT = null; this.frameMs = want; this.resize();
+      } else if (!old && this.calm > 10 && this.scale < base - 1e-3) {
+        const up = Math.min(base, +(this.scale + 0.1).toFixed(2));
+        if (!(this.ceil && up >= this.ceil.s - 1e-3 && now - this.ceil.t < 60)) { this.scale = up; this.calm = 0; this.probeT = now; this.frameMs = want; this.resize(); }
+        else this.calm = 0;
+      }
     }
   }
 }

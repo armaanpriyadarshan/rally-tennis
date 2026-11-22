@@ -6,6 +6,7 @@ import { mirrorBall } from './net.js';
 import { AI } from './ai.js';
 import { COURT, BALL } from './physics.js';
 import { buildArena } from './arena.js';
+import { SightGrid } from './sight.js';
 import { insideCourt } from './staff.js';
 import { venueSpec } from './venues.js';
 import { WEATHER, loadSkyTexture } from './skies.js';
@@ -53,6 +54,8 @@ export class Game {
     const staff = staffM[0] ? { umpire: staffM[0], kids: staffM.slice(1).filter(Boolean) } : null;
     const A = this.arena = buildArena(spec, { quality: this.gfx.q, skyTex, crowdAtlas: this.gfx.q > 0 ? await loadCrowdAtlas() : null, model, staff, photo: { court: pc, concrete: pk } });
     this.gfx.setArena(A);
+    // the stadium filed for the broadcast camera's sight lines while the match is still loading (sight.js)
+    this._sg = null; if (!globalThis.__craneRayOld) this.sightGrid();
     // conditions
     let env;
     if (cfg.envOverride) env = { ...cfg.envOverride };                // online: the host's conditions, seen from this end
@@ -98,6 +101,13 @@ export class Game {
   // From the broadcast camera a player gone back deep is seen past the front rows of the stand behind him: the few spectators
   // standing on the line from the camera to him are not drawn while he is there (their cards set to nothing), so he is never
   // seen through a spectator's body. Put back as soon as he comes in, or the camera changes.
+  // the stadium's sight-line index, built once per stadium; a crowd card the camera has cleared out of the way is filed where it sits
+  sightGrid() {
+    if (this._sg && this._sgA === this.arena) return this._sg;
+    this._sgA = this.arena;
+    this._sg = new SightGrid(this.arena.root, (o, i, M) => { for (const [c, saved] of (this._crHid || [])) if (c.o === o && saved.has(i)) return M.copy(saved.get(i)); o.getMatrixAt(i, M); });
+    return this._sg;
+  }
   clearCrowd(cp, pl) {
     const A = this.arena; if (!A || !A.root) return;
     if (this._crA !== A) { this._crA = A; this._cr = []; this._crHid = new Map();
@@ -634,8 +644,11 @@ export class Game {
           const zA = near ? near.z + (near.vz || 0) * 0.4 : 0, xA = near ? near.x + (near.vx || 0) * 0.4 : 0, pts = (deepN ? [[0.06, near.x, near.z], [0.45, near.x, near.z], [0.95, near.x, near.z], [0.06, xA, zA], [0.45, xA, zA]] : []).concat(globalThis.__craneCourtOld ? [] : court).map(([y, x, z]) => new THREE.Vector3(x, y, z));   /* (his feet too: tilted down after him, the front rows of the stand cut across the bottom of the picture at his shoes) */
           let want = 9.6, wantZ = 30;
           for (const [h, cz] of [[9.6, 30], [10.8, 30], [12, 30], [13.2, 30], [14.4, 30], [15.6, 30]]) {   /* (up a little only: craned higher, or forward over the stands, it looked down on the top of his head and lost the far player) */ let ok = true; const o = new THREE.Vector3(0, h, cz * sgn);
-            for (const q of pts) { const d = q.clone().sub(o), L = d.length(); rc.set(o, d.normalize()); rc.far = L - 0.35;
-              const hit = rc.intersectObject(this.arena.root, true).find(x => x.object.visible && !x.object.isPoints); if (hit) { ok = false; break; } }
+            for (const q of pts) { const d = q.clone().sub(o), L = d.length(); d.normalize();
+              // (asked of the stadium filed by the ground it stands on: the raycaster tested every triangle of the stands and every
+              // card of the crowd for each line, 30 to 60 ms in Firefox ten times a second)
+              const hit = globalThis.__craneRayOld ? (rc.set(o, d), rc.far = L - 0.35, rc.intersectObject(this.arena.root, true).find(x => x.object.visible && !x.object.isPoints)) : this.sightGrid().blocked(o, d, L - 0.35);
+              if (hit) { ok = false; break; } }
             want = h; wantZ = cz; if (ok) break; }
           this._craneW = want; this._craneZ = wantZ; } }
       else { this._craneW = 9.6; this._craneZ = 30; }

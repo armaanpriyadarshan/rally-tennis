@@ -1149,3 +1149,32 @@ still in the air, both in a stroke's finish, for two or three frames.
   spread of his own shots 0.95 → 1.12 (the timed aim lets him go 0.45 m nearer the lines, and arrows are no longer dropped, so it had
   become easy): classicbot with timing like his (sig 0.02, Auto footwork, 500 points) Tour 57 → 45 % of points won (49 % with the spread
   alone, 52 % with the errors alone, 43 % at 1.25 / 0.6). His first serves go in less often (75 → 63 %), as the spread covers serves too.
+
+## 2026-11-22: speed (he said "bro the game is still remarkably slow, there must be optimizations you can make")
+- **Where the time went** (his laptop: Intel Iris Xe, 1920 x 1080 at 60 Hz, Firefox): the broadcast camera's crane check (game.js,
+  since 2026-11-20 run for the court's middle at every moment, not only with the near player deep) asked three.js's raycaster, ten
+  times a second, whether anything stood between the camera and up to eleven points of the court, and the raycaster tested every
+  triangle of the merged stands (85,000 to 200,000) and every one of the crowd's 8,260 cards for each line: 36 lines took 170-200 ms
+  in Firefox, and in a match the slowest tenth of frames averaged 49 ms (42 of them in the camera), worst 116 ms. Under the menus the
+  attract match uses the same camera, so they stuttered too.
+  Now `js/sight.js` files the stadium's fixed triangles and the crowd's cards once (36 ms in Firefox, 4-7 MB) under the 2 m squares of
+  ground each covers, in the stadium's own frame, and a line tests only what lies under it; what moves (ball kids, line judges, their
+  balls) still goes to the raycaster. Same answers: `tools/steps_sightcheck.mjs` asked 40,320 lines both ways in all 30 venues, both
+  ends, before and after a change of ends, and none differed; 98.6 s of raycasting became 2.5 s (Chrome). In Firefox the slowest
+  tenth of frames: 49 → 13.6 ms, camera 41.9 → 0.27 ms. (`__craneRayOld` brings back the raycaster.)
+- **Resolution follows the frame rate again**: the frame time it was held to was the average gap between frames, which grew with the
+  late frames themselves, so a match at 40 fps on a 60 Hz screen was never thought slow and the resolution never came down. Now it is
+  the screen's measured refresh (no faster than 15 ms, so a 144 Hz screen is not chased), it steps down after about 40 late frames
+  (was 90) as far as two thirds of the setting's resolution (was four fifths), and comes back up a step after ten seconds with no late
+  frame, but not for a minute to a step that was tried and came late. Headless Firefox at 2560 x 1440: 1.0 → 0.67 in three seconds,
+  where before it stayed at 1.0. (`__expectOld`, `__autoOld`.)
+- Measured and left: uncapped, Chrome on this laptop draws High at 1080p at about 100 fps when nothing else uses the graphics
+  (36 fps while his Firefox was drawing the game at the same time); headless Firefox 50-60 (it copies every frame back for its
+  headless window). Anti-aliasing is the dearest part of the picture (High without it +20-30 %), the depth of field costs little,
+  the shadow map little (five-tap PCF in three r187), a packed 32-bit HDR buffer instead of half floats no measurable gain (kept the
+  half floats). Draw calls: 180 a frame (47 into the shadow map, 94 of the stadium). Two pytest runs of his were taking four of the
+  twelve cores and a quarter of the memory while he played; the integrated graphics share the CPU's power and memory.
+- Tools: `tools/ff.mjs` (headless Firefox over WebDriver BiDi, runs the same steps modules as shot.mjs; serve the repo over http),
+  `steps_fpsfree.mjs` (frame rate with the refresh cap off: Chromium `--disable-gpu-vsync --disable-frame-rate-limit`, Firefox
+  `FFPREFS=layout.frame_rate=0`), `steps_gpucost.mjs` (each feature's cost, frames drawn and waited for, settings interleaved),
+  `steps_autoscale.mjs` (the resolution scale second by second on the page's own loop), `steps_sightcheck.mjs`.
