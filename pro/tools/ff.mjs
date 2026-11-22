@@ -9,7 +9,11 @@ const prefs = { 'browser.shell.checkDefaultBrowser': false, 'datareporting.polic
   ...Object.fromEntries((process.env.FFPREFS || '').split(',').filter(Boolean).map(s => { const [k, v] = s.split('='); return [k, isNaN(+v) ? (v === 'true' ? true : v === 'false' ? false : v) : +v]; })) };
 fs.writeFileSync(prof + '/user.js', Object.entries(prefs).map(([k, v]) => `user_pref(${JSON.stringify(k)}, ${JSON.stringify(v)});`).join('\n'));
 const p = spawn(process.env.FIREFOX || 'firefox', ['--headless', '--no-remote', '--profile', prof, '--remote-debugging-port', String(PORT), `--window-size=${W},${H}`, 'about:blank'], { detached: true, stdio: 'ignore' }); p.unref();
-const kill = () => { try { process.kill(-p.pid); } catch {} try { p.kill('SIGKILL'); } catch {} setTimeout(() => fs.rmSync(prof, { recursive: true, force: true }), 500); };
+// (/tmp is memory here: the throwaway profile and the add-on archive Firefox copies into /tmp at each start go when it does)
+const xpi0 = new Set(fs.readdirSync('/tmp').filter(f => /^tmp-.*\.xpi$/.test(f)));
+const kill = () => { try { process.kill(-p.pid); } catch {} try { p.kill('SIGKILL'); } catch {}
+  try { fs.rmSync(prof, { recursive: true, force: true }); } catch {}
+  for (const f of fs.readdirSync('/tmp')) if (/^tmp-.*\.xpi$/.test(f) && !xpi0.has(f)) try { fs.rmSync('/tmp/' + f); } catch {} };
 process.on('exit', kill);
 let ws; for (let i = 0; i < 60; i++) { await new Promise(r => setTimeout(r, 500)); try { ws = new WebSocket(`ws://127.0.0.1:${PORT}/session`); await new Promise((res, rej) => { ws.onopen = res; ws.onerror = rej; }); break; } catch { ws = null; } }
 if (!ws) { console.error('no firefox'); process.exit(1); }
