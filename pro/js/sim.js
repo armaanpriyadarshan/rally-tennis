@@ -310,7 +310,7 @@ export class Match {
     if (it.merciful) { dt = tau != null ? clamp(tau, 0.025, want + 0.11) : 0.025; st.merciful = true; }
     st.tc = this.t + dt;
     st.timing = tau == null ? null : tau - want;          // + early release, - late
-    if (it.merciful && st.timing != null) { const w = this.timingWindow[i] * 1.5; st.timing = clamp(st.timing, -w, w); }
+    if (it.merciful && st.timing != null) { const w = this.timingWindow[i] * 1.5 + (globalThis.__pressureOld ? 0 : 0.06); st.timing = clamp(st.timing, -w, w); }   /* (with pressure timing a press well off the moment is that far off, and costs: kept within half a window more, timing hardly mattered) */
     if (tau != null) { const pr2 = predict(b, this.env, { bounces: 1, dt: 1 / 240, maxT: dt }); st.cp = { x: pr2.end.x, y: pr2.end.y, z: pr2.end.z }; }
     st.intent = it; st.kind = it.kind || st.kind;
     st.held = this.t - st.t0;
@@ -798,7 +798,12 @@ export class Match {
     const upK = clamp((h - 0.98) / 0.35, 0, 1) * (1 - clamp((h - 1.7) / 0.3, 0, 1)), sitsUp = (!st.auto || it.state === 'attack') && !volley && (kind === 'drive' || kind === 'flat') ? upK * upK * (3 - 2 * upK) * (1 - clamp(stretch * 1.5, 0, 1)) * (1 - 0.5 * clamp(pSpeed / 5, 0, 1)) : 0;
     const power = Math.min(1, power0 + 0.26 * sitsUp);
     // a human's release is clean anywhere inside the timing window; only the excess counts against it
-    const timRaw = st.timing == null ? 0 : st.timing, win = this.windowFor(p.i);
+    // Pressure timing (as TopSpin 2K25's meter): a person's clean window is narrower against a fast ball, deep in a long rally and when
+    // he is stretched or running, and wider off a slow ball that sits up for him; outside it the timing costs (below). He asked for it
+    // after "all you do is hit the space bar and aim the shots ... it feels like you have little control of the game".
+    const pressOn = !st.auto && !globalThis.__pressureOld;
+    const prK = pressOn ? clamp(lerp(1.25, 0.6, clamp((vin - 14) / 22, 0, 1)) * lerp(1, 0.75, clamp((this.rally - 4) / 12, 0, 1)) * (1 - 0.45 * clamp(stretch * 1.2 + Math.pow(pSpeed / 6, 2) * 0.5, 0, 1)) * (1 + 0.35 * sitsUp), 0.4, 1.6) : 1;
+    const timRaw = st.timing == null ? 0 : st.timing, win = pressOn ? this.timingWindow[p.i] * prK : this.windowFor(p.i);
     // the computer's timing is perfect off an ordinary ball; a better one makes him a little early or late too
     const aTim = st.auto ? rng.g() * TUNE.cpuTim * thr * lerp(1.25, 0.75, prof.cons) : 0;
     const tim = st.auto ? aTim : Math.sign(timRaw) * Math.max(0, Math.abs(timRaw) - win);
@@ -831,6 +836,9 @@ export class Match {
       const depth = Math.abs(tz), shorter = Math.max(Math.min(depth, 5.2), depth - weak * TUNE.weakShort);
       tz = Math.sign(tz) * shorter; tx *= 1 - TUNE.weakMid * weak;
     }
+    // (and off the window the ball goes off line: early, the racket comes round sooner and pulls it - a forehand across his body, a backhand
+    // the other way; late, it is pushed the other way. About 0.7 m for three hundredths of a second, at most 1.6 m.)
+    if (pressOn && tim !== 0 && kind !== 'drop' && kind !== 'lob' && !volley) { const fhX = (p.hs || 1) * p.sgn; tx += (wing === 'fh' ? -1 : 1) * Math.sign(tim) * fhX * Math.min(1.6, Math.abs(tim) * 22); }
     let dropEl0 = 0;
     switch (kind) {
       case 'flat':  v = wingKmh / 3.6 * lerp(0.98, 1.34, power); top = wingRpm * 0.5; minClear = 0.22; sig = 1.25; break;

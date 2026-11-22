@@ -1100,3 +1100,19 @@ still in the air, both in a stroke's finish, for two or three frames.
   front of the hitter on a long lens framing about 3.5 m (`__repCamOld`), from 0.65 s before contact; from 0.42 s after it, the reverse
   angle low behind the beaten player follows the ball to its bounce at 0.5 x. Between ordinary points it is still a straight cut.
   `tools/steps_replayfilm.mjs` films a replay with the page's graphics.
+- **Gameplay: pressure timing and timed aim** (he said "i really want to revamp the gameplay cuz its really boring rn, like all you do is
+  hit the space bar and aim the shots"; rejected shot-type keys with charge, a serve meter, "footwork matters" and a steered aim marker;
+  after a survey of twelve tennis games - TopSpin 2K25, Virtua Tennis, Tennis World Tour 2, AO Tennis 2, Matchpoint, Tennis Elbow 4,
+  Mario Tennis, Switch Sports, VR and mobile ones - he chose these two, both keeping the swing and the shot choice automatic):
+  - Pressure timing (TopSpin 2K25's meter, `__pressureOld`): his clean window is the level's times 1.25 off a slow ball down to 0.6 off a
+    fast one, 0.75 deep in a long rally, down to 0.55 stretched or running, and up to 1.35 off a ball that sits up (bounded 0.4-1.6 x);
+    it had only narrowed by up to 40 % against a threatening ball. The classic controls' "merciful" clamp kept a mistimed press within half
+    a window of the clean one, so timing hardly counted; it now allows 0.06 s more, and outside the window the ball goes off line: early
+    pulls it (a forehand across his body, a backhand the other way), late pushes it, about 0.7 m per 0.03 s, at most 1.6 m, on top of the
+    loss of quality timing already cost. The Perfect / Good / Early / Late read-out is judged against the same window. His shots only; the
+    computer's are unchanged (AI-v-AI statistics unaffected).
+  - Timed aim (Tennis Elbow 4's, `__timedAimOld`): how long ← or → has been held for this ball sets the angle, kept after it is let go
+    until the swing: a tap 1.3 m off the middle, 0.15 s 1.9 m, 0.3 s 2.9 m, 0.4 s or more to 0.3 m inside the level's margin (3.46 m on
+    Tour, against the old fixed 3.0 m), so more winners and more outs.
+  Difficulty (classicbot, Auto footwork, 400 points): timing like his (sig 0.02) Club 78 → 82 %, Challenger 69 → 71 %, Tour 59 → 58 %;
+  looser timing (sig 0.04) Tour 53 → 53 %, Challenger 66 → 71 %.
