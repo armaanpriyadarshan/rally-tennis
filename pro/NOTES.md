@@ -1073,3 +1073,11 @@ still in the air, both in a stroke's finish, for two or three frames.
   0.45 s of the clip; `__finRateOld`): the hand keeps moving through the top (3.4-4.9 m/s, against near-still before) and comes down
   0.15 s sooner, at its filmed speed (played faster all the way, it was thrown down at 10 m/s). The fade into the next pose keeps its own
   length in the clip's time, so the lasso itself is not faded.
+- **Take-backs start later: he moves to the ball first** (he said "take backs start too early. like as soon as the other players hits it
+  the takeback is already starting instead of moving to the ball"): the computer books a groundstroke 0.9 s before contact, which on a
+  quick ball is the moment the other man hits it, and the stroke came in from then. The figure now holds the take-back until 0.75 s before
+  contact, full by 0.55 s, at any pace (it had only done so above 2.2 m/s; `__prepMoveOld` for that, `__prepStand 0` to keep a standing
+  player's early turn). The booking itself, and so the computer's choice of shot, is unchanged. Measured (`tools/steps_fhpower.mjs`
+  TAKEBACK): the stroke's weight passes a half 0.48-0.56 s before contact, against 0.6-0.73; the coil still reaches 88-125 degrees
+  (his clip 104-106). Filmed from behind: he runs with the racket in front and takes it back from about -0.53 s. Five-pair audit: no
+  fault rate up (arm in trunk 0.027 → 0.019 %, foot pops 0.008 → 0.005 %).

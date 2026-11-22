@@ -45,6 +45,7 @@ export default async function ({ ev, shot }) {
     console.log('STROKE', got, r.kind, 'chosen', +(r.tc - r.t).toFixed(2), 's before contact, pick', rows[0].pick, rows.find(x => x.id) ? rows.find(x => x.id).id : '');
     for (const x of rows) if (Math.round(x.u * 60) % (E.EVERY ? +E.EVERY : 3) === 0) console.log(`u ${x.u >= 0 ? '+' : ''}${x.u.toFixed(2)} sw ${x.sw} cw ${x.cw} | shoulders ${x.sh}/${x.csh} hips ${x.hip}/${x.chip} pelvis ${x.py}/${x.cpy} | stance ${x.w} ${x.dn} spd ${x.spd} | hand ${x.hv} racket ${x.rv} | ankles ${x.lay}/${x.ray} clip ${x.cl ? x.cl.join('/') : '-'} lock ${x.lk}`);
     const pre = rows.filter(x => x.u < 0), mid = rows.filter(x => x.u > -0.25 && x.u < 0.15), mx = (a, k) => Math.max(...a.map(x => x[k] == null ? -1 : x[k])), mn = (a, k) => Math.min(...a.map(x => x[k] == null ? 9 : x[k]));
+    { const tb = rows.find(x => x.sw > 0.5 && x.u < 0); console.log('TAKEBACK', got, 'chosen', +(r.tc - r.t).toFixed(2), 's before contact; stroke weight past 0.5 at u', tb ? tb.u : null, 'speed then', tb ? tb.spd : null); }
     console.log('SUMMARY', JSON.stringify({ shoulderTurnMax: [mx(pre, 'sh'), mx(pre, 'csh')], hipTurnMax: [mx(pre, 'hip'), mx(pre, 'chip')], pelvisMin: [mn(pre, 'py'), mn(pre, 'cpy')], stanceMax: mx(pre, 'w'), ankleMax: [mx(rows.filter(x => x.u > -0.9 && x.u < 0.5), 'lay'), mx(rows.filter(x => x.u > -0.9 && x.u < 0.5), 'ray')], handTop: mx(mid, 'hv'), racketTop: mx(mid, 'rv') }));
     got++;
   }
