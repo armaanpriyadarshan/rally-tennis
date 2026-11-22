@@ -1185,3 +1185,10 @@ still in the air, both in a stroke's finish, for two or three frames.
   the baseline the far box is seen at four or five degrees, and the flat ring was a smudge beyond the net. It is now lengthened along
   the line from the eye (up to 3.2 x, `0.55 / sin(elevation)`), so from his eyes and from behind it reads as a ring; its width, the
   precision he asked for, is unchanged (`__mineFlat` for the old).
+- **Roster audit on today's build** (all 28 players, 14 seeded matches of 80 s, RSEED=11, `steps_audit.mjs`; logs kept in
+  `~/.cache/rally-audit/2026-11-22-roster/`): mean / worst player, % of frames: foot pop 0.002 / 0.01, foot jump 0.004 / 0.03, legs
+  through each other 0.004 / 0.02, arm inside trunk 0.022 / 0.15 (Ivanisevic), knee bent backwards 0.21 / 0.86 (Alcaraz; all 3-5 cm,
+  none past the 5 cm noted), chicken wing 0.39 / 1.84 (Agassi), planted foot sliding 5.4 / 9.3 (the braking plant's slide). Filmed the
+  worst of the chicken wings and knees-in (Nadal and Sinner running at 4.6-5 m/s, Agassi's drive finish and sprint after a drop,
+  Alcaraz's high volley preparation, Laver's take-back on the run, Sinner's and Connors's fist pumps after a point): crossover steps
+  in a run, a high finish, a raised fist; nothing that reads as wrong from behind, in front or on the broadcast camera.
