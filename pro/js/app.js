@@ -406,7 +406,7 @@ class App {
   replay(on) { $('#replay').classList.toggle('on', on); $('#reticle').style.opacity = on ? 0 : 1; $('#meter').classList.remove('on'); if (on) { this.tab(null); $('#fb').classList.remove('on'); } }
   cine(on) { $('#reticle').style.opacity = on ? 0 : 1; $('#meter').classList.remove('on'); }
   // into and out of a replay: the slabs close, hold on the mark, and open
-  sting() { const w = $('#wipe'); w.querySelector('b').innerHTML = MARK; w.className = 'in'; clearTimeout(this.stingT); this.stingT = setTimeout(() => { if (this.mode === 'match') w.className = ''; }, 560); }
+  sting() { const w = $('#wipe'); w.querySelector('b').innerHTML = MARK; w.dataset.ev = $('#hud').dataset.ev || 'atp'; w.className = 'in'; clearTimeout(this.stingT); this.stingT = setTimeout(() => { if (this.mode === 'match') w.className = ''; }, 560); }
   // Electronic line calling: for a ball within a hand's width of a line, show where it landed.
   lineCall(e, g) {
     const c = $('#linecall'), x = c.getContext('2d'), W = c.width, H = c.height, out = !e.good, mm = Math.round(Math.abs(e.miss) * 1000);

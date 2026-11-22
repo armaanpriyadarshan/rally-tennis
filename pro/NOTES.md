@@ -1091,3 +1091,12 @@ still in the air, both in a stroke's finish, for two or three frames.
 - Serves: measured through the classic controls with no ↑/↓ held, first serves are flat (median 188-197 km/h for Federer, Nadal and
   Sinner) and second serves kick (157-164 km/h). ↑ held at the swing makes any serve a kick and ↓ a slice. The speed readout labelled kick
   and slice serves but not flat ones; flat ones now say "Flat".
+- **Replays in the broadcast style** (he asked "can you make the replays the same style as actual atp tennis?"): a broadcast goes into
+  and out of a replay behind its own animated wipe, shows the shot in super slow motion from its slow-motion camera at the side of the
+  court, tight on the player, and often a second angle on the ball. Now: the existing slab wipe (`ui.sting`, unused since straight cuts
+  came in between points) closes over the live picture, the replay starts behind it and it opens on the shot; it closes again over the
+  replay's last moment and the next point comes up behind it (`__repStingOld`). The wipe takes the event's colours (the tour's blue, the
+  slams' own) with the game's mark, no real logos. The shot is shown at 0.28 x from a court-level camera 6 m to the side and a little in
+  front of the hitter on a long lens framing about 3.5 m (`__repCamOld`), from 0.65 s before contact; from 0.42 s after it, the reverse
+  angle low behind the beaten player follows the ball to its bounce at 0.5 x. Between ordinary points it is still a straight cut.
+  `tools/steps_replayfilm.mjs` films a replay with the page's graphics.

@@ -161,7 +161,11 @@ export class Game {
       this.acc += Math.min(dt, 0.05) * this.timeScale;
       let n = 0;
       while (this.acc >= STEP && n++ < 40) { this.keep(m); m.step(STEP); this.acc -= STEP; if (m.events.length) this.drain(); }
-      if (this.pendingReplay && m.phase === 'over' && m.phaseT > 0.85) { const e = this.pendingReplay; this.pendingReplay = null; this.startReplay(e); }
+      // (into a replay as a broadcast goes into one: the wipe closes over the live picture, the replay starts behind it, and it opens
+      // on the slow motion; he asked for replays "the same style as actual atp tennis". Between points it is still a straight cut.)
+      if (this.pendingReplay && m.phase === 'over' && m.phaseT > 0.85) { const e = this.pendingReplay; this.pendingReplay = null;
+        if (this.ui && this.ui.sting && !globalThis.__repStingOld) { this.ui.sting(); this.stingIn = { e, at: this.time + 0.2 }; } else this.startReplay(e); }
+      if (this.stingIn && this.time >= this.stingIn.at) { const e = this.stingIn.e; this.stingIn = null; this.startReplay(e); }
     }
     this.direct(dt);
     if (this.replay) { this.playReplay(dt); if (this.ui) this.ui.frame(this, dt); return; }
@@ -355,7 +359,7 @@ export class Game {
     // where the winning ball bounced: the replay ends a moment after it, before the camera has only the back wall to look at
     let bx = 0, bz = -Math.sign(R[k].p[e.winner].z) * 9, tb = R[k].t + 1.2;
     for (let j = k + 1; j < R.length; j++) { const b = R[j].ball; if (b.bounces > 0) { bx = b.x; bz = b.z; tb = R[j].t; break; } }
-    const tc = R[k].t, last = R[R.length - 1].t, from = Math.max(R[0].t, tc - 1.1), end = Math.min(last, tb + 0.7);
+    const tc = R[k].t, last = R[R.length - 1].t, from = Math.max(R[0].t, tc - (globalThis.__repCamOld ? 1.1 : 0.65)), end = Math.min(last, tb + (globalThis.__repCamOld ? 0.7 : 0.55));
     // (kept from half a second before it opens, for the figures' unseen run-in below: cut at the opening itself,
     // as it was, that run-in had nothing to run through, and every replay opened with the figures cold, the springs that keep an
     // arm out of the body starting from nothing in the middle of a swing)
@@ -364,7 +368,7 @@ export class Game {
     this.replay = { frames, t: from, end, tc, speed, who: e.winner, bx, bz, lx: Lp.x, lz: Lp.z, k: 0, side: A.x >= 0 ? 1 : -1, cut: false, cx: null, cz: null };
     this.replays = (this.replays || 0) + 1; this.lastReplayPt = this.match.history.length;
     for (const f of this.fig) { f.inited = false; f.handInit = false; f.setFirstPerson(false); }
-    this.match.timer += (end - from) / speed + 0.2;
+    this.match.timer += globalThis.__repCamOld ? (end - from) / speed + 0.2 : Math.max(0, Math.min(end, tc + 0.42) - from) / 0.28 + Math.max(0, end - Math.max(from, tc + 0.42)) / 0.5 + 0.6;
     this.cam.snap = true;
     // (the ball's streak starts afresh: drawn through the last places it had in the live point, the replay opened on a yellow streak
     // from wherever the point ended to where the replay begins)
@@ -388,8 +392,15 @@ export class Game {
   }
   playReplay(dt) {
     const rp = this.replay, F = rp.frames, live = this.match;
-    rp.t += dt * rp.speed;
-    if (rp.t >= rp.end || rp.skip) { this.endReplay(); return; }
+    // (super slow motion through the shot, from the side, as a broadcast's slow-motion camera has it; then the ball to its bounce at
+    // half speed from the other end)
+    if (!globalThis.__repCamOld) rp.speed = rp.t < rp.tc + 0.42 ? 0.28 : 0.5;
+    if (rp.stingOut == null) rp.t += dt * rp.speed;
+    // (and out as it came in: the wipe closes over the replay's last moment and the next point comes up behind it)
+    if (this.ui && this.ui.sting && !globalThis.__repStingOld) {
+      if (rp.stingOut == null && (rp.skip || rp.t >= rp.end - 0.2 * rp.speed)) { rp.stingOut = this.time; this.ui.sting(); }
+      if (rp.stingOut != null && this.time - rp.stingOut >= 0.2) { this.endReplay(); return; }
+    } else if (rp.t >= rp.end || rp.skip) { this.endReplay(); return; }
     try {
       // Before the first frame of a replay is shown, the figures are run unseen through the half second of the
       // point before it, as they are before the cut to a new point: brought in cold, their springs (the elbows' aim, the hands'
@@ -428,7 +439,15 @@ export class Game {
       rp.pb = { lastHit: b.lastHit, vx: b.vx, vy: b.vy, vz: b.vz };
       const cam = this.gfx.camera, A = this.arena, C = this.cam, s = rp.who === 0 ? 1 : -1;
       let fov;
-      if (rp.t < rp.tc + 0.28) {
+      if (!globalThis.__repCamOld && rp.t < rp.tc + 0.42) {
+        // the broadcast's slow-motion camera at the side of the court, at court level and on a long lens, tight on the man hitting it:
+        // a little in front of him, so he is seen three-quarters on, the swing across the picture
+        const W = P[rp.who], sx = rp.side, fx = clamp(W.x + sx * 6.2, -A.hx + 0.8, A.hx - 0.8), fz = W.z - s * 2.2;
+        rp.cx = rp.cx == null ? W.x : damp(rp.cx, W.x, 4, sdt * 2.4); rp.cz = rp.cz == null ? W.z : damp(rp.cz, W.z, 4, sdt * 2.4);
+        rp.sx = rp.sx == null ? fx : damp(rp.sx, fx, 3, sdt * 2.4); rp.sz = rp.sz == null ? fz : damp(rp.sz, fz, 3, sdt * 2.4);
+        cam.position.set(rp.sx, 1.2, rp.sz); cam.lookAt(rp.cx, 1.0, rp.cz);
+        const dist = Math.hypot(rp.sx - rp.cx, rp.sz - rp.cz); fov = clamp(2 * Math.atan(1.75 / Math.max(1, dist)) * 180 / Math.PI, 14, 40);
+      } else if (rp.t < rp.tc + 0.28) {
         // low behind the striker and following him, a long lens over his shoulder: the run, the shot, where it goes
         const W = P[rp.who];
         rp.cx = rp.cx == null ? W.x : damp(rp.cx, W.x, 3.5, sdt * 2.4); rp.cz = rp.cz == null ? W.z : damp(rp.cz, W.z, 3.5, sdt * 2.4);
