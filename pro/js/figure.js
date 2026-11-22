@@ -905,7 +905,7 @@ export class Figure {
           const d = Math.atan2(Math.sin(runHip - ch), Math.cos(runHip - ch)) * legRun * clipW;
           if (Math.abs(d) > 1e-3) { const cx = (LP[J.lhip * 3] + LP[J.rhip * 3]) / 2, cz = (LP[J.lhip * 3 + 2] + LP[J.rhip * 3 + 2]) / 2;
             const rot = (j, a) => { const c = Math.cos(a), sn = Math.sin(a), x = LP[j * 3] - cx, z = LP[j * 3 + 2] - cz; LP[j * 3] = cx + x * c - z * sn; LP[j * 3 + 2] = cz + x * sn + z * c; };
-            rot(J.lhip, d); rot(J.rhip, d); const du = d * (globalThis.__hipRunUp ?? 0.35); for (const j of UPPER_J) rot(j, du); } } }
+            rot(J.lhip, d); rot(J.rhip, d); const du = d * (globalThis.__hipRunUp ?? 0.35) * (globalThis.__finRunOld ? 1 : 1 - sm(cu / 0.12)); for (const j of UPPER_J) rot(j, du); } } }   /* (but from contact on the shoulders keep all of the stroke's turn: running out of a finish, the hips go with the legs and the chest still comes round through the ball - turned back with the hips, his finish wrapped half as far as the man's, the swing with no follow-through) */
       if (this.ocFrom) { const k = (1 - sm5((t - this.ocFromT) / (this.ocFromD || 0.2))) * this.ocFromW; if (k > 0.001) mixUpper(LP, sampleAt(this.ocFrom, cu, this.SP2 || (this.SP2 = new Float32Array(N3))), k, this.ocMu || (this.ocMu = {})); else { this.ocFrom = null; if (this.ocMu) this.ocMu.muD = null; } }
       // bouncing the ball: the hand that holds it goes down with each bounce
       if (serverWait && this.bounceDy) { const o = hs > 0 ? [J.lwri, J.lhand] : [J.rwri, J.rhand]; for (const j of o) LP[j * 3 + 1] += this.bounceDy * clipW; }
@@ -949,7 +949,7 @@ export class Figure {
     const hmx = (LP[J.lhip * 3] + LP[J.rhip * 3]) / 2, hmy = (LP[J.lhip * 3 + 1] + LP[J.rhip * 3 + 1]) / 2, hmz = (LP[J.lhip * 3 + 2] + LP[J.rhip * 3 + 2]) / 2;
     // hips: at the clip's height, or where the stroke wants them (low to load, rising through the ball)
     const strokeK = Math.max(sw * (1 - 0.55 * go), (pose.set || 0) * (1 - go)) * (1 - clipW), clipY = (hmy - ANKLE_H) * r + D.ankle;
-    let wantY = lerp(clipY, D.hipY - (pose.crouch || 0) * H, strokeK) - hopLand * H - (brakeK * 0.08 + driveK * 0.05 + (sliding ? 0.07 : 0)) * H;
+    let wantY = lerp(clipY, D.hipY - (pose.crouch || 0) * H, strokeK) - hopLand * H - ((brakeK * 0.08 + driveK * 0.05) * (globalThis.__dipClipOld ? 1 : 1 - clipW) + (sliding ? 0.07 : 0)) * H;   /* (not under a tracked stroke: the clip has its own load and drive, and braking into the ball the hips were let down 15 cm through contact, where the real man drives up 20 cm through it) */
     if (this.dbgOn) this.hipDbg = { clipY: +clipY.toFixed(3), hmy: +hmy.toFixed(3), r: +r.toFixed(3), legC: +legC.toFixed(3), strokeK: +strokeK.toFixed(2), crouch: +(pose.crouch || 0).toFixed(3), base: +wantY.toFixed(3), metW: +(this.metW || 0).toFixed(2), metCpY: this.metCpY != null ? +this.metCpY.toFixed(2) : null, hipY: +D.hipY.toFixed(3), clipW: +clipW.toFixed(2) };
     // a low ball is played from the legs, not by dropping the racket: through the swing the hips go down with
     // the height of the contact (knees bent, back still upright), as far as about a third of a metre
@@ -2965,7 +2965,10 @@ const CLIP_OK = { serve: true };
 // terms: x toward his hitting side, y up, z forward). Nadal takes the racket back low across his waist, head
 // toward his other side, and lifts it only late, where Federer brings it up beside his shoulder at once.
 const RACKET_OVR = {
-  'Nadal/fh': [{ u: -0.70, dir: [0.82, 0.10, 0.56] }, { u: -0.54, dir: [0.30, 0.90, 0.31] }, { u: -0.40, dir: [-0.15, 0.95, -0.27] }],
+  // (the first key from the back-fence footage, youtube XJ7fWm1gPtY at 5.34 s: by 0.7 s before contact his racket is already up beside his head,
+  // tip up; the side-on swing these keys were first solved on had it out flat to his side, and with that key the game held it out flat
+  // until half a second before contact. __nadOvrOld for that one.)
+  'Nadal/fh': [{ u: -0.70, dir: globalThis.__nadOvrOld ? [0.82, 0.10, 0.56] : [0.45, 0.80, 0.40] }, { u: -0.54, dir: [0.30, 0.90, 0.31] }, { u: -0.40, dir: [-0.15, 0.95, -0.27] }],
   // (Djokovic had keys here too, for both wings, solved against his tracked arm while the tracker had the forehand's forearm
   // folded flat into the shoulder in the turn, and against the backhand clip he now plays least. Once the clip's arm was
   // made whole (bridgeFoldedArm in motion.js) the forehand's keys swung the racket round over his head to point back past
@@ -3061,7 +3064,11 @@ const CLIP_END = { 'Agassi/fh': 0.24 };
 // tenth of a metre off the handle at the ball; each has others of the same kind of ball)
 // (Djokovic/bh/1, his running backhand: the tracker lost both hands after contact, which drop to his knees and drift a metre off
 // to his left, so the finish was the racket pointing down at his feet in a crouch)
-const ALT_BAD = new Set(['Federer/fh/0', 'Federer/fh/1', 'Alcaraz/fh/1', 'Djokovic/fh/0', 'Sinner/bh/3', 'Djokovic/bh/4', ...(globalThis.__djBh1Old ? [] : ['Djokovic/bh/1'])]);
+// (Nadal's forehands 3 and 4, Indian Wells from a camera in front of him, turn the shoulders 38-43 degrees before contact against 110-133 in
+// his side-camera clips: from in front the tracker cannot see how far they turn away. Number 4 was his set forehand, the most played.
+// Number 2, his attacking forehand, is a ball run in to: the feet close to 23 cm at contact and the wrist peaks at 9.4 m/s against
+// 13.7 in his first clip; played for three in four of his forehands, standing still too. His first clip now takes those.)
+const ALT_BAD = new Set(['Federer/fh/0', 'Federer/fh/1', 'Alcaraz/fh/1', 'Djokovic/fh/0', 'Sinner/bh/3', 'Djokovic/bh/4', ...(globalThis.__djBh1Old ? [] : ['Djokovic/bh/1']), ...(globalThis.__nadFh34On ? [] : ['Nadal/fh/2', 'Nadal/fh/3', 'Nadal/fh/4'])]);
 const DONORS = (key, lefty, oneHand) => key === 'serve' ? (lefty ? ['Nadal', 'Federer'] : ['Federer', 'Djokovic', 'Sinner', 'Alcaraz', 'Nadal'])
   : key === 'fh' ? (lefty ? ['Federer', 'Nadal'] : ['Federer', 'Djokovic', 'Sinner', 'Alcaraz', 'Nadal'])   /* (a left-hander with none of his own borrows Federer's classic forehand mirrored, not Nadal's lasso finish over the head, which is Nadal's alone) */
   : key === 'bh' ? (oneHand ? ['Federer'] : lefty ? ['Nadal', 'Djokovic', 'Sinner', 'Alcaraz', 'Agassi'] : ['Djokovic', 'Sinner', 'Alcaraz', 'Nadal', 'Agassi']) : [];

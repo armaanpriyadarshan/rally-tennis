@@ -1020,3 +1020,27 @@ still in the air, both in a stroke's finish, for two or three frames.
   loops it down and finishes with the lasso over his head; the serve ends by his right hip as on the footage. Other side-camera tracks
   that were tried: Indian Wells 2013 serve 2 (youtube 53ow0zuH6BM, 9.8x by its toss) cuts away 0.35 s after each contact, too short
   to replace the serve clip.
+- **Nadal's forehand: the coil, the load and drive, the take-back racket, the follow-through** (he said "the takeback, forehand, and
+  takeback into the forehand still kinda suck. his animations dont exude the same kind of power they do in real life", "his footwork and
+  body on that stroke also dont look accurate", "his recovery from his forehand is pretty unnatural too"). Measured with
+  `tools/steps_fhpower.mjs` (his strokes in a match, frame by frame: shoulder and hip turn, pelvis height, stance, hand and racket-head
+  speed, drawn against the clip at the same moment, and filmed from a camera like the footage's) and put beside the back-fence footage
+  (youtube XJ7fWm1gPtY) at the same instants:
+  - The clips the game picked were his weakest. Forehands 3 and 4 (Indian Wells, filmed from in front) turn the shoulders 38-43 degrees
+    before contact against 110-133 in his side-camera clips and 111-131 in Federer's, Alcaraz's, Sinner's and Djokovic's: from in front
+    the tracker cannot see how far they turn away. Number 4 was his set forehand. Number 2, the attacking one, is a ball run in to: feet
+    closing to 23 cm at contact, wrist 9.4 m/s against 13.7 in his first clip; it was played for three forehands in four, standing still
+    too. All three are in `ALT_BAD` (`__nadFh34On` brings them back); his first clip (110 degree coil, 0.86 m stance, the pelvis down to
+    0.80 m in the load and up to 1.00 at contact) now takes set, attacking and low balls.
+  - Braking into the ball let the hips down 15 cm through contact (`brakeK`), on top of the clip's own load: he was at his lowest at
+    contact, where the man drives up 20 cm through it. The braking and driving dips are now faded out under a tracked stroke
+    (`__dipClipOld`): lowest pelvis in a stroke 0.62-0.70 → 0.81 m, the clip's load-and-drive shows.
+  - The first take-back racket key (`RACKET_OVR` 'Nadal/fh' at -0.70) held the racket out flat to his side until half a second before
+    contact; the footage has it up beside his head, tip up, by -0.7 s. Re-set from the footage (`__nadOvrOld` for the old key).
+  - Running out of the finish, the run's hip correction turned his shoulders back with the hips (35 % of it), and his finish wrapped
+    about half as far as the clip's (21-42 against 44-71 degrees). From contact on the shoulders keep the stroke's whole turn
+    (`__finRunOld`).
+  - Recovery: the computer runs back to its spot at full speed the moment it hits, so a recovery of a couple of metres is a turned run at
+    4 m/s, where the man side-steps facing the net. Pacing the recovery to the time before the reply (with or without a 3 m/s cap, and
+    with more margin) shortened rallies by 0.2-0.3 shots on every seed and surface tried (hard 3.21-3.35 → 3.02-3.11), the computer
+    caught out of position more: not kept. The recovery's look within that movement is still open.
