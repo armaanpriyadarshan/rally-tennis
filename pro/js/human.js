@@ -225,6 +225,15 @@ export class Human {
         { const sp = p.stroke, bl = m.ball; if (sp && !sp.done && sp.tc == null && !sp.auto && sp.kind !== 'serve' && !globalThis.__keepPrep) {
             const past = mine && (bl.z - p.z) * p.sgn > 0.6 && !(this.buf > m.t && this.tau != null);
             if (!mine || past) { p.stroke = null; this.prepGone = m.incoming; } } }
+        // (where he is aiming, for the marker on the far court, worked out each frame as the swing will work it out when it goes: the
+        // timed angle of the arrow held, ↑ deep, ↓ short, otherwise the game's own choice of where; he asked to "see where youre aiming,
+        // where the ball is going as its mid air and how your aiming controls it")
+        if (mine && !swinging && m.ball.live && plan && !plan.leave) {
+          const aF = clamp(((this.aimHDir === lat ? this.aimHDur : 0) - 0.05) / 0.35, 0, 1), latX = globalThis.__timedAimOld ? COURT.halfW - this.safe[0] - 0.75 : 1.3 + (COURT.halfW - this.safe[0] - 0.3 - 1.3) * aF, ch = this.choiceFor === m.incoming ? this.choice : null;
+          let X = lat ? lat * latX : ch ? clamp(ch.tx * s, -(COURT.halfW - this.safe[0]), COURT.halfW - this.safe[0]) : 0, D = ch ? ch.tz * s : -(COURT.halfLen - Math.max(2.4, this.safe[1] + 1.6));
+          if (fk < 0) { D = -2.1; X = lat ? lat * (COURT.halfW - 1.5) : X * 0.4; } else if (fk > 0) D = -(COURT.halfLen - Math.max(1.3, this.safe[1] + 0.8));
+          this.aimPreview = { X, D };
+        } else this.aimPreview = null;
         if (!mine) this.buf = -9;
         if (mine && !swinging && this.buf > m.t) {
           const opp = m.players[1 - i], oppUp = Math.abs(opp.z) < 4.2;

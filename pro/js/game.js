@@ -291,7 +291,17 @@ export class Game {
     if (!h || this.opts.controls === 'classic' || this.opts.controls == null) {
       // the first game's controls aim with the arrows: no marker to steer, only where his ball will land
       const b0 = this.match.ball, inc0 = this.match.incoming, show0 = h && this.opts.markers && this.match.phase === 'live' && b0.live && b0.lastHit === 1 && inc0 && inc0.land && !inc0.bounced && b0.bounces === 0;
-      fx.showLanding(show0 ? inc0.land : null, show0 ? 1 : 0); fx.showAim(0, 0, 1, '#fff', 0); return;
+      if (globalThis.__aimMarkOld) { fx.showLanding(show0 ? inc0.land : null, show0 ? 1 : 0); fx.showAim(0, 0, 1, '#fff', 0); return; }
+      // where his own ball will land too, as it flies; and where he is aiming: the marker moves as he holds an arrow, and stays where he
+      // aimed while the ball is in the air, so aim and landing can be compared (an early or late swing pulls the ball off it)
+      const mine0 = h && this.opts.markers && this.match.phase === 'live' && b0.live && b0.lastHit === 0 && inc0 && inc0.land && !inc0.bounced && b0.bounces === 0 && !b0.isServe;
+      fx.showLanding(show0 || mine0 ? inc0.land : null, show0 || mine0 ? 1 : 0, mine0 ? 2.6 : 0);   /* (his own ball's mark on the far court drawn bigger: the near one's size is under a pixel there) */
+      const s0 = this.match.players[0].sgn, ap = h && this.opts.markers ? h.aimPreview : null;
+      // (big and in the game's lime: twenty metres away a white ring of 0.4 m on a sunlit court could not be seen at all)
+      if (ap) { const risky = Math.abs(ap.X) > COURT.halfW - 0.6 || Math.abs(ap.D) > COURT.halfLen - 0.6; fx.showAim(ap.X * s0, ap.D * s0, 0.6, risky ? '#ffb36b' : '#d4ff3a', 0.9, 0, true); }
+      else if (mine0) fx.showAim(h.aim.X * s0, h.aim.D * s0, 0.6, '#d4ff3a', 0.4, 0, true);
+      else fx.showAim(0, 0, 1, '#fff', 0);
+      return;
     }
     const b = m.ball, inc = m.incoming;
     // where his shot will land

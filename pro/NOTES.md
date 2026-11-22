@@ -1116,3 +1116,11 @@ still in the air, both in a stroke's finish, for two or three frames.
     Tour, against the old fixed 3.0 m), so more winners and more outs.
   Difficulty (classicbot, Auto footwork, 400 points): timing like his (sig 0.02) Club 78 → 82 %, Challenger 69 → 71 %, Tour 59 → 58 %;
   looser timing (sig 0.04) Tour 53 → 53 %, Challenger 66 → 71 %.
+- **You can see where you are aiming** (he said "you should be able to see where youre aiming, where the ball is going as its mid air and
+  how your aiming controls it"): with the classic controls the only marker had been where the other man's ball would land. Now, while a
+  ball is coming to him, a lime target marks where his shot is aimed as the swing would aim it now: the game's own choice with no arrow
+  held, sliding out toward the line as ← or → is held (the timed aim), deep with ↑, short with ↓, amber within 0.6 m of a line; it stays
+  where he aimed while his ball flies, and his ball's landing spot is marked as it flies, so aim and landing can be compared (an early or
+  late swing pulls it off). On the far court a ring on the ground is a few pixels high from the low cameras and half hidden by the net
+  tape (the old aim ring was 8 % of its radius thick: under a pixel), so the target is a bold ring plus a 0.85 m target standing above
+  the spot facing the camera (`__aimMarkOld` for the old markers; the Aim ring setting turns them off).

@@ -49,6 +49,13 @@ export class BallFx {
     this.aim = new THREE.Group(); g.add(this.aim);
     this.aimRing = new THREE.Mesh(new THREE.RingGeometry(0.92, 1.0, 48), aimM); this.aimRing.rotation.x = -Math.PI / 2; this.aim.add(this.aimRing);
     this.aimDot = new THREE.Mesh(new THREE.CircleGeometry(0.09, 20), aimM); this.aimDot.rotation.x = -Math.PI / 2; this.aim.add(this.aimDot);
+    // (a bold ring for the far court, where the thin one is under a pixel wide: the classic controls' aim marker)
+    this.aimBold = new THREE.Mesh(new THREE.RingGeometry(0.62, 1.0, 48), aimM); this.aimBold.rotation.x = -Math.PI / 2; this.aimBold.visible = false; this.aim.add(this.aimBold);
+    // (and a target standing just above the spot, facing the camera: from a low camera behind him the far court is so foreshortened that a ring
+    // on it is a few pixels high and half hidden by the net tape)
+    { const cv = document.createElement('canvas'); cv.width = cv.height = 64; const c = cv.getContext('2d'); c.strokeStyle = '#fff'; c.lineWidth = 7; c.beginPath(); c.arc(32, 32, 24, 0, Math.PI * 2); c.stroke(); c.fillStyle = '#fff'; c.beginPath(); c.arc(32, 32, 8, 0, Math.PI * 2); c.fill();
+      const tx = new THREE.CanvasTexture(cv); this.aimPinMat = new THREE.SpriteMaterial({ map: tx, transparent: true, opacity: 0, depthWrite: false });
+      this.aimPin = new THREE.Sprite(this.aimPinMat); this.aimPin.scale.set(0.85, 0.85, 1); this.aimPin.renderOrder = 4; g.add(this.aimPin); }
     this.aim.position.y = 0.009; this.aimMat = aimM; this.landMat = ringM;
     this._m = new THREE.Matrix4(); this._q = new THREE.Quaternion(); this._s = new THREE.Vector3(); this._p = new THREE.Vector3(); this._c = new THREE.Color();
     this.t = 0;
@@ -146,12 +153,14 @@ export class BallFx {
   setViewport(h) { this.dust.material.uniforms.uScale.value = h * 0.9; }
 
   // ---- markers ----
-  showLanding(p, strength) {
+  showLanding(p, strength, big) {
     if (!p || strength <= 0) { this.landMat.opacity = Math.max(0, this.landMat.opacity - 0.08); return; }
-    this.land.position.set(p.x, 0.008, p.z); this.landMat.opacity = 0.55 * strength; const s = 1 + 0.12 * Math.sin(this.t * 9); this.land.scale.set(s, s, 1);
+    this.land.position.set(p.x, 0.008, p.z); this.landMat.opacity = (big ? 0.85 : 0.55) * strength; const s = (1 + 0.12 * Math.sin(this.t * 9)) * (big || 1); this.land.scale.set(s, s, 1);
   }
-  showAim(x, z, radius, color, alpha, deep) {
-    if (alpha <= 0) { this.aimMat.opacity = 0; return; }
-    this.aim.position.set(x, 0.009, z); this.aimRing.scale.set(radius, deep || radius, 1); this.aimMat.opacity = alpha; this.aimMat.color.set(color || '#ffffff');
+  showAim(x, z, radius, color, alpha, deep, bold) {
+    if (alpha <= 0) { this.aimMat.opacity = 0; if (this.aimPinMat) this.aimPinMat.opacity = 0; return; }
+    if (this.aimPinMat) { this.aimPinMat.opacity = bold ? alpha : 0; if (bold) { this.aimPin.position.set(x, 0.55, z); this.aimPinMat.color.set(color || '#ffffff'); } }
+    this.aimRing.visible = !bold; this.aimBold.visible = !!bold; this.aimDot.visible = !bold;
+    this.aim.position.set(x, 0.009, z); this.aimRing.scale.set(radius, deep || radius, 1); this.aimBold.scale.set(radius, deep || radius, 1); this.aimMat.opacity = alpha; this.aimMat.color.set(color || '#ffffff');
   }
 }
