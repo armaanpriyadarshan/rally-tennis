@@ -136,17 +136,23 @@ export class Human {
     // ---- hands: the first game's way ----
     if (classic) {
       const pressed = inp.takePressed(); inp.takeEdges();
-      const lat = (inp.down('ArrowRight') || inp.down('KeyD') ? 1 : 0) - (inp.down('ArrowLeft') || inp.down('KeyA') ? 1 : 0), fk = (inp.down('ArrowUp') || inp.down('KeyW') ? 1 : 0) - (inp.down('ArrowDown') || inp.down('KeyS') ? 1 : 0);
+      let lat = (inp.down('ArrowRight') || inp.down('KeyD') ? 1 : 0) - (inp.down('ArrowLeft') || inp.down('KeyA') ? 1 : 0), fk = (inp.down('ArrowUp') || inp.down('KeyW') ? 1 : 0) - (inp.down('ArrowDown') || inp.down('KeyS') ? 1 : 0);
       const go = pressed.has('Space') || pressed.has('Enter');
+      // (an arrow tapped between two frames is a press too: read from the keys pressed since the last frame as well as those held)
+      const latT = lat || (pressed.has('ArrowRight') || pressed.has('KeyD') ? 1 : 0) - (pressed.has('ArrowLeft') || pressed.has('KeyA') ? 1 : 0), fkT = fk || (pressed.has('ArrowUp') || pressed.has('KeyW') ? 1 : 0) - (pressed.has('ArrowDown') || pressed.has('KeyS') ? 1 : 0);
       if (go && this.log) this.log.push(['press', +m.t.toFixed(2), ph, this.tau == null ? null : +this.tau.toFixed(3), m.ball.lastHit, m.ball.live ? 1 : 0, +Math.hypot(m.ball.x - p.x, m.ball.z - p.z).toFixed(1), lat, fk, serving ? 1 : 0]);
       this.power = 0; this.kindNow = null; this.hold = null;
       if (ph === 'ready' && serving) { this.srvWant = false; if (go && m.phaseT > 0.4) { m.toss(i); g.audio && g.audio.event('toss'); } }
       else if (ph === 'toss' && serving) {
         // pressed again any time after the toss has started: the swing goes no sooner than a moment before the
         // ball is back at full reach, so an eager press is a slightly early serve and not a swing at thin air
-        if (go) this.srvWant = true;
+        if (go) { this.srvWant = true; this.srvL = latT; this.srvF = fkT; }
+        // (the arrows pressed with Space, or any time after it, count until the swing goes: read only at the swing, a moment after the
+        // press, an arrow let go of in between was not the aim at all, and the serve went where the game chose; he said "sometimes the
+        // aiming on the stroke doesnt listen to keypresses")
+        if (this.srvWant && !globalThis.__aimLatchOld) { if (latT) this.srvL = latT; if (fkT) this.srvF = fkT; }
         if (this.srvWant && m.ball.held < 0 && p.stroke && p.stroke.tc == null && m.t >= m.tossIdeal - TIMING.serveSwing - 0.08) {
-          this.srvWant = false;
+          this.srvWant = false; if (!globalThis.__aimLatchOld) { lat = lat || this.srvL || 0; fk = fk || this.srvF || 0; }
           // left and right place it in the box: the T, the body, or wide
           const side = m.deuceSide ? -1 : 1, smg = this.srvSafe + 0.3, a = smg, b = COURT.halfW - smg, u = 0.5 + 0.5 * lat * side, X = side * (a + (b - a) * u), D = -(COURT.svc - this.srvSafe - 0.55);
           this.aim.X = X; this.aim.D = D;
@@ -161,7 +167,11 @@ export class Human {
         // closes; pressed earlier than that, it is remembered and goes as the ball comes into reach
         // (a touch early, never a miss). Pressed late, it is late. The arrows held as the swing starts are the aim.
         const mine = m.ball.live && m.ball.lastHit !== i, st0 = p.stroke, swinging = !!st0 && !st0.done && st0.tc != null;
-        if (go && mine && !swinging) this.buf = m.t + 1.6;                    // armed for this ball: pressed early, the swing still goes when the ball is on him
+        if (go && mine && !swinging) { this.buf = m.t + 1.6; this.aimFor = m.incoming; this.aimL = latT; this.aimF = fkT; }   // armed for this ball: pressed early, the swing still goes when the ball is on him
+        // (and the arrows pressed with Space, or any time after it until the swing goes, are the aim: read only as it went, a sixth of a
+        // second before the ball, an arrow pressed with an early Space and let go of in between was not the aim, and the ball went where
+        // the game chose; he said "sometimes the aiming on the stroke doesnt listen to keypresses". One held as it goes still wins.)
+        if (!globalThis.__aimLatchOld && mine && this.buf > m.t && this.aimFor === m.incoming) { if (latT) this.aimL = latT; if (fkT) this.aimF = fkT; if (!lat) lat = this.aimL || 0; if (!fk) fk = this.aimF || 0; }
         // He reads the ball and turns for it on his own, as early as a player does (about 0.85 s out, as the computer does):
         // the shoulders turn and the racket goes back on the side the ball is coming to, whether or not Space has been
         // pressed yet. Space says when he swings. (Waiting for the press, the take-back used to start a tenth of a second

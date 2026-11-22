@@ -1081,3 +1081,13 @@ still in the air, both in a stroke's finish, for two or three frames.
   TAKEBACK): the stroke's weight passes a half 0.48-0.56 s before contact, against 0.6-0.73; the coil still reaches 88-125 degrees
   (his clip 104-106). Filmed from behind: he runs with the racket in front and takes it back from about -0.53 s. Five-pair audit: no
   fault rate up (arm in trunk 0.027 → 0.019 %, foot pops 0.008 → 0.005 %).
+- **Aim keys are no longer dropped** (he said "sometimes the fucking aiming on the stroke doesnt listen to keypresses"): with the classic
+  controls the aim was read only from the arrow held at the instant the swing fired, about a sixth of a second before contact; Space is
+  usually pressed earlier and remembered, so an arrow pressed with it and let go of in between, or tapped after it, was ignored and the
+  ball went where the game chose. Now, once Space has armed the swing for this ball, the last arrow held or tapped (taps between frames
+  count) until the swing fires is the aim, ↑/↓ (lob, drop) likewise, and the same for the serve between the press and the swing; an arrow
+  held as it fires still wins (`__aimLatchOld`). Scripted test (Space with an arrow 0.3-0.45 s before the ball, arrow let go 0.2 s later):
+  aimed as pressed 11 of 18 → 18 of 18.
+- Serves: measured through the classic controls with no ↑/↓ held, first serves are flat (median 188-197 km/h for Federer, Nadal and
+  Sinner) and second serves kick (157-164 km/h). ↑ held at the swing makes any serve a kick and ↓ a slice. The speed readout labelled kick
+  and slice serves but not flat ones; flat ones now say "Flat".
