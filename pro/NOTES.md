@@ -1192,3 +1192,9 @@ still in the air, both in a stroke's finish, for two or three frames.
   worst of the chicken wings and knees-in (Nadal and Sinner running at 4.6-5 m/s, Agassi's drive finish and sprint after a drop,
   Alcaraz's high volley preparation, Laver's take-back on the run, Sinner's and Connors's fist pumps after a point): crossover steps
   in a run, a high finish, a raised fist; nothing that reads as wrong from behind, in front or on the broadcast camera.
+- **Every player's worst moments filmed** (the same 14 matches; for each of the 28, up to three of his worst flagged moments, arm
+  inside the trunk, legs through each other, racket in the body, chicken wing hitting and free, knees in, hand on hip running: 84
+  moments, each from the broadcast camera and from behind): forehand and smash finishes with the elbow high, two-handed carries,
+  crossover steps, take-backs on the run, a fist pump after the point, the off arm out for balance on a wide run. None reads as wrong
+  on screen. (The human side's bot often chases a wide ball to the side wall, at Melbourne about four metres out: where he is, not how
+  he moves.)
