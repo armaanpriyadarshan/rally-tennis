@@ -1198,3 +1198,9 @@ still in the air, both in a stroke's finish, for two or three frames.
   crossover steps, take-backs on the run, a fist pump after the point, the off arm out for balance on a wide run. None reads as wrong
   on screen. (The human side's bot often chases a wide ball to the side wall, at Melbourne about four metres out: where he is, not how
   he moves.)
+- **"Knee bent backwards" was the audit misreading the serve's back-leg kick.** Its worst moments (missed by the first pass: the line
+  reads "worst R knee backwards") were every player's right knee 6-17 cm "backwards" 0.4-0.55 s after the serve. Filmed (Alcaraz, the
+  worst, five frames; Sinner's landing): the back leg kicked up behind for balance, toes pointing down and back, the knee bent forward,
+  then a step through. The check measures the knee against the foot's own forward direction, which a raised foot reverses: it now
+  only asks of a foot within 20 cm of the court (`__kneeAirOld` for the old). Alcaraz–Sinner, same seed: Alcaraz 0.86 → 0.00 %, Sinner
+  0.33 → 0.17 % (his step through after the serve, at a crossover; nothing wrong to see).
