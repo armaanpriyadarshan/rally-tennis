@@ -1120,7 +1120,12 @@ export class Figure {
           // court across half a metre read as a foot sliding along it)
           const sd = Lk.step.d != null ? Lk.step.d : (Lk.step.d = Math.hypot(ankle.x - Lk.step.x, ankle.z - Lk.step.z));
           Lk.step.t += dt / ((Lk.step.fast ? 0.17 : 0.13 + 0.12 * clamp(sd / 0.6, 0, 1)) / (globalThis.__stepOld ? 1 : 1 + 0.3 * clamp(speed - 2, 0, 3)));   /* (quicker at speed: a step as slow as a walking one, the body ran half a metre on while the foot was still on its way) */ const w = sm(Math.min(1, Lk.step.t));
-          ankle.x = lerp(Lk.step.x, ankle.x, w); ankle.z = lerp(Lk.step.z, ankle.z, w); ankle.y = Math.max(ankle.y, D.ankle + Math.sin(w * Math.PI) * (0.055 + 0.11 * clamp(sd / 0.5, 0, 1)) * H);
+          ankle.x = lerp(Lk.step.x, ankle.x, w); ankle.z = lerp(Lk.step.z, ankle.z, w);
+          // (and no faster over the court than a foot is carried, about twelve metres a second at most: the step's own place moves under
+          // it, a stop's plant sent a metre out after the step began, and the foot was dragged after it forty centimetres a frame into the
+          // splits as he pulled up out of a sideways run)
+          if (!globalThis.__stepVcapOld && dt > 0) { if (Lk.step.px != null) { const ddx = ankle.x - Lk.step.px, ddz = ankle.z - Lk.step.pz, dd = Math.hypot(ddx, ddz), mx = Math.max(12, speed * 2.2) * dt; if (dd > mx) { ankle.x = Lk.step.px + ddx * mx / dd; ankle.z = Lk.step.pz + ddz * mx / dd; Lk.step.t = Math.min(Lk.step.t, 0.86); } }   /* (and the step goes on until the foot has caught up: ended short of its place, the foot was thrown the rest of the way in a frame) */ Lk.step.px = ankle.x; Lk.step.pz = ankle.z; }
+          ankle.y = Math.max(ankle.y, D.ankle + Math.sin(w * Math.PI) * (0.055 + 0.11 * clamp(sd / 0.5, 0, 1)) * H);
           // (and set down once it is down, in the last tenth of the step: carried on to the step's own end, a foot already on the
           // court followed the clip's ankle as it drifted, two or three centimetres a frame along the court)
           if (Lk.step.t >= 1 || (!globalThis.__stepEndOld && Lk.step.t >= 0.88 && down && ankle.y - D.ankle < 0.012 * H)) { Lk.step = null; Lk.on = down; const lpo = !globalThis.__landDrawnOld && down && this.lpOff ? this.lpOff[i] : null; Lk.x = ankle.x + (lpo ? lpo.x : 0); Lk.z = ankle.z + (lpo ? lpo.z : 0); if (lpo) { ankle.x = Lk.x; ankle.z = Lk.z; } Lk.ox = Lk.oz = 0; Lk.ox0 = Lk.oz0 = 0; }

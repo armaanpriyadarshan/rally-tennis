@@ -972,3 +972,11 @@ still in the air, both in a stroke's finish, for two or three frames.
   walk fades in, such a foot is lifted by how far it has moved from its held spot (0.6 x the distance, at most 11 cm), so it steps;
   the lift is let down over a twentieth of a second when the walk takes the foot (dropped in a frame, it popped). Federer-Sinner,
   300 s, both players: foot-frames sliding on the court in the fade 88 → 23, pops 0 → 0. Serve walk and four-pair audit unchanged. The lift is 1.2 x the distance (`__fadeLiftK`), not 0.6: at 0.6 a foot moved five centimetres before it cleared the court; slides 23 → 10 in the same 300 s, no pops (2 x brought pops back); four-pair audit unchanged.
+- **A step no faster than a foot is carried** (`js/figure.js`, `__stepVcapOld`): the full roster audit's pictures of every arm and foot
+  fault (PENPIC 5 cm, 14 pairs) showed Zverev pulling up out of a sideways run as a point ended, his right foot thrown out 1.7 m in
+  seven frames into the splits, forty centimetres in one (16 m/s against the hips). The stop's plant sent the foot's place a metre
+  out after its step had begun, and a step follows its place: the foot was dragged after it. A step's foot now moves at most 12 m/s
+  over the court (2.2 x his speed if faster), and the step goes on until it has caught up (ended short, the foot was thrown the rest
+  of the way in a frame: pops up to 47 m/s). Refilmed: the foot steps out over the frames into a stance 0.57 m wide, not 1.08.
+  Four pairs: foot jumps 0.013% → 0.007%, feet through each other 0.059% → 0.045%, legs through each other 0.013% → 0.011%, pops
+  unchanged. The other pictures (serve foot pops at the trophy, 5-8 cm arm touches) look normal from behind and the side.
