@@ -60,6 +60,10 @@ export class BallFx {
       this.landPinMat = new THREE.SpriteMaterial({ map: tx, transparent: true, opacity: 0, depthWrite: false, color: '#ffffff' });
       this.landPin = new THREE.Sprite(this.landPinMat); this.landPin.scale.set(0.55, 0.55, 1); this.landPin.renderOrder = 4; g.add(this.landPin); }
     this.aim.position.y = 0.009; this.aimMat = aimM; this.landMat = ringM;
+    // (his own shot's one circle, on the court, in the look of the ring for the ball coming to him: where he aims, then where it lands;
+    // he asked for "just one circle. like similar to one when youre receiving the ball just make both of them lime")
+    this.mineMat = ringM.clone(); this.mine = new THREE.Mesh(this.land.geometry, this.mineMat); this.mine.rotation.x = -Math.PI / 2; this.mine.position.y = 0.008; this.mine.renderOrder = 3; g.add(this.mine);
+    this.landMat.color.set('#d4ff3a');
     this._m = new THREE.Matrix4(); this._q = new THREE.Quaternion(); this._s = new THREE.Vector3(); this._p = new THREE.Vector3(); this._c = new THREE.Color();
     this.t = 0;
   }
@@ -156,16 +160,18 @@ export class BallFx {
   setViewport(h) { this.dust.material.uniforms.uScale.value = h * 0.9; }
 
   // ---- markers ----
-  showLanding(p, strength, big) {
-    if (this.landPinMat) this.landPinMat.opacity = Math.max(0, this.landPinMat.opacity - 0.08);
+  showLanding(p, strength) {
     if (!p || strength <= 0) { this.landMat.opacity = Math.max(0, this.landMat.opacity - 0.08); return; }
-    // (on the far court a standing circle facing the camera, not a ring on the ground)
-    if (big && this.landPin) { this.landPin.position.set(p.x, 0.35, p.z); this.landPinMat.opacity = 0.85 * strength; this.landMat.opacity = 0; return; }
-    this.land.position.set(p.x, 0.008, p.z); this.landMat.opacity = 0.55 * strength; const s = 1 + 0.12 * Math.sin(this.t * 9); this.land.scale.set(s, s, 1);
+    this.land.position.set(p.x, 0.008, p.z); this.landMat.opacity = 0.75 * strength; const s = 1 + 0.12 * Math.sin(this.t * 9); this.land.scale.set(s, s, 1);
+  }
+  // his own shot's circle: x, z on the court (null hides it), a little bigger than the near ring so it reads at the far end
+  showMine(x, z, alpha, color) {
+    if (x == null || !(alpha > 0)) { this.mineMat.opacity = Math.max(0, this.mineMat.opacity - 0.08); return; }
+    this.mine.position.set(x, 0.008, z); this.mineMat.opacity = alpha; this.mineMat.color.set(color || '#d4ff3a'); const s = 2.1 * (1 + 0.08 * Math.sin(this.t * 9)); this.mine.scale.set(s, s, 1);
   }
   showAim(x, z, radius, color, alpha, deep, bold) {
     if (alpha <= 0) { this.aimMat.opacity = 0; if (this.aimPinMat) this.aimPinMat.opacity = 0; return; }
-    if (this.aimPinMat) { this.aimPinMat.opacity = bold ? alpha : 0; if (bold) { this.aimPin.position.set(x, 0.55, z); this.aimPinMat.color.set(color || '#ffffff'); } }
+    if (this.aimPinMat) this.aimPinMat.opacity = 0;
     this.aimRing.visible = !bold; this.aimBold.visible = false; this.aimDot.visible = !bold;
     this.aim.position.set(x, 0.009, z); this.aimRing.scale.set(radius, deep || radius, 1); this.aimBold.scale.set(radius, deep || radius, 1); this.aimMat.opacity = alpha; this.aimMat.color.set(color || '#ffffff');
   }

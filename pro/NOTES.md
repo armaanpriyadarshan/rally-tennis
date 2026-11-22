@@ -1138,3 +1138,7 @@ still in the air, both in a stroke's finish, for two or three frames.
   - Into a groundstroke on the move, the run's cycle is quickened or slowed by at most about a fifth over the last 0.08-0.7 s so that
     contact falls in the middle of a stance (`Loco.stanceNear`, from each gait clip's own ankle heights; `__stepTimeOld`): frames in the
     last quarter second with both feet clear of the court (ankles over 13 cm and toes over 5 cm) 13 % → 8 %.
+  And then (he said "i meant like on the court. and just one circle. like similar to one when youre receiving the ball just make both of
+  them lime"): no standing circles; his shot has one flat ring on the court in the look of the receiving ring (2.1 x its size, to read
+  at the far end), lime, at where he aims while the ball comes (amber within 0.6 m of a line) and, once hit, at where it will land; the
+  receiving ring is lime too (`ballfx.showMine`).

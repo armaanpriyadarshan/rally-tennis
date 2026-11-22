@@ -295,12 +295,14 @@ export class Game {
       // where his own ball will land too, as it flies; and where he is aiming: the marker moves as he holds an arrow, and stays where he
       // aimed while the ball is in the air, so aim and landing can be compared (an early or late swing pulls the ball off it)
       const mine0 = h && this.opts.markers && this.match.phase === 'live' && b0.live && b0.lastHit === 0 && inc0 && inc0.land && !inc0.bounced && b0.bounces === 0 && !b0.isServe;
-      fx.showLanding(show0 || mine0 ? inc0.land : null, show0 || mine0 ? 1 : 0, mine0 ? 2.6 : 0);   /* (his own ball's mark on the far court drawn bigger: the near one's size is under a pixel there) */
+      fx.showLanding(show0 ? inc0.land : null, show0 ? 1 : 0);
+      // one lime circle for his own shot, on the court: where he is aiming while the ball comes to him (amber within 0.6 m of a line), and
+      // once he has hit it, where it will land
       const s0 = this.match.players[0].sgn, ap = h && this.opts.markers ? h.aimPreview : null;
-      // (big and in the game's lime: twenty metres away a white ring of 0.4 m on a sunlit court could not be seen at all)
-      if (ap) { const risky = Math.abs(ap.X) > COURT.halfW - 0.6 || Math.abs(ap.D) > COURT.halfLen - 0.6; fx.showAim(ap.X * s0, ap.D * s0, 0.6, risky ? '#ffb36b' : '#d4ff3a', 0.9, 0, true); }
-      else if (mine0) fx.showAim(h.aim.X * s0, h.aim.D * s0, 0.6, '#d4ff3a', 0.4, 0, true);
-      else fx.showAim(0, 0, 1, '#fff', 0);
+      if (ap) { const risky = Math.abs(ap.X) > COURT.halfW - 0.6 || Math.abs(ap.D) > COURT.halfLen - 0.6; fx.showMine(ap.X * s0, ap.D * s0, 0.9, risky ? '#ffb36b' : '#d4ff3a'); }
+      else if (mine0) fx.showMine(inc0.land.x, inc0.land.z, 0.9, '#d4ff3a');
+      else fx.showMine(null);
+      fx.showAim(0, 0, 1, '#fff', 0);
       return;
     }
     const b = m.ball, inc = m.incoming;
@@ -478,7 +480,7 @@ export class Game {
       if (this.gfx.setFocus) this.gfx.setFocus(cam.position.distanceTo(_w.set(b.x, b.y, b.z)), 12, 0.006);
       const held = b.held >= 0 ? this.fig[b.held].offHand : null;
       this.fx.update(sdt, b, cam, { held, maxScale: 1.6 });
-      this.fx.showLanding(null, 0); this.fx.showAim(0, 0, 1, '#fff', 0);
+      this.fx.showLanding(null, 0); this.fx.showAim(0, 0, 1, "#fff", 0); if (this.fx.showMine) this.fx.showMine(null);
       this.arena.update(sdt, this.time);
       this.gfx.render(dt);
       if (this.audio) this.audio.frame(this, dt);
