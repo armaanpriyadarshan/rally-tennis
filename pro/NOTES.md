@@ -1178,3 +1178,10 @@ still in the air, both in a stroke's finish, for two or three frames.
   `steps_fpsfree.mjs` (frame rate with the refresh cap off: Chromium `--disable-gpu-vsync --disable-frame-rate-limit`, Firefox
   `FFPREFS=layout.frame_rate=0`), `steps_gpucost.mjs` (each feature's cost, frames drawn and waited for, settings interleaved),
   `steps_autoscale.mjs` (the resolution scale second by second on the page's own loop), `steps_sightcheck.mjs`.
+- **Checked on screen (2026-11-22):** the four moments the last roster audit flagged and no picture had shown (Zverev and Wawrinka
+  running, Tsitsipas's smash at contact, Agassi's drive finish, seeded RSEED=11): two-handed carries, a smash's folded left arm and a
+  forehand's finish across the body, nothing wrong to see. The serve's circle (`tools/steps_servecircle.mjs`: him waiting to serve, no
+  arrow / Left / Right, from his eyes, from behind, broadcast): it moved as it should (centre of the box, wide, the T) but from behind
+  the baseline the far box is seen at four or five degrees, and the flat ring was a smudge beyond the net. It is now lengthened along
+  the line from the eye (up to 3.2 x, `0.55 / sin(elevation)`), so from his eyes and from behind it reads as a ring; its width, the
+  precision he asked for, is unchanged (`__mineFlat` for the old).

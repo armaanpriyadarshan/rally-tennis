@@ -70,7 +70,7 @@ export class BallFx {
 
   // `held`: world position of the hand carrying the ball, if any
   update(dt, b, camera, o = {}) {
-    this.t += dt;
+    this.t += dt; this.cam = camera;
     const ball = this.ball;
     ball.visible = !!b.visible;
     if (b.held >= 0 && o.held) ball.position.copy(o.held); else ball.position.set(b.x, b.y, b.z);
@@ -167,7 +167,15 @@ export class BallFx {
   // his own shot's circle: x, z on the court (null hides it), a little bigger than the near ring so it reads at the far end
   showMine(x, z, alpha, color) {
     if (x == null || !(alpha > 0)) { this.mineMat.opacity = Math.max(0, this.mineMat.opacity - 0.08); return; }
-    this.mine.position.set(x, 0.008, z); this.mineMat.opacity = alpha; this.mineMat.color.set(color || '#d4ff3a'); const s = 1.3; this.mine.scale.set(s, s, 1);   /* (tight, and still: 'circle should be more precise' - at 2.1 x and pulsing it covered half a metre either side of the spot) */
+    this.mine.position.set(x, 0.008, z); this.mineMat.opacity = alpha; this.mineMat.color.set(color || '#d4ff3a'); const s = 1.3;
+    // (lengthened along the line from the eye, as far as 3.2 times, so that across the court it is still seen as a ring and not as a
+    // thread: from behind the baseline the far service box is seen at four or five degrees, and the ring was a smudge beyond the net.
+    // Its width, the precision he asked for, is as it was.)
+    let k = 1; const c = this.cam;
+    if (c && !globalThis.__mineFlat) { const dx = x - c.position.x, dz = z - c.position.z, dh = Math.hypot(dx, dz), e = Math.atan2(Math.max(0.3, c.position.y), dh);
+      k = Math.min(3.2, Math.max(1, 0.55 / Math.sin(e))); this.mine.rotation.set(-Math.PI / 2, 0, dh > 0.01 ? Math.atan2(-dx, -dz) : 0); }
+    else this.mine.rotation.set(-Math.PI / 2, 0, 0);
+    this.mine.scale.set(s, s * k, 1);   /* (tight, and still: 'circle should be more precise' - at 2.1 x and pulsing it covered half a metre either side of the spot) */
   }
   showAim(x, z, radius, color, alpha, deep, bold) {
     if (alpha <= 0) { this.aimMat.opacity = 0; if (this.aimPinMat) this.aimPinMat.opacity = 0; return; }
