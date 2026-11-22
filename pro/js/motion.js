@@ -558,6 +558,15 @@ function lowLift(P, k) {
   return P;
 }
 export class Loco {
+  // Which phases of the current forward gait have a foot on the court (its ankle within 3.5 cm of its height with the foot flat), from the
+  // clip's own frames, in hundredths of the cycle; and the nearest phase to ph at the middle of a stance (either foot), within a quarter cycle.
+  stanceNear(ph) {
+    const fa = this.lastFa; if (!fa) return null;
+    if (!fa.downTab) { const T = new Uint8Array(100), tmp = new Float32Array(this.P.length); for (let k = 0; k < 100; k++) { sampleLoop(fa, at(fa, k / 100), tmp); T[k] = (tmp[J.lankle * 3 + 1] < ANKLE_H + 0.035 ? 1 : 0) | (tmp[J.rankle * 3 + 1] < ANKLE_H + 0.035 ? 2 : 0); } fa.downTab = T;
+      const mids = []; for (const bit of [1, 2]) { let k0 = -1; for (let k = 0; k < 200; k++) { const d = T[k % 100] & bit; if (d && k0 < 0) k0 = k; if (!d && k0 >= 0) { if (k0 < 100) mids.push(((k0 + k - 1) / 2 % 100) / 100); k0 = -1; } } } fa.stanceMids = mids; }
+    let best = null, bd = 9; for (const m of fa.stanceMids) { let d = m - ph; d -= Math.round(d); if (Math.abs(d) < Math.abs(bd)) { bd = d; best = m; } }
+    return best == null || Math.abs(bd) > 0.25 ? null : bd;
+  }
   constructor() {
     this.P = new Float32Array(N3); this.A = new Float32Array(N3); this.B = new Float32Array(N3);
     this.FW = new Float32Array(N3); this.FW2 = new Float32Array(N3);   /* FW2: the same half a stride on (a left-hander's racket arm swings with the other leg) */                      // the forward gait alone (a run's arms pump; a shuffle's hang)
@@ -609,7 +618,7 @@ export class Loco {
     // (and never slower than a little over three steps a second while he is moving at all: slowing in proportion to his speed,
     // the cycle all but stopped as he pulled up, with a foot caught in the air half way through a step, held there floating
     // while he stopped under it; a player pulling up takes quick short steps)
-    else { const rMin = globalThis.__noMinRate ? 0 : 1.6 * c01((speed - 0.3) / 0.5) * (1 - upF) + 0.6 * c01((speed - 0.1) / 0.3) * upF; this.phF = (this.phF + dt * Math.min(3.3, Math.max(rateF, rMin))) % 1; this.phS = this.phF; }
+    else { const rMin = globalThis.__noMinRate ? 0 : 1.6 * c01((speed - 0.3) / 0.5) * (1 - upF) + 0.6 * c01((speed - 0.1) / 0.3) * upF, rate = Math.min(3.3, Math.max(rateF, rMin)); this.lastRate = rate; this.lastFa = fa; this.phF = (this.phF + dt * rate * (this.rateMul || 1)) % 1; this.phS = this.phF; }   /* (rateMul: the figure times the last steps into a shot, below) */
     const P = this.P, A = this.A, B = this.B;
     // standing: low and ready in a point, upright between points
     sampleLoop(CL.ready, 0, P); if (w.up > 0.001) mix(P, sampleLoop(CL.stand, 0, B), w.up);

@@ -1124,3 +1124,17 @@ still in the air, both in a stroke's finish, for two or three frames.
   late swing pulls it off). On the far court a ring on the ground is a few pixels high from the low cameras and half hidden by the net
   tape (the old aim ring was 8 % of its radius thick: under a pixel), so the target is a bold ring plus a 0.85 m target standing above
   the spot facing the camera (`__aimMarkOld` for the old markers; the Aim ring setting turns them off).
+  Then (he said "i dont want aim line maybe just like a circle or something"): on the far court the markers are only circles standing
+  just above the court and facing the camera - lime (amber near a line) where he is aiming, a smaller white one where his ball will land;
+  no ring on the ground there (foreshortened, it read as a line).
+- **Feet under the body when running, and set as he hits** (he said "the footwork is still weird. a lot of times the feet look like theyre
+  lagging behind the torso and dont set properly when running or before shots"). Measured in matches (`tools/steps_feetlag.mjs`): the
+  hips' point on the ground ran ahead of the middle of the feet at every speed and never behind it, 0.11-0.12 m at 1.5-3 m/s and
+  0.17-0.20 m above 3 m/s; in the lab the run's own motion capture (a jogger's long, back-kicking stride) has the hips 0.19-0.20 m ahead
+  of its ankles on average, and the game drew exactly that, the trunk now leant into the run making it read worse.
+  - Running, the feet come forward along the gait's direction, up to 0.1 m from 1.5 to 4 m/s, none under a tracked stroke's legs
+    (`__feetFwdOld`, `__feetFwdK`): hips ahead of the feet 0.11 m at every speed band (lab forward run at 5 m/s 0.21 → 0.12 m); a held
+    foot is set down where its target is, so nothing slides (lab held-foot slips 3.5 % → 0.9 %).
+  - Into a groundstroke on the move, the run's cycle is quickened or slowed by at most about a fifth over the last 0.08-0.7 s so that
+    contact falls in the middle of a stance (`Loco.stanceNear`, from each gait clip's own ankle heights; `__stepTimeOld`): frames in the
+    last quarter second with both feet clear of the court (ankles over 13 cm and toes over 5 cm) 13 % → 8 %.

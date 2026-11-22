@@ -53,9 +53,12 @@ export class BallFx {
     this.aimBold = new THREE.Mesh(new THREE.RingGeometry(0.62, 1.0, 48), aimM); this.aimBold.rotation.x = -Math.PI / 2; this.aimBold.visible = false; this.aim.add(this.aimBold);
     // (and a target standing just above the spot, facing the camera: from a low camera behind him the far court is so foreshortened that a ring
     // on it is a few pixels high and half hidden by the net tape)
-    { const cv = document.createElement('canvas'); cv.width = cv.height = 64; const c = cv.getContext('2d'); c.strokeStyle = '#fff'; c.lineWidth = 7; c.beginPath(); c.arc(32, 32, 24, 0, Math.PI * 2); c.stroke(); c.fillStyle = '#fff'; c.beginPath(); c.arc(32, 32, 8, 0, Math.PI * 2); c.fill();
+    // (just a circle, as he asked - "i dont want aim line maybe just like a circle": the ring lying on the far court read as a line)
+    { const cv = document.createElement('canvas'); cv.width = cv.height = 64; const c = cv.getContext('2d'); c.strokeStyle = '#fff'; c.lineWidth = 7; c.beginPath(); c.arc(32, 32, 26, 0, Math.PI * 2); c.stroke();
       const tx = new THREE.CanvasTexture(cv); this.aimPinMat = new THREE.SpriteMaterial({ map: tx, transparent: true, opacity: 0, depthWrite: false });
-      this.aimPin = new THREE.Sprite(this.aimPinMat); this.aimPin.scale.set(0.85, 0.85, 1); this.aimPin.renderOrder = 4; g.add(this.aimPin); }
+      this.aimPin = new THREE.Sprite(this.aimPinMat); this.aimPin.scale.set(0.85, 0.85, 1); this.aimPin.renderOrder = 4; g.add(this.aimPin);
+      this.landPinMat = new THREE.SpriteMaterial({ map: tx, transparent: true, opacity: 0, depthWrite: false, color: '#ffffff' });
+      this.landPin = new THREE.Sprite(this.landPinMat); this.landPin.scale.set(0.55, 0.55, 1); this.landPin.renderOrder = 4; g.add(this.landPin); }
     this.aim.position.y = 0.009; this.aimMat = aimM; this.landMat = ringM;
     this._m = new THREE.Matrix4(); this._q = new THREE.Quaternion(); this._s = new THREE.Vector3(); this._p = new THREE.Vector3(); this._c = new THREE.Color();
     this.t = 0;
@@ -154,13 +157,16 @@ export class BallFx {
 
   // ---- markers ----
   showLanding(p, strength, big) {
+    if (this.landPinMat) this.landPinMat.opacity = Math.max(0, this.landPinMat.opacity - 0.08);
     if (!p || strength <= 0) { this.landMat.opacity = Math.max(0, this.landMat.opacity - 0.08); return; }
-    this.land.position.set(p.x, 0.008, p.z); this.landMat.opacity = (big ? 0.85 : 0.55) * strength; const s = (1 + 0.12 * Math.sin(this.t * 9)) * (big || 1); this.land.scale.set(s, s, 1);
+    // (on the far court a standing circle facing the camera, not a ring on the ground)
+    if (big && this.landPin) { this.landPin.position.set(p.x, 0.35, p.z); this.landPinMat.opacity = 0.85 * strength; this.landMat.opacity = 0; return; }
+    this.land.position.set(p.x, 0.008, p.z); this.landMat.opacity = 0.55 * strength; const s = 1 + 0.12 * Math.sin(this.t * 9); this.land.scale.set(s, s, 1);
   }
   showAim(x, z, radius, color, alpha, deep, bold) {
     if (alpha <= 0) { this.aimMat.opacity = 0; if (this.aimPinMat) this.aimPinMat.opacity = 0; return; }
     if (this.aimPinMat) { this.aimPinMat.opacity = bold ? alpha : 0; if (bold) { this.aimPin.position.set(x, 0.55, z); this.aimPinMat.color.set(color || '#ffffff'); } }
-    this.aimRing.visible = !bold; this.aimBold.visible = !!bold; this.aimDot.visible = !bold;
+    this.aimRing.visible = !bold; this.aimBold.visible = false; this.aimDot.visible = !bold;
     this.aim.position.set(x, 0.009, z); this.aimRing.scale.set(radius, deep || radius, 1); this.aimBold.scale.set(radius, deep || radius, 1); this.aimMat.opacity = alpha; this.aimMat.color.set(color || '#ffffff');
   }
 }

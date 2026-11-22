@@ -805,6 +805,15 @@ export class Figure {
       this.runTrA = this.inited && dt > 0 && !globalThis.__runTravelCut ? damp(this.runTrA || 0, anT, 10, dt) : anT;
       if (!this.tBf && Math.abs(this.runTrA) > 0.001) { const an = this.runTrA, ca = Math.cos(an), sa = Math.sin(an), bx = fx0 * ca - fz0 * sa, bz = fx0 * sa + fz0 * ca; this.tBf = [bx, bz]; vRl = p.vx * -bz + p.vz * bx; vFl = p.vx * bx + p.vz * bz; } }
     this.vRl = vRl; this.vFl = vFl;
+    // (moving into a groundstroke, the last steps are timed so a foot is on the court when he hits: the run's cycle is quickened or slowed,
+    // by at most about a fifth, over the last 0.08-0.7 s so that contact falls in the middle of a stance. Left to run on, it as often
+    // reached contact in the stride's flight, both feet off the court in 14-19 % of the frames of the last quarter second; he said the feet
+    // "dont set properly when running or before shots")
+    { let rm = 1; const tcS = st && st.kind !== 'serve' && st.kind !== 'smash' ? (st.tc != null ? st.tc : st.tcPlan) : null, T = tcS != null ? tcS - t : null;
+      if (!globalThis.__stepTimeOld && live && T != null && T > 0.08 && T < 0.7 && speed > 1.3 && this.loco.lastRate) {
+        const rate = this.loco.lastRate, phC = ((this.loco.phF + rate * T) % 1 + 1) % 1, e = this.loco.stanceNear(phC);
+        if (e != null) rm = clamp(1 + e / Math.max(0.05, rate * T), 0.8, 1.22); }
+      this.loco.rateMul = this.inited && dt > 0 ? (this.loco.rateMul || 1) + (rm - (this.loco.rateMul || 1)) * (1 - Math.exp(-dt * 10)) : rm; }
     const LP = this.loco.update(dt, vRl / H, vFl / H, speed / H, upright, this.legScale ? this.legScale / H : 1, this.strollK || 0), go = this.loco.w.go;
     // his own stroke, where one was tracked: the whole body comes from the clip
     const srvSt = !!st && st.kind === 'serve' && (m.phase === 'toss' || st.tc != null);
@@ -1056,9 +1065,14 @@ export class Figure {
       const lowK = (1 - sm(((LP[LEG_J[0][2] * 3 + 1] - ANKLE_H) * r - 0.06 * H) / (0.05 * H))) * (1 - sm(((LP[LEG_J[1][2] * 3 + 1] - ANKLE_H) * r - 0.06 * H) / (0.05 * H))) * (1 - sm((speed - 2.2) / 1.4));
       const dx = tg[1].x - tg[0].x, dz = tg[1].z - tg[0].z, d = Math.hypot(dx, dz), mnS = (globalThis.__footMin ?? 0.17) * H;
       if (lowK > 0.001 && d < mnS) { let ux = dx, uz = dz; if (d < 0.02 * H) { ux = right.x; uz = right.z; } const ul = Math.hypot(ux, uz) || 1, k = (mnS - d) * 0.5 * lowK; sepO[0].set(-ux / ul * k, 0, -uz / ul * k); sepO[1].set(ux / ul * k, 0, uz / ul * k); } }
+    // (running, the feet come forward under him: the run's motion capture is a jogger's, the hips 0.2 m ahead of the middle of the feet on
+    // average through the stride, a long stride kicking back, and with the trunk leant into the run the feet read as trailing behind the
+    // body; a tennis player's steps stay under him. Up to 0.1 m forward along the gait's own direction, from 1.5 to 4 m/s, none under a
+    // tracked stroke's legs. A held foot is set down where its target is then, so nothing slides.)
+    this.feetFwd = globalThis.__feetFwdOld ? 0 : (globalThis.__feetFwdK ?? 0.1) * sm((speed - 1.5) / 2.5) * go * (1 - clipW);
     for (let i = 0; i < 2; i++) {
       const lgR = this.tBf && !globalThis.__runTravelOld ? _lgR.set(-this.tBf[1], 0, this.tBf[0]) : right, lgF = this.tBf && !globalThis.__runTravelOld ? _lgF.set(this.tBf[0], 0, this.tBf[1]) : fwd;   /* (the gait's own frame: the way he faces, or the way he goes) */
-      const sx = i === 0 ? -1 : 1, ja = LEG_J[i][2], ft = this.feet[i], ankle = _an[i].set(px, 0, pz).addScaledVector(lgR, LP[ja * 3] * r * (1 + 0.15 * clipW) + widen[i]).addScaledVector(lgF, LP[ja * 3 + 2] * r).add(sepO[i]);   // (tracked clips come out narrow in the feet: lifting video to 3D squeezes the spread)
+      const sx = i === 0 ? -1 : 1, ja = LEG_J[i][2], ft = this.feet[i], ankle = _an[i].set(px, 0, pz).addScaledVector(lgR, LP[ja * 3] * r * (1 + 0.15 * clipW) + widen[i]).addScaledVector(lgF, LP[ja * 3 + 2] * r + (globalThis.__feetFwdOld ? 0 : this.feetFwd || 0)).add(sepO[i]);   // (tracked clips come out narrow in the feet: lifting video to 3D squeezes the spread)
       ankle.y = Math.max(D.ankle, (LP[ja * 3 + 1] - ANKLE_H) * r + D.ankle) + air * 0.9;
       // (how fast the gait's own foot is going over the court: a planted one stands still)
       const tgP = this.tgtPrev || (this.tgtPrev = [null, null]), tgV = tgP[i] && dt > 0 && this.inited ? Math.hypot(ankle.x - tgP[i].x, ankle.z - tgP[i].z) / dt : 0; tgP[i] = { x: ankle.x, z: ankle.z };
