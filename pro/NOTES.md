@@ -1044,3 +1044,26 @@ still in the air, both in a stroke's finish, for two or three frames.
     4 m/s, where the man side-steps facing the net. Pacing the recovery to the time before the reply (with or without a 3 m/s cap, and
     with more margin) shortened rallies by 0.2-0.3 shots on every seed and surface tried (hard 3.21-3.35 → 3.02-3.11), the computer
     caught out of position more: not kept. The recovery's look within that movement is still open.
+- **Nadal's forehand follow-through, his right leg, his pre-serve stance, and the choice of main forehand** (he said "theres a weird pause
+  after his follow through on the forehand instead of transitioning naturally", "why does he lift up his right leg on the forehands so
+  much", "his preserve stance still looks really weird", "can you choose a better main forehand clip"):
+  - The pause: the clip holds the lasso over his head from +0.2 to +0.45 s, as the man does, and lowers the racket over the next half
+    second; the game let go of the clip with the stroke's weight, which falls over a quarter of a second from +0.45 s, so the racket
+    hung still and was then thrown down to the ready pose at 10-13 m/s. After contact a groundstroke's clip now plays out to its own end
+    and fades into the next pose over its own last third of a second (`__finSwOld`): peak hand speed in the exit 12.8 → 5-8 m/s, no stop.
+    For every player's groundstrokes (four-pair audit: Becker's arm-in-trunk count 3 → 7 frames; the worst, pictured from behind and in
+    front, is a two-handed carry into a lob, not into his body).
+  - The right leg: his first clip lifts the right foot 11-16 cm from 0.2 s before contact to 0.25 s after; on the back-fence film both feet
+    are down while he loads and the right leg swings up only as he hits. A groundstroke's free foot, the other one down, is now kept to
+    8.5 cm above flat until contact and 14 cm after, the rest eased to a quarter (`__gsLiftOld`); faded out as the other foot lifts, and
+    not below the lock's 7.8 cm (at 5 cm a swinging foot was taken for set down and popped free: Edberg's pops 1 → 3, back to 1).
+  - The pre-serve stance: the waiting pose is taken from the serve clip's first moment, where Nadal's feet are 0.5 m apart but exactly in
+    line, one in front of the other, knees together. It is now taken 0.25 s later, just before the toss, feet 0.38 m apart along the line
+    and knees bent (`ADDR_U`, `__addrOld`). And the serve's back-view fusion now starts at the trophy (0.8 s before contact): the back
+    serve tosses 0.35 s earlier relative to contact, and before that its arms do not belong to the side clip's address.
+  - A new main forehand was looked for: the two side-on-looking Indian Wells 2013 forehand videos (youtube YnYvRrTWRFw, 0E4piBeUKAE) were
+    tracked and five full forehands built (contacts found frame by frame with the ball on the strings). With the ground pinned (the camera's
+    tilt floated the whole body 0.3-0.7 m), one (0E4piBeUKAE 10.78 s) keeps both feet down and has a 97 degree coil and a full finish, but
+    the camera is a front quarter (105-127 degrees by where his face points) and the take-back has the racket hand in front of his hips: the
+    tracker cannot see how far back the arm goes from in front, the fault that made forehands 3 and 4 useless. The three fastest (22 m/s
+    at the wrist) end 0.3-0.45 s after contact, which would be frozen on their last frame. His first clip stays.

@@ -815,13 +815,14 @@ export class Figure {
       OC = this.ownClip('serve', 'fh');
       // (the address is the clip's first moment with his feet set apart and uncrossed: Sinner's begins as he steps into
       // place, one foot across the other, and he stood waiting to serve cross-legged)
-      if (OC && OC.addrU == null) { OC.addrU = OC.span[0] + 0.02;
+      if (OC && OC.addrU == null) { OC.addrU = OC.span[0] + 0.02; const au = globalThis.__addrOld ? null : ADDR_U[this.look.name || ''];
         const a0 = OC.F[0], sep0 = ((a0[J.rankle * 3] - a0[J.lankle * 3]) * (a0[J.rhip * 3] - a0[J.lhip * 3]) + (a0[J.rankle * 3 + 2] - a0[J.lankle * 3 + 2]) * (a0[J.rhip * 3 + 2] - a0[J.lhip * 3 + 2])) / (Math.hypot(a0[J.rhip * 3] - a0[J.lhip * 3], a0[J.rhip * 3 + 2] - a0[J.lhip * 3 + 2]) || 1);
         if (sep0 < 0.02) for (let f = 0; f < Math.min(OC.n, Math.round(0.9 * OC.fps)); f++) { const a = OC.F[f], hx = a[J.rhip * 3] - a[J.lhip * 3], hz = a[J.rhip * 3 + 2] - a[J.lhip * 3 + 2], hl = Math.hypot(hx, hz) || 1;
           const sep = ((a[J.rankle * 3] - a[J.lankle * 3]) * hx + (a[J.rankle * 3 + 2] - a[J.lankle * 3 + 2]) * hz) / hl, gap = Math.hypot(a[J.rankle * 3] - a[J.lankle * 3], a[J.rankle * 3 + 2] - a[J.lankle * 3 + 2]);
-          if (sep > 0.12 && gap > 0.28) { OC.addrU = OC.span[0] + f / OC.fps; break; } } }
+          if (sep > 0.12 && gap > 0.28) { OC.addrU = OC.span[0] + f / OC.fps; break; } }
+        if (au != null && au > OC.span[0] && au < OC.span[1]) OC.addrU = au; }
       if (OC) { cu = OC.addrU; this.addrW = damp(this.addrW, 1 - srvWalkK, 7, dt); clipW = this.addrW * (1 - go); }
-    } else if (st && (sw > 0.001 || srvSt)) {
+    } else if (st && (sw > 0.001 || srvSt || (!globalThis.__finSwOld && st.kind !== 'serve' && st.kind !== 'smash' && st.tc != null && u > 0.05 && u < 1.3 && (p.stroke === st || p.lastStroke === st)))) {   /* (and on after the stroke's weight has run out, until the clip's own fade has: cut there, the last third of the finish went in three frames) */
       OC = this.ownClip(st.__dk || st.kind, st.wing, st);
       // (a clip tracked only a little way past contact, half a second, is played on into its last moment, slowing into it, and
       // that finish held a moment before it is let go of: faded out over its own last third of a second as before, the
@@ -830,7 +831,8 @@ export class Figure {
         const e1 = OC.span[1], hold = st.kind === 'serve' || st.kind === 'smash' ? 0 : clamp(0.82 - e1, 0, 0.4), dS = 0.14;
         if (hold > 0) this.ocHoldU = e1 - dS; if (OC.tb != null) this.ocTbU = OC.tb;
         if (hold > 0 && u > e1 - dS) cu = e1 - dS * Math.exp(-(u - (e1 - dS)) / dS);
-        const cIn = sm5((u - OC.span[0]) / (st.kind === 'serve' || st.kind === 'smash' ? 0.14 : 0.3)), cOut = 1 - sm5((u - (e1 + hold - fo)) / fo); clipW = held ? Math.max(sw, this.addrW) * cOut : Math.min(sw, cIn, cOut); clipWA = held ? clipW : Math.min(swA, cIn, cOut); }   /* (the least of the three, not their product: two fades at once would go twice as fast) */
+        const cIn = sm5((u - OC.span[0]) / (st.kind === 'serve' || st.kind === 'smash' ? 0.14 : 0.3)), cOut = 1 - sm5((u - (e1 + hold - fo)) / fo); const swF = !globalThis.__finSwOld && st.kind !== 'serve' && st.kind !== 'smash' && st.tc != null && u > 0.05 && (p.stroke === st || p.lastStroke === st) ? 1 : 0;   /* (after contact a groundstroke's clip plays out to its own end and fades into the next pose over its own last third of a second: let go of with the stroke's weight, which falls over a quarter of a second from 0.45 s, Nadal's racket hung still over his head in the lasso and was then thrown down to the ready pose at ten metres a second, a pause and a snap) */
+        clipW = held ? Math.max(sw, this.addrW) * cOut : Math.min(Math.max(sw, swF), cIn, cOut); clipWA = held ? clipW : Math.min(Math.max(swA, swF), cIn, cOut); }   /* (the least of the three, not their product: two fades at once would go twice as fast) */
       if (OC && OC.tb != null) { const k = 1 - sm5((u - OC.tb) / (OC.tbD || 0.2)); clipW *= k; clipWA *= k; }
       // A stroke that changes part way into one with no tracked swing of its own (a drive turned into a drop shot with
       // the down arrow as the racket goes back): the clip it was playing is let go of over a fifth of a second, not in one
@@ -1066,6 +1068,14 @@ export class Figure {
       if (srvSt && clipW > 0.01 && st.tc != null) { const su = t - st.tc, kw = sm((su - 0.02) / 0.1) * (1 - sm((su - 0.75) / 0.25)) * clipW;
         if (kw > 0.001) { const lat = LP[ja * 3] - hmx, mx = 0.2; if (Math.abs(lat) > mx) ankle.addScaledVector(right, -Math.sign(lat) * (Math.abs(lat) - mx) * 0.7 * kw * r); } }
       if (srvSt && clipW > 0.01) { const su = st.tc != null ? t - st.tc : -1, cap = (0.24 - 0.17 * sm((su - 0.28) / 0.25)) * H, lf = ankle.y - D.ankle; if (lf > cap) ankle.y = D.ankle + cap + (lf - cap) * 0.35 * (1 - sm((su - 0.28) / 0.25)); }
+      // (a groundstroke's free foot, with the other one on the court, is let up only a little: 8.5 cm until contact (not lower: under the
+      // lock's 7.8 cm a swinging foot was taken as set down, held, and thrown free, a pop), 14 cm once the hips
+      // come round through it, the rest eased to a quarter. Nadal's first clip lifted his right foot 11-16 cm from 0.2 s before contact
+      // to 0.25 s after; on the back-fence film both feet are down while he loads and the right leg only swings up as he hits. Not where
+      // both feet are up, a jump; and the run's own strides, on the way in, are the run's.)
+      if (!globalThis.__gsLiftOld && !srvSt && clipW > 0.01 && st && st.kind !== 'serve' && st.kind !== 'smash' && st.tc != null) {
+        const oj = LEG_J[1 - i][2], oLift = (LP[oj * 3 + 1] - ANKLE_H) * r;
+        const ok = 1 - sm((oLift - 0.03) / 0.05); if (ok > 0.001) { const uu = t - st.tc, cap = lerp(globalThis.__gsCap0 ?? 0.085, 0.14, sm((uu + 0.02) / 0.1)), lf = ankle.y - D.ankle; if (lf > cap) ankle.y -= (lf - cap) * 0.75 * clipW * ok; } }   /* (faded as the other foot lifts, 3-8 cm: switched off at 6 cm in one frame, the foot was thrown up 6 m/s) */
       // A groundstroke clip is one shot, filmed once: whatever the feet did in it (Alcaraz's backhand kicks the back leg up
       // to the knee, the counterweight of a ball hit on the run) would happen on every shot. A foot leaves the court only as
       // far as this shot asks: a small lift standing, the clip's whole kick when he is running or stretched for it.
@@ -2960,6 +2970,11 @@ const _el2 = [V(), V()], _wr2 = [V(), V()], _keyHand = V(), _cyR = V(), _cyF = V
 // tracked strokes in use. Serves filmed side-on come through well; a groundstroke filmed from one side loses the
 // off arm (its depth across the court is a guess), so those wait for a second camera angle.
 const CLIP_OK = { serve: true };
+// Where a serve clip's waiting stance is taken from, where its first moments will not do (s from contact). Nadal's clip begins with
+// his feet 0.5 m apart but exactly in line, one in front of the other, and the knees together: waiting to serve he stood as on a
+// tightrope, knock-kneed. A quarter of a second on, just before the toss, his feet are set 0.38 m apart along the line and the knees
+// apart and softly bent, his serving base.
+const ADDR_U = { Nadal: -1.15 };
 // how far up the handle the middle of the palm closes: the butt cap shows just below the little finger
 // Racket directions read off a player's own footage where his style departs from the shared keys (right-hander's
 // terms: x toward his hitting side, y up, z forward). Nadal takes the racket back low across his waist, head

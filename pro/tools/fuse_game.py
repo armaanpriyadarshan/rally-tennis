@@ -14,6 +14,17 @@ def arr(c):
     J = np.stack([np.array(c['J'][j], float).reshape(n, 3) for j in PM.JOINTS], 1)
     return dict(u0=float(c['u0']), J=J, root=np.array(c['root'], float).reshape(n, 2), yaw=np.array(c['yaw'], float), plant=np.array(c['plant']).reshape(n, 2))
 A = arr(c); B = arr(json.load(open(backf))['clips'][player][bkey])
+# optional 8th argument: from (s from contact) - the second camera's across-court place only from then on, blended in over 0.15 s;
+# before it the first clip's own (two swings line up at contact, but a serve's ritual before the toss runs at its own pace: the
+# back-view serve tossed 0.35 s earlier than the side one, and its arms, already apart, put the side clip's address in pieces)
+if len(sys.argv) > 8:
+    fr = float(sys.argv[8]); up = [PM.JI[k] for k in ('neck', 'head', 'lsho', 'rsho', 'lelb', 'relb', 'lwri', 'rwri', 'lhand', 'rhand')]
+    for k in range(len(B['J'])):
+        u = B['u0'] + k / 60; w = min(1.0, max(0.0, (u - (fr - 0.15)) / 0.15)); w = w * w * (3 - 2 * w)
+        ka = int(round((u - A['u0']) * 60))
+        if w >= 1 or ka < 0 or ka >= len(A['J']): continue
+        ax = A['J'][ka, up, 0] - A['J'][ka, 0, 0]; bx = B['J'][k, up, 0] - B['J'][k, 0, 0]
+        B['J'][k, up, 0] = B['J'][k, 0, 0] + (1 - w) * ax + w * bx
 L = {}
 for ch, pa, nm in PM.BONES: L.setdefault(nm, []).append(np.median(np.linalg.norm(A['J'][:, PM.JI[ch]] - A['J'][:, PM.JI[pa]], axis=1)))
 L = {k: float(np.mean(v)) for k, v in L.items()}

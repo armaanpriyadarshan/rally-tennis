@@ -37,15 +37,15 @@ export default async function ({ ev, shot }) {
         const C = fig.dbgClipS; let cs = null, ch = null, cy = null; if (C && (fig.clipW || 0) > 0.01) { cs = cturn(C, J.lsho, J.rsho); ch = cturn(C, J.lhip, J.rhip); cy = C[J.pelvis * 3 + 1]; }
         if (${+(E.SHOOT || 0)} && ${f} % ${STEP} === 0) { const cam = g.gfx.camera; cam.position.set(p.x + 0.8 * s, 2.6, p.z + 5.5 * s); cam.lookAt(p.x, 0.85, p.z - 1.0 * s); cam.fov = 34; cam.updateProjectionMatrix(); g._r(1 / 60); }
         return { u: +u.toFixed(3), sw: +(fig.swNow || 0).toFixed(2), cw: +(fig.clipW || 0).toFixed(2), sh: +turn(ls, rsh).toFixed(0), csh: cs == null ? null : +cs.toFixed(0), hip: +turn(lh, rh).toFixed(0), chip: ch == null ? null : +ch.toFixed(0), py: +pel.y.toFixed(2), cpy: cy == null ? null : +cy.toFixed(2),
-          w: +Math.hypot(la.x - ra.x, la.z - ra.z).toFixed(2), dn: (la.y < 0.12 ? 'L' : '.') + (ra.y < 0.12 ? 'R' : '.'), spd: +Math.hypot(p.vx, p.vz).toFixed(1), hv: +hv.toFixed(1), rv: +rv.toFixed(1), pick: st.clipPick ? st.clipPick.i : null, id: fig.ocDbg ? fig.ocDbg.id : null }; })()`);
+          w: +Math.hypot(la.x - ra.x, la.z - ra.z).toFixed(2), lay: +la.y.toFixed(2), ray: +ra.y.toFixed(2), dn: (la.y < 0.12 ? 'L' : '.') + (ra.y < 0.12 ? 'R' : '.'), spd: +Math.hypot(p.vx, p.vz).toFixed(1), hv: +hv.toFixed(1), rv: +rv.toFixed(1), pick: st.clipPick ? st.clipPick.i : null, id: fig.ocDbg ? fig.ocDbg.id : null, lk: fig.lockF.map(o => (o.on ? 'D' : '.') + (o.step ? 's' : '-')).join(''), cl: C && (fig.clipW || 0) > 0.01 ? [+C[J.lankle * 3 + 1].toFixed(2), +C[J.rankle * 3 + 1].toFixed(2)] : null }; })()`);
       rows.push(x);
       if (+(E.SHOOT || 0) && f % STEP === 0) { await shot(`${OUT}_${got}_${String(k).padStart(2, "0")}.jpg`); console.log("SHOT", got, k, x.u); k++; }
     }
     await ev(`(() => { window.__g.fig[${WHO}].dbgOn = false; return 1; })()`);
     console.log('STROKE', got, r.kind, 'chosen', +(r.tc - r.t).toFixed(2), 's before contact, pick', rows[0].pick, rows.find(x => x.id) ? rows.find(x => x.id).id : '');
-    for (const x of rows) if (Math.round(x.u * 60) % 3 === 0) console.log(`u ${x.u >= 0 ? '+' : ''}${x.u.toFixed(2)} sw ${x.sw} cw ${x.cw} | shoulders ${x.sh}/${x.csh} hips ${x.hip}/${x.chip} pelvis ${x.py}/${x.cpy} | stance ${x.w} ${x.dn} spd ${x.spd} | hand ${x.hv} racket ${x.rv}`);
+    for (const x of rows) if (Math.round(x.u * 60) % (E.EVERY ? +E.EVERY : 3) === 0) console.log(`u ${x.u >= 0 ? '+' : ''}${x.u.toFixed(2)} sw ${x.sw} cw ${x.cw} | shoulders ${x.sh}/${x.csh} hips ${x.hip}/${x.chip} pelvis ${x.py}/${x.cpy} | stance ${x.w} ${x.dn} spd ${x.spd} | hand ${x.hv} racket ${x.rv} | ankles ${x.lay}/${x.ray} clip ${x.cl ? x.cl.join('/') : '-'} lock ${x.lk}`);
     const pre = rows.filter(x => x.u < 0), mid = rows.filter(x => x.u > -0.25 && x.u < 0.15), mx = (a, k) => Math.max(...a.map(x => x[k] == null ? -1 : x[k])), mn = (a, k) => Math.min(...a.map(x => x[k] == null ? 9 : x[k]));
-    console.log('SUMMARY', JSON.stringify({ shoulderTurnMax: [mx(pre, 'sh'), mx(pre, 'csh')], hipTurnMax: [mx(pre, 'hip'), mx(pre, 'chip')], pelvisMin: [mn(pre, 'py'), mn(pre, 'cpy')], stanceMax: mx(pre, 'w'), handTop: mx(mid, 'hv'), racketTop: mx(mid, 'rv') }));
+    console.log('SUMMARY', JSON.stringify({ shoulderTurnMax: [mx(pre, 'sh'), mx(pre, 'csh')], hipTurnMax: [mx(pre, 'hip'), mx(pre, 'chip')], pelvisMin: [mn(pre, 'py'), mn(pre, 'cpy')], stanceMax: mx(pre, 'w'), ankleMax: [mx(rows.filter(x => x.u > -0.9 && x.u < 0.5), 'lay'), mx(rows.filter(x => x.u > -0.9 && x.u < 0.5), 'ray')], handTop: mx(mid, 'hv'), racketTop: mx(mid, 'rv') }));
     got++;
   }
 }
