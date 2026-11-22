@@ -167,7 +167,7 @@ export class BallFx {
   // his own shot's circle: x, z on the court (null hides it), a little bigger than the near ring so it reads at the far end
   showMine(x, z, alpha, color) {
     if (x == null || !(alpha > 0)) { this.mineMat.opacity = Math.max(0, this.mineMat.opacity - 0.08); return; }
-    this.mine.position.set(x, 0.008, z); this.mineMat.opacity = alpha; this.mineMat.color.set(color || '#d4ff3a'); const s = 2.1 * (1 + 0.08 * Math.sin(this.t * 9)); this.mine.scale.set(s, s, 1);
+    this.mine.position.set(x, 0.008, z); this.mineMat.opacity = alpha; this.mineMat.color.set(color || '#d4ff3a'); const s = 1.3; this.mine.scale.set(s, s, 1);   /* (tight, and still: 'circle should be more precise' - at 2.1 x and pulsing it covered half a metre either side of the spot) */
   }
   showAim(x, z, radius, color, alpha, deep, bold) {
     if (alpha <= 0) { this.aimMat.opacity = 0; if (this.aimPinMat) this.aimPinMat.opacity = 0; return; }

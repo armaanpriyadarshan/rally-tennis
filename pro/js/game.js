@@ -294,7 +294,7 @@ export class Game {
       if (globalThis.__aimMarkOld) { fx.showLanding(show0 ? inc0.land : null, show0 ? 1 : 0); fx.showAim(0, 0, 1, '#fff', 0); return; }
       // where his own ball will land too, as it flies; and where he is aiming: the marker moves as he holds an arrow, and stays where he
       // aimed while the ball is in the air, so aim and landing can be compared (an early or late swing pulls the ball off it)
-      const mine0 = h && this.opts.markers && this.match.phase === 'live' && b0.live && b0.lastHit === 0 && inc0 && inc0.land && !inc0.bounced && b0.bounces === 0 && !b0.isServe;
+      const mine0 = h && this.opts.markers && this.match.phase === 'live' && b0.live && b0.lastHit === 0 && inc0 && inc0.land && !inc0.bounced && b0.bounces === 0;
       fx.showLanding(show0 ? inc0.land : null, show0 ? 1 : 0);
       // one lime circle for his own shot, on the court: where he is aiming while the ball comes to him (amber within 0.6 m of a line), and
       // once he has hit it, where it will land

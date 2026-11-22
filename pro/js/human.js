@@ -142,6 +142,10 @@ export class Human {
       const latT = lat || (pressed.has('ArrowRight') || pressed.has('KeyD') ? 1 : 0) - (pressed.has('ArrowLeft') || pressed.has('KeyA') ? 1 : 0), fkT = fk || (pressed.has('ArrowUp') || pressed.has('KeyW') ? 1 : 0) - (pressed.has('ArrowDown') || pressed.has('KeyS') ? 1 : 0);
       if (go && this.log) this.log.push(['press', +m.t.toFixed(2), ph, this.tau == null ? null : +this.tau.toFixed(3), m.ball.lastHit, m.ball.live ? 1 : 0, +Math.hypot(m.ball.x - p.x, m.ball.z - p.z).toFixed(1), lat, fk, serving ? 1 : 0]);
       this.power = 0; this.kindNow = null; this.hold = null;
+      if (ph !== 'live') this.aimPreview = null;
+      // (and the circle shows where the serve will go: the box's T, body or wide by the arrow held, as the swing will place it)
+      if ((ph === 'ready' || ph === 'toss') && serving) { const side = m.deuceSide ? -1 : 1, smg = this.srvSafe + 0.3, a = smg, b = COURT.halfW - smg, lS = lat || (this.srvWant ? this.srvL || 0 : 0) || latT, u = 0.5 + 0.5 * lS * side;
+        this.aimPreview = { X: side * (a + (b - a) * u), D: -(COURT.svc - this.srvSafe - 0.55), srv: true }; }
       if (ph === 'ready' && serving) { this.srvWant = false; if (go && m.phaseT > 0.4) { m.toss(i); g.audio && g.audio.event('toss'); } }
       else if (ph === 'toss' && serving) {
         // pressed again any time after the toss has started: the swing goes no sooner than a moment before the

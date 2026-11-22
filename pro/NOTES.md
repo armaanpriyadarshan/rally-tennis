@@ -1142,3 +1142,10 @@ still in the air, both in a stroke's finish, for two or three frames.
   them lime"): no standing circles; his shot has one flat ring on the court in the look of the receiving ring (2.1 x its size, to read
   at the far end), lime, at where he aims while the ball comes (amber within 0.6 m of a line) and, once hit, at where it will land; the
   receiving ring is lime too (`ballfx.showMine`).
+- **Circle precise and on the serve; Tour harder** (he said "circle should me more precise and apply to the serve also. also it feels too
+  easy now"): the circle is now the receiving ring's size 1.3 x and still (it was 2.1 x and pulsing, half a metre either side of the
+  spot); waiting to serve and through the toss it sits where the serve is placed (the box's T, body or wide by the arrow held or pressed
+  with Space), and the serve's landing is shown as it flies. Tour: the computer's errors 0.72 → 0.62 of the measured rates and the
+  spread of his own shots 0.95 → 1.12 (the timed aim lets him go 0.45 m nearer the lines, and arrows are no longer dropped, so it had
+  become easy): classicbot with timing like his (sig 0.02, Auto footwork, 500 points) Tour 57 → 45 % of points won (49 % with the spread
+  alone, 52 % with the errors alone, 43 % at 1.25 / 0.6). His first serves go in less often (75 → 63 %), as the spread covers serves too.
