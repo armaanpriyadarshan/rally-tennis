@@ -134,7 +134,7 @@ class App {
   }
   how() {
     const classic = this.set.controls === 'classic';
-    const K = classic ? [['↑ ↓ ← →  /  W A S D', 'Move'], ['Space', 'Toss · Serve · Hit'], ['Hold ← or →', 'As you swing: angle'], ['Hold ↑ / ↓', 'As you swing: lob or deep · drop shot'], ['Hold ↑ / ↓', 'As you serve: kick · slice'], ['Space at the top', 'Of the toss: more pace'], ['V', 'Camera'], ['Tab', 'Statistics'], ['M', 'Sound'], ['Esc', 'Pause']]
+    const K = classic ? [[globalThis.__wasdOld ? '↑ ↓ ← →  /  W A S D' : 'W A S D', 'Move'], ['Space', 'Toss · Serve · Hit'], ['Hold ← or →', 'As you swing: angle'], ['Hold ↑ / ↓', 'As you swing: lob or deep · drop shot'], ['Hold ↑ / ↓', 'As you serve: kick · slice'], ['Space at the top', 'Of the toss: more pace'], ['V', 'Camera'], ['Tab', 'Statistics'], ['M', 'Sound'], ['Esc', 'Pause']]
       : [['Mouse', 'Aim'], ['Tap', 'Rally ball'], ['Hold', 'Drive · longer is harder'], ['Release', 'As the ring closes'], ['Right button', 'Slice'], ['Shift', 'Flat'], ['Q', 'Lob'], ['E', 'Drop shot'],
         ['W A S D', 'Move'], ['Space', 'Split step'], ['Click · Click', 'Toss · Serve'], ['V', 'Camera'], ['Tab', 'Statistics'], ['Esc', 'Pause']];
     this.screen(this.bar('Controls', `<span class="chips">${[['classic', 'Classic'], ['mouse', 'Mouse']].map(([k, n]) => `<span class="chip ${this.set.controls === k ? 'on' : ''}" data-ctl="${k}">${n}</span>`).join('')}</span>`) + `<div class="keys">${K.map(([k, t]) => `<kbd>${k}</kbd><span>${t}</span>`).join('')}</div>`, '', true);
@@ -441,7 +441,7 @@ class App {
     switch (type) {
       case 'hit':
         if (e.kind === 'serve') { this.tab(null); this.ext(e.who, `<b>${Math.round(e.speed * 3.6)}</b><i>km/h</i>${e.stype === 'kick' ? 'Kick · ' : e.stype === 'slice' ? 'Slice · ' : e.stype === 'flat' ? 'Flat · ' : ''}${e.serveNum === 1 ? '1st' : '2nd'} serve`, 2.6); if (e.who === 0 && e.q < 0.55) this.fb('Mistimed', '#ff6a4d'); else if (e.who === 0 && e.pf >= 0.99) this.fb('Perfect', '#e2f03a'); }
-        else if (e.who === 0 && e.timing != null) { const a = Math.abs(e.timing), w = e.window || 0.035, pfct = e.pf != null ? e.pf >= 0.99 : a < w * 0.5;   /* (Perfect only when it is: a held early press is Good) */ this.fb(e.shank ? 'Frame' : pfct ? 'Perfect' : a < w ? 'Good' : e.timing > 0 ? 'Early' : 'Late', e.shank ? '#ff6a4d' : pfct ? '#e2f03a' : a < w ? '#fff' : '#ff6a4d'); }
+        else if (e.who === 0 && e.timing != null) { const a = Math.abs(e.timing), w = e.window || 0.035, pfct = e.pf != null ? e.pf >= 0.99 : a < w * 0.5;   /* (Perfect only when it is: a held early press is Good) */ const off = e.press != null && !pfct && !e.shank ? ` · ${Math.round(Math.abs(e.press - (e.press < 0 ? -0.07 : 0.10)) * 1000)} ms ${e.press < 0 ? 'early' : 'late'}` : '';   /* (how far outside Perfect, to correct by) */ this.fb(e.shank ? 'Frame' : pfct ? 'Perfect' : (a < w ? 'Good' : e.timing > 0 ? 'Early' : 'Late') + off, e.shank ? '#ff6a4d' : pfct ? '#e2f03a' : a < w ? '#fff' : '#ff6a4d'); }
         break;
       case 'bounce': if (e.first && !e.dead && e.miss != null && Math.abs(e.miss) < 0.07) this.lineCall(e, g); break;
       case 'whiff': if (e.who === 0) this.fb(e.relZ > 1 ? 'Early' : e.relZ < -0.3 ? 'Late' : 'Missed', '#ff6a4d'); break;
@@ -506,7 +506,7 @@ class App {
     const pressT = (this.set.controls || 'classic') === 'classic' && !globalThis.__pressTimeOld, ringT = h.tau != null && pressT ? h.tau + TIMING.swing - 0.08 : h.tau;
     if (m.phase === 'live' && ringT != null && ringT < 0.75 && ringT > -0.2) tau = ringT;
     else if (m.phase === 'toss' && m.score.server === 0 && m.ball.held < 0 && !(m.players[0].stroke && m.players[0].stroke.tc != null)) tau = m.tossIdeal - TIMING.serveSwing - m.t;
-    if (tau != null && tau > -0.15) { const r = 15 + Math.max(0, tau) * 120, good = m.phase === 'live' && pressT ? Math.abs(tau) < 0.06 : Math.abs(tau) < (m.windowFor ? m.windowFor(0) : 0.03); out.setAttribute('r', r.toFixed(1)); out.setAttribute('opacity', (tau > 0.6 ? (0.75 - tau) / 0.15 : 0.9).toFixed(2)); out.setAttribute('stroke', good ? '#e2f03a' : tau < 0 ? '#ff6a4d' : '#fff'); }
+    if (tau != null && tau > -0.15) { const r = 15 + Math.max(0, tau) * 120, good = m.phase === 'live' && pressT ? (tau < 0.07 && tau > -0.10) : Math.abs(tau) < (m.windowFor ? m.windowFor(0) : 0.03); out.setAttribute('r', r.toFixed(1)); out.setAttribute('opacity', (tau > 0.6 ? (0.75 - tau) / 0.15 : 0.9).toFixed(2)); out.setAttribute('stroke', good ? '#e2f03a' : tau < 0 ? '#ff6a4d' : '#fff'); }
     else out.setAttribute('opacity', 0);
     // power, and the shot it will be
     const mt = $('#meter'); mt.classList.toggle('on', h.power > 0);

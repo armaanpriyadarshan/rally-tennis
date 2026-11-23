@@ -44,6 +44,15 @@ export class Input {
     const m = Math.hypot(x, y); if (m > 1) { x /= m; y /= m; }
     return { x, y };
   }
+  // movement on W A S D (and a pad's stick) only: with the first game's controls the arrows are the aim
+  moveKeys() {
+    let x = 0, y = 0;
+    if (this.down('KeyD')) x += 1; if (this.down('KeyA')) x -= 1; if (this.down('KeyW')) y += 1; if (this.down('KeyS')) y -= 1;
+    const p = this.pad;
+    if (p && (Math.abs(p.lx) > 0.18 || Math.abs(p.ly) > 0.18)) { x = p.lx; y = -p.ly; }
+    const m = Math.hypot(x, y); if (m > 1) { x /= m; y /= m; }
+    return { x, y };
+  }
   takeMouse() { const r = { x: this.mx * this.sens, y: this.my * this.sens }; this.mx = this.my = 0; const p = this.pad; if (p) { r.x += p.rx * 14; r.y += p.ry * 14; } return r; }
   takeEdges() { const e = this.edges; this.edges = []; return e; }
   takePressed() { const p = this.pressed; this.pressed = new Set(); return p; }

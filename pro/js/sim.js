@@ -38,6 +38,8 @@ export const TIMING = { prep: 0.90, swing: 0.15, follow: 0.42, recover: 0.38, se
 export const REACH = { ideal: 0.72, comfy: 1.15, max: 2.2, front: 1.25, back: 0.5, lo: 0.08, hi: 2.75, jump: 3.05 };
 
 // Everything the calibration harness is allowed to turn. Angles in radians.
+// the Perfect press, against the moment just before the ball reaches the racket (s): how early, how late (see resolveStroke)
+const PF_EARLY = globalThis.__pfEarly ?? 0.07, PF_LATE = globalThis.__pfLate ?? 0.10;
 export const TUNE = {
   sigEl: 0.0085, sigAz: 0.0200, sigV: 0.031,      // launch scatter of a neutral rally ball
   mis0: 0.018, misD: 0.070,                       // chance of a mistimed hit: base, and per unit of difficulty
@@ -324,7 +326,7 @@ export class Match {
       // speed toward him; the swing itself may be later or sooner, a held early press or a late one)
       const toward = b.vz * p.sgn, tReach = tau != null && tau > 0.02 ? this.t + tau : this.t + (cz - b.z) * p.sgn / Math.max(1, toward);
       const e = it.pressAt - (tReach - (globalThis.__pressIdeal ?? 0.08)); st.pressE = e;
-      st.timing = e <= 0 ? Math.min(0.25, -e) * (this.timingWindow[i] / 0.14) : -Math.min(0.25, e) * (this.timingWindow[i] / 0.12); }
+      st.timing = e <= 0 ? Math.min(0.25, -e) * (this.timingWindow[i] / 0.16) : -Math.min(0.25, e) * (this.timingWindow[i] / 0.17); }
     if (tau != null) { const pr2 = predict(b, this.env, { bounces: 1, dt: 1 / 240, maxT: dt }); st.cp = { x: pr2.end.x, y: pr2.end.y, z: pr2.end.z }; }
     st.intent = it; st.kind = it.kind || st.kind;
     st.held = this.t - st.t0;
@@ -854,7 +856,7 @@ export class Match {
     // 98% of the test bot's shots. Perfect is a press made on the moment - within 0.09 s before it, fading out by 0.18 s; one made
     // earlier plays as before, Good.)
     const lead = st.pressE != null ? 0 : (it.pressLead || 0), pfLead = 1 - clamp((lead - (globalThis.__pfLead ?? 0.09)) / 0.09, 0, 1);
-    const pf = !st.auto && !globalThis.__perfectOld && !volley && (kind === 'drive' || kind === 'flat' || kind === 'loop' || kind === 'slice') ? (st.pressE != null ? 1 - clamp((Math.abs(st.pressE) - 0.06) / 0.03, 0, 1) : (1 - clamp((Math.abs(timRaw) - win * 0.5) / Math.max(0.005, win * 0.5), 0, 1)) * pfLead) : 0;
+    const pf = !st.auto && !globalThis.__perfectOld && !volley && (kind === 'drive' || kind === 'flat' || kind === 'loop' || kind === 'slice') ? (st.pressE != null ? 1 - clamp(((st.pressE < 0 ? -st.pressE - PF_EARLY : st.pressE - PF_LATE)) / 0.02, 0, 1) : (1 - clamp((Math.abs(timRaw) - win * 0.5) / Math.max(0.005, win * 0.5), 0, 1)) * pfLead) : 0;
     if (pf > 0 && kind !== 'slice') power = Math.min(1, power + 0.12 * pf);
     st.perfect = pf;
     const retPen = b.isServe ? clamp((vin - 17) / 12, 0, 1.4) * lerp(1.15, 0.80, prof.ret) * TUNE.retPen : 0;
@@ -880,9 +882,11 @@ export class Match {
     const strike = !st.auto && !globalThis.__strikeOld && !volley && (kind === 'drive' || kind === 'flat' || kind === 'loop');
     let Q = 0;
     if (strike) { const ta = Math.abs(timRaw), half = win * 0.5;
+      // (Perfect from 0.07 s early to 0.10 s late: what he sees and presses reaches the game 30-80 ms after it happens - the screen's
+      // and the keyboard's delay - and at ±0.06 he said "still cant get any perfects")
       const e = st.pressE, tq = e != null
-        ? (e <= 0 ? (-e <= 0.06 ? 1 : -e <= 0.14 ? lerp(1, 0.72, (-e - 0.06) / 0.08) : lerp(0.72, 0.45, clamp((-e - 0.14) / 0.2, 0, 1)))       // early: held and swung on time, a little less each tenth
-                  : (e <= 0.06 ? 1 : e <= 0.12 ? lerp(1, 0.6, (e - 0.06) / 0.06) : lerp(0.6, 0.15, clamp((e - 0.12) / 0.1, 0, 1))))     // late: it gets past him
+        ? (e <= 0 ? (-e <= PF_EARLY ? 1 : -e <= 0.16 ? lerp(1, 0.72, (-e - PF_EARLY) / (0.16 - PF_EARLY)) : lerp(0.72, 0.45, clamp((-e - 0.16) / 0.2, 0, 1)))       // early: held and swung on time, a little less each tenth
+                  : (e <= PF_LATE ? 1 : e <= 0.17 ? lerp(1, 0.6, (e - PF_LATE) / (0.17 - PF_LATE)) : lerp(0.6, 0.15, clamp((e - 0.17) / 0.1, 0, 1))))     // late: it gets past him
         : ta <= half ? lerp(0.72, 1, pfLead) : ta <= win ? lerp(0.72, 0.5, (ta - half) / Math.max(1e-3, half)) : lerp(0.5, 0.15, clamp((ta - win) / 0.07, 0, 1));
       const dq = 1 - clamp(weak * 0.75 + jam * 0.3 + (h < 0.45 ? (0.45 - h) * 1.2 : 0), 0, 0.75);
       Q = clamp(tq * dq + 0.12 * easyT, 0, 1); }
@@ -1019,7 +1023,7 @@ export class Match {
     this.incoming = this.makeIncoming();
     b.threat = shotThreat(outV, sol.top, this.incoming.land, diff, kind); if (strike && b.threat > 0) b.threat = clamp(b.threat + (globalThis.__strikeThr ?? 0.45) * Q * Q, 0, 1);   /* (a ball struck well is hard to send back: the other man's timing and footing suffer) */
     const q = st.auto ? 1 : clamp(1 - timAbs / 0.10, 0, 1);
-    this.emit('hit', { who: p.i, kind, wing, speed: outV, x: p0.x, y: p0.y, z: p0.z, q, timing: st.auto ? null : timRaw, window: win, power, diff, shank, volley, ret: wasServe, top: sol.top, vin, pf: st.auto || globalThis.__perfectOld ? null : (st.perfect || 0) });
+    this.emit('hit', { who: p.i, kind, wing, speed: outV, x: p0.x, y: p0.y, z: p0.z, q, timing: st.auto ? null : timRaw, window: win, power, diff, shank, volley, ret: wasServe, top: sol.top, vin, pf: st.auto || globalThis.__perfectOld ? null : (st.perfect || 0), press: st.auto ? null : (st.pressE ?? null) });
     if (this.online && p.i === 0) this.shotOut(p, kind, wing, outV, diff);
     if (this.shotLog) this.shotLog.push({ who: p.i, kind, wing, kmh: outV * 3.6, h, diff, D, top: sol.top, land: this.incoming.land, clear: this.incoming.netY == null ? null : this.incoming.netY - netHeightAt(0), tgt: [tx, tz], vin: vin * 3.6, lat: relX, relZ, ret: wasServe, volley, state: it.state, slack: it.slack, rally: this.rally, pt: this.history.length, weak, pSpeed, mistimed, perfect: !st.auto && Math.abs(timRaw) < win * 0.5, pf: st.perfect || 0, q: st.q || 0, easy: st.easy || 0, power });
   }

@@ -1461,3 +1461,13 @@ still in the air, both in a stroke's finish, for two or three frames.
 - **No auto-slice in a rally** (the same check: some "Perfect" shots came off at 87-99 km/h - backhand slices the game had chosen
   for him): `coach.noSlice` - a person's rally and approach backhands are drives; defending at full stretch, and returning a big
   serve, the game may still slice for him. `__autoSliceOld`.
+- **Perfect within reach of a person, and how far off it** (he said "still cant get any perfects bruh"): pressed as the real ring
+  closed, every shot was Perfect in the headless browser, which has no delay; a person's screen and keyboard put what he sees and
+  presses 30-80 ms behind the game. Perfect now runs from 0.07 s early to 0.10 s late of the moment (sim.js PF_EARLY, PF_LATE;
+  Good to 0.16-0.17); the ring shows lime over the same band. Checked pressing at the ring + 0, 50 and 83 ms: Perfect each time;
+  classicbot pressing as the ball reached him (80 ms after the ring): 318 Perfect drives, 159 km/h. The label says by how much a
+  press missed Perfect ("Late · 40 ms late"), from the hit's `press` (the press against the moment).
+- **W A S D move, the arrows aim** (he said "also make wasd movement"): with the first game's controls both moved him and both
+  aimed. Now input.js `moveKeys` (W A S D and a pad's stick) moves him - held, the game's footwork stands aside until he lets go -
+  and only the arrows aim (↑/↓ lob, deep, drop; kick or slice on the serve). Before the serve A and D walk him along the line, the
+  arrows place it. The controls screen says so. `__wasdOld`.

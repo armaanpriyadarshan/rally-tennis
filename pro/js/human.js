@@ -46,7 +46,7 @@ export class Human {
     if (!inp) return;
     const serving = m.score.server === i, ph = m.phase;
     // ---- aim ----
-    const classic = (g.opts.controls || 'classic') === 'classic';
+    const classic = (g.opts.controls || 'classic') === 'classic', wasd = classic && !globalThis.__wasdOld;
     const ms = inp.takeMouse(), k = classic ? 0 : 0.0105 * (g.opts.aimSens || 1);
     this.aim.X += ms.x * k; this.aim.D += ms.y * k;
     if (serving && (ph === 'ready' || ph === 'toss' || ph === 'between')) {
@@ -63,7 +63,7 @@ export class Human {
     }
     const tx = this.aim.X * s, tz = this.aim.D * s;
     // ---- feet ----
-    const mv = inp.move();
+    const mv = wasd && inp.moveKeys ? inp.moveKeys() : inp.move();
     let plan = this.plan = ph === 'live' ? this.coach.track(m, i) : null; this.helpedNow = false;
     // Running round the ball, as moving did in the first game: an arrow held toward the side the ball is coming to takes him
     // on past it, so he meets it on the other side of his body (round a backhand to hit a forehand, or round a forehand), the
@@ -108,7 +108,7 @@ export class Human {
       // baseline is lost, and in the last five metres the legs that take over can no longer make it up.
       const shortRun = A === 1 && coming && !globalThis.__shortRunOld && (p.z - plan.S.z) * s > 3.0;
       const helped = coming && (shortRun || Math.hypot(plan.S.x - p.x, plan.S.z - p.z) < near); this.helpedNow = !!helped;
-      const any = !committed && !helped && Math.abs(mv.x) + Math.abs(mv.y) > 0.01;
+      const any = (wasd ? !(p.stroke && !p.stroke.done && p.stroke.tc != null) : !committed && !helped) && Math.abs(mv.x) + Math.abs(mv.y) > 0.01;   /* (W A S D held, he moves himself, the game's legs standing aside until he lets go; not through the swing itself) */
       if (any) {
         p.move.x = mv.x * s; p.move.z = -mv.y * s; p.goDist = null;
         // (and where the arrows point at where the ball is to be met, the figure is told how far that is, as the game's own legs tell
@@ -159,10 +159,12 @@ export class Human {
     // ---- hands: the first game's way ----
     if (classic) {
       const pressed = inp.takePressed(); inp.takeEdges();
-      let lat = (inp.down('ArrowRight') || inp.down('KeyD') ? 1 : 0) - (inp.down('ArrowLeft') || inp.down('KeyA') ? 1 : 0), fk = (inp.down('ArrowUp') || inp.down('KeyW') ? 1 : 0) - (inp.down('ArrowDown') || inp.down('KeyS') ? 1 : 0);
+      // (W A S D move him, he asked for "wasd movement"; the arrows alone aim. `__wasdOld`: both did both)
+      const dn = c => inp.down(c) && (!wasd || !/^Key[WASD]$/.test(c)), pr = c => pressed.has(c) && (!wasd || !/^Key[WASD]$/.test(c));
+      let lat = (dn('ArrowRight') || dn('KeyD') ? 1 : 0) - (dn('ArrowLeft') || dn('KeyA') ? 1 : 0), fk = (dn('ArrowUp') || dn('KeyW') ? 1 : 0) - (dn('ArrowDown') || dn('KeyS') ? 1 : 0);
       const go = pressed.has('Space') || pressed.has('Enter');
       // (an arrow tapped between two frames is a press too: read from the keys pressed since the last frame as well as those held)
-      const latT = lat || (pressed.has('ArrowRight') || pressed.has('KeyD') ? 1 : 0) - (pressed.has('ArrowLeft') || pressed.has('KeyA') ? 1 : 0), fkT = fk || (pressed.has('ArrowUp') || pressed.has('KeyW') ? 1 : 0) - (pressed.has('ArrowDown') || pressed.has('KeyS') ? 1 : 0);
+      const latT = lat || (pr('ArrowRight') || pr('KeyD') ? 1 : 0) - (pr('ArrowLeft') || pr('KeyA') ? 1 : 0), fkT = fk || (pr('ArrowUp') || pr('KeyW') ? 1 : 0) - (pr('ArrowDown') || pr('KeyS') ? 1 : 0);
       if (go && this.log) this.log.push(['press', +m.t.toFixed(2), ph, this.tau == null ? null : +this.tau.toFixed(3), m.ball.lastHit, m.ball.live ? 1 : 0, +Math.hypot(m.ball.x - p.x, m.ball.z - p.z).toFixed(1), lat, fk, serving ? 1 : 0]);
       this.power = 0; this.kindNow = null; this.hold = null;
       if (ph !== 'live') this.aimPreview = null;

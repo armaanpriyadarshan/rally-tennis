@@ -15,7 +15,7 @@ globalThis.__noPlan = !!a.noplan;
 const N = +(a.points || 300), D = DIFFICULTY[+(a.diff ?? 1)], sig = +(a.sig || 0.05), rng = makeRng(17).u;
 const gauss = () => Math.sqrt(-2 * Math.log(1 - rng())) * Math.cos(2 * Math.PI * rng());
 const keys = new Set(); let pressed = new Set();
-const input = { takeMouse: () => ({ x: 0, y: 0 }), move: () => ({ x: 0, y: 0 }), down: c => keys.has(c), takeEdges: () => [], takePressed: () => { const p = pressed; pressed = new Set(); return p; } };
+const input = { takeMouse: () => ({ x: 0, y: 0 }), move: () => ({ x: 0, y: 0 }), moveKeys: () => ({ x: 0, y: 0 }), down: c => keys.has(c), takeEdges: () => [], takePressed: () => { const p = pressed; pressed = new Set(); return p; } };
 const game = { input, opts: { controls: 'classic', assist: +(a.assist ?? 2), markers: true }, audio: null };
 const H = new Human(game); H.safe = D.safe; H.srvSafe = D.srvSafe;
 const P0 = playerByName(a.p0 || 'Federer'), P1 = playerByName(a.p1 || 'Nadal');
