@@ -200,8 +200,19 @@ export function profileFor(id, surface, key) {
   b.net = clamp(b.net * S.net, 0, 0.9); b.sv = clamp(b.sv * S.sv, 0, 0.9); b.drop = clamp(b.drop * S.drop, 0, 0.2); b.slice = clamp(b.slice * S.slice, 0, 0.6);
   b.agg = clamp(b.agg + S.agg, 0.05, 0.97); if (b.fhAgg != null) b.fhAgg = clamp(b.fhAgg + S.agg, 0.05, 0.97);
   b.adv = adv;
+  // The five he wants above everyone (he said "alcaraz, sinner, federer, djokovic, and nadal in general should just be above the
+  // rest"): steadier, quicker to the ball and off the mark, and a little more pace, on top of their own numbers. Their numbers alone
+  // put Federer and Alcaraz behind Medvedev, Zverev and Agassi (the bot at Tour won 48% and 51% of points from them, 42-43% from
+  // those three). `__eliteOld`; ELITE_K scales each man's edge so that all five come out hardest.
+  const eK = !globalThis.__eliteOld ? (globalThis.__eliteK ?? ELITE_K)[P.facts.name] : null;
+  if (eK) { b.cons = clamp(b.cons + 0.07 * eK, 0.1, 0.98); b.speed *= 1 + 0.03 * eK; b.accel *= 1 + 0.04 * eK; b.react *= 1 - 0.06 * eK;
+    b.fhKmh *= 1 + 0.025 * eK; b.bhKmh *= 1 + 0.025 * eK; b.s1Kmh *= 1 + 0.015 * eK; b.firstIn = clamp(b.firstIn + 0.02 * eK, 0.45, 0.8); }
   return b;
 }
+const ELITE_K = { Alcaraz: 1, Sinner: 1.6, Djokovic: 1.3, Nadal: 2.2, Federer: 2.5 };   // (the bot at Tour then wins 33-37% of points from them, 42% from Medvedev, the hardest of the rest)
+// and in simulated matches and seeding (season.js gameProb, eventSeeding): percentage points more service games held and broken
+export const isElite = id => !globalThis.__eliteOld && PLAYERS[id] && ELITE_K[PLAYERS[id].facts.name] != null;
+export const ELITE_SIM = 4;
 // Strength for simulated matches: career win rate on the surface, as odds.
 export function strength(id, surface, key) { const w = clamp(eventRate(id, key, surface).rate / 100, 0.3, 0.93); return w / (1 - w); }
 // Seeding for an event: how strong each man is here (his record at this event, or on this surface where he has none),
@@ -211,7 +222,7 @@ export function eventSeeding(ids, T, rnd, form = 0.35) {
   const g = () => { let u = 0; while (u === 0) u = rnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * rnd()); };
   // (his win rate here as it is, up to 98.5%: the match model caps it at 93%, which would rank Nadal at Roland Garros, 112-4,
   // level with anyone else above 93)
-  const lo = id => { const w = clamp(eventRate(id, T.key, T.surface).rate / 100, 0.3, 0.985); return Math.log(w / (1 - w)); };
+  const lo = id => { const w = clamp(eventRate(id, T.key, T.surface).rate / 100, 0.3, 0.985); return Math.log(w / (1 - w)) + (isElite(id) ? (globalThis.__eliteSeed ?? 0.8) : 0); };
   return ids.map(id => ({ id, s: lo(id) + form * g() })).sort((a, b) => b.s - a.s).map(x => x.id);
 }
 export function winProb(a, b, surface, key) { const sa = strength(a, surface, key), sb = strength(b, surface, key); return sa / (sa + sb); }

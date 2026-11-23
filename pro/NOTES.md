@@ -1343,3 +1343,13 @@ still in the air, both in a stroke's finish, for two or three frames.
   power. A forehand aggression of its own (data.js FH_AGG, Nadal 0.7; ai.js decide; `__fhAggOld`): 121 km/h, 0.77 m (drives
   129 km/h, 0.71 m), points won 65% → 73%. Against him at Tour the bot's points fell 46% → 39%. (Tried and taken out: no spin
   rise on the clearance of a loop, lighter loop spin - neither moved the loops, which are high because they are defensive.)
+- **The big five above the rest** (he said "alcaraz, sinner, federer, djokovic, and nadal in general should just be above the rest").
+  Measured first, classicbot as Murray at Tour, 300 points against each of the 28: the bot won 37% from Djokovic, 38% Nadal, 40%
+  Sinner, but 48% from Federer and 51% from Alcaraz, behind Medvedev 42, Agassi and Zverev 43, Lendl and Monfils 45. data.js
+  profileFor: an edge for the five on top of their own numbers (consistency +0.07, speed +3%, acceleration +4%, reaction -6%,
+  groundstroke pace +2.5%, first serve +1.5% and +2 points in), scaled per man (ELITE_K: Alcaraz 1, Djokovic 1.3, Sinner 1.6,
+  Nadal 2.2, Federer 2.5) so all five come out hardest: 1000 points each, the bot won 33% from Djokovic, 34% Sinner and Alcaraz,
+  37% Nadal and Federer; Medvedev, now the hardest of the rest, 42%. Simulated matches (season.js gameProb) give the five 4 points
+  more holds and breaks, and seeding (eventSeeding) +0.8 on the log odds: titles in 1000 simulated draws, US Open 90% to the five
+  (was Sampras 16, Djokovic 11, Nadal 11, Lendl 11, ... Sinner 3), Wimbledon 85%, Australian Open 85%, Roland Garros 85% (Borg 11
+  still ahead of Federer 4 and Sinner 2 there). `__eliteOld`.

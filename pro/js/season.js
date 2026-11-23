@@ -1,6 +1,6 @@
 // Rally Pro — tournaments and the season. Draws, simulated matches built from each
 // player's real hold and break percentages, ranking points by round, and the save file.
-import { PLAYERS, TOURNAMENTS, ROUND_NAME, eventRate } from './data.js';
+import { PLAYERS, TOURNAMENTS, ROUND_NAME, eventRate, isElite, ELITE_SIM } from './data.js';
 
 export function rng(seed) { let s = (seed >>> 0) || 1; return () => { s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
@@ -13,7 +13,8 @@ function gameProb(a, b, surface, key) {
   const A = PLAYERS[a], B = PLAYERS[b];
   // his record at this event where there is one, on its surface where not
   const adv = id => eventRate(id, key, surface).rate - PLAYERS[id].overall;
-  const hold = A.hold + adv(a) * 0.35, brk = B.brk + adv(b) * 0.35;
+  const el = id => isElite(id) ? (globalThis.__eliteSim ?? ELITE_SIM) : 0;   // (the five above the rest, data.js ELITE_K)
+  const hold = A.hold + adv(a) * 0.35 + el(a), brk = B.brk + adv(b) * 0.35 + el(b);
   // tour average: 81 % of service games held, 19 % broken
   return clamp((hold + (100 - brk)) / 2 + (hold - 81) * 0.25 - (brk - 19) * 0.25, 45, 97) / 100;
 }
