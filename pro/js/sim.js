@@ -297,15 +297,23 @@ export class Match {
     const cz = p.z - p.sgn * 0.42;
     let tau = null;
     // where the game's own legs are taking him (Auto footwork), the ball is met when they get him there
-    if (it.tcAt != null && it.tcAt - this.t > -0.05 && it.tcAt - this.t < 0.9 && b.live && b.lastHit !== i) tau = Math.max(0, it.tcAt - this.t);
+    // (but only if they will get him there: short of the spot when the swing has to go - an approach volley, the ball met at the
+    // spot a metre or three in front of where he was - the swing went when the ball reached the spot and missed it, early, a
+    // quarter of the balls he took in the air in a rally; then it is timed to the ball reaching him where he is. `__tcSpotOld`)
+    let tcOK = it.tcAt != null && it.tcAt - this.t > -0.05 && it.tcAt - this.t < 0.9 && b.live && b.lastHit !== i;
+    if (tcOK && it.spot && !globalThis.__tcSpotOld && Math.hypot(it.spot.x - p.x, it.spot.z - p.z) > 0.45 + (p.prof.speed || 6) * 0.8 * Math.max(0, it.tcAt - this.t)) tcOK = false;
+    if (tcOK) tau = Math.max(0, it.tcAt - this.t);
     else if (b.live && b.lastHit !== i) {
       const pr = predict(b, this.env, { bounces: 1, path: true, dt: 1 / 240, maxT: 0.7 });
       let best = 1e9;
       for (let k = 0; k < pr.path.length; k += 4) {
-        const d = Math.abs(pr.path[k + 2] - cz);
+        // (where it crosses in front of him at a height he can hit: a lob coming down over him crossed the plane at 5.7 m and was
+        // swung at there, into the air)
+        const y = pr.path[k + 1], d = Math.abs(pr.path[k + 2] - cz) + (globalThis.__tauHOld ? 0 : (y > 2.9 ? (y - 2.9) * 2 : 0));
         if (d < best) { best = d; tau = pr.path[k + 3]; }
       }
       if (best > 2.2) tau = null;
+      if (tau == null && it.tcAt != null && it.tcAt - this.t > -0.05 && it.tcAt - this.t < 0.9) tau = Math.max(0, it.tcAt - this.t);   // (a ball that never comes to him - a drop shot short in front - still by the plan)
     }
     const want = TIMING.swing;
     let dt = want;

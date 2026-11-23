@@ -1493,3 +1493,10 @@ still in the air, both in a stroke's finish, for two or three frames.
   read Good, Early or Late and played as an ordinary one. Now volleys and smashes are judged the same way (`__volPfOld`), and a
   Perfect one goes toward the line with a fraction of the scatter, a volley punched 15% crisper, a smash 8% harder: 110 of 142
   volleys Perfect in the same test.
+- **Volleys swung too early** (same complaint): in a rally a quarter of the balls he took in the air were missed (9 whiffs to 24
+  hits), nearly all with the ball still 2.3-3.8 m in front of him: with the game's footwork the swing is timed to the planned spot,
+  and coming in to a volley he was often short of it, so it went as the ball reached the spot, not him. sim.js release: the plan's
+  time is used only if he can get to the spot by then (within 0.45 m + 80% of his speed × the time left); otherwise the ball's own
+  arrival where he is (a drop shot that never comes to him still by the plan); and that arrival is taken at a height he can hit, not
+  where a lob crosses over him at 5.7 m (`__tcSpotOld`, `__tauHOld`). In-air whiffs 9 → 4-5 per 500 points; the rest are balls at
+  his ankles 2-3.5 m wide.
