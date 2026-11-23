@@ -423,6 +423,9 @@ export class Figure {
 
   // ---------- per-frame ----------
   // p: sim player; m: match (for time, ball, phase); dt: frame time
+  // where the middle of a hand's grip is now (world): the palm's centre, off it into the fingers' curl - where a handle lies in it
+  palmAt(i, out) { const S = i === 0 ? 'L' : 'R', P = this.person, d = P.dir; P.jointPos(S + '_Hand', out);
+    out.add(_pmA.copy(d['palm' + S]).applyQuaternion(this.Fhand[i])); if (d['palmN' + S]) out.addScaledVector(_pmA.copy(d['palmN' + S]).applyQuaternion(this.Fhand[i]), PALM_OFF * this.H); return out; }
   // a right-hander's racket in his left hand as he shakes hands: hanging down by his side, the head a little forward (world)
   swapDir(fwd, right) { const d = this._swD || (this._swD = new THREE.Vector3()); (this._swF || (this._swF = new THREE.Vector3())).copy(fwd); (this._swR || (this._swR = new THREE.Vector3())).copy(right);
     return d.set(0, -0.86, 0).addScaledVector(fwd, 0.45).addScaledVector(right, -0.1).normalize(); }
@@ -716,6 +719,21 @@ export class Figure {
       if (this.lefty) pose = { ...pose, L: bl(pose.L, [-Sh[0], Sh[1], Sh[2]]), R: bl(pose.R, HANG.R), dir: bl(pose.dir, HANG.dir), nrm: pose.nrm || [1, 0, 0], lgrip: (pose.lgrip || 0) * (1 - k), lean: (pose.lean || 0) + 0.08 * k };
       else pose = { ...pose, R: bl(pose.R, Sh), L: bl(pose.L, [-0.25, 0.93, 0.10]), lgrip: (pose.lgrip || 0) * (1 - k), lean: (pose.lean || 0) + 0.08 * k };
       this.reactK = Math.max(this.reactK, k); this.reactFist = 0; this.reactShout = 0; this.reactPoint = 0; this.reactPole = null; }
+    // The trophy (game.js beginTrophy sets this.trophyHold = { u, w, y, curl }: the clock, half the span between its two grip points
+    // - its handles, or its sides where it has none - their height above its foot, and how far the fingers close). Held in both hands
+    // at the chest, lifted up past the front of his face, held up over his head and a little in front, clear of it (his arms do not reach high enough for a
+    // trophy's foot to clear the top of his head straight above it), swayed
+    // a little, brought down to the chest. The hands go where the grip points are, the palms facing in; game.js placeTrophy puts the
+    // trophy where the palms then are. (Before, a pose for a cup in general: the hands on its front, the right still a racket-hand's
+    // fist turned the wrong way and the left open, and over his head its foot went into his head - he said "the hands are fucked up
+    // on the trophy screen".)
+    if (this.trophyHold && !globalThis.__trophyOld) { const T = this.trophyHold, u = T.u, up = sm((u - 0.9) / 0.8) * (1 - sm((u - 5.2) / 1.1)), hw = T.w + (globalThis.__tPalm ?? 0.015);
+      // (overhead as high as his arms reach there, a little in front: set out of reach, the hands were left wide of a narrow trophy;
+      // a narrow one - a stem, a slim body - in one hand above the other, as it is held)
+      const fT = globalThis.__tFwd ?? 0.17, ox = Math.max(0, 0.19 - hw), yTop = 1.5 + Math.sqrt(Math.max(0.09, 0.56 * 0.56 - ox * ox - fT * fT)) - 0.01;
+      const y = lerp(1.2, yTop, up) + 0.012 * Math.sin(u * 2.1) * up, f = lerp(0.33, fT, up) + 0.14 * Math.sin(Math.PI * up), sw = 0.025 * Math.sin(u * 1.3) * up, st = T.w < 0.08 ? 0.042 : 0;
+      pose = { ...pose, R: [hw + sw, y + st, f], L: [-hw + sw, y - st, f], lgrip: 0, elbows: 0, lean: 0.02 - 0.06 * up, head: 0.06 + 0.3 * up, twist: 0, crouch: 0.02, stance: 0.27 };
+      this.reactK = 1; this.reactFist = 0; this.reactShout = 0; this.reactPoint = 0; this.reactPole = null; }
     if (this.celebClip && this.celebClip.k > 0.001 && !globalThis.__celebMocapOld) { const cc = strokeClip({ celeb: CELEB_MOTION }, 'celeb', 'celeb_' + this.celebClip.kind, this.lefty);
       if (cc) { const S = sampleAt(cc, clamp(this.celebClip.u, cc.span[0], cc.span[1]), this._celS || (this._celS = new Float32Array(N3))), sd = this.lefty ? 'l' : 'r', e = J[sd + 'elb'], w = J[sd + 'wri'];
         const fx = (S[w * 3] - S[e * 3]) * this.hs, fy = S[w * 3 + 1] - S[e * 3 + 1], fz = S[w * 3 + 2] - S[e * 3 + 2], hi = S[w * 3 + 1] > 1.6;
@@ -2665,8 +2683,18 @@ export class Figure {
       // (the handshake: the right hand out, its palm to his left and the fingers forward and a little down; and a right-hander's
       // racket held in his left hand, hanging, the hand closed round the handle)
       const shK = this.shake && i === 1 && person.dir['palmN' + S] ? clamp(this.shake.k || 0, 0, 1) : 0, swapHold = this.shakeSwap && i === off;
-      const shF = shK > 0.001 || this.shakeSwap ? (this._shF || (this._shF = V())).set(0, 0, -1).applyQuaternion(this.frame.quaternion) : null, shR = shF ? (this._shR || (this._shR = V())).set(1, 0, 0).applyQuaternion(this.frame.quaternion) : null;
-      if (shK > 0.001 || (this.shakeSwap && i === hit)) {
+      const tH = this.trophyHold && !globalThis.__trophyOld && person.dir['palmN' + S] ? this.trophyHold : null;
+      const shF = shK > 0.001 || this.shakeSwap || tH ? (this._shF || (this._shF = V())).set(0, 0, -1).applyQuaternion(this.frame.quaternion) : null, shR = shF ? (this._shR || (this._shR = V())).set(1, 0, 0).applyQuaternion(this.frame.quaternion) : null;
+      if (tH) {
+        // (the trophy: each palm turned in to face the other across it, the fingers forward round a handle, and up as it goes up)
+        const upK = sm((tH.u - 0.9) / 0.8) * (1 - sm((tH.u - 5.2) / 1.1));
+        swing(Ff, person.dir['palmN' + S], _v9.copy(shR).multiplyScalar(i === 1 ? -1 : 1), _qc);
+        const ax = _v9, fd = _a.copy(person.dir['palm' + S]).applyQuaternion(_qc), want = _b.copy(shF).lerp(UP, 0.25 + 0.6 * upK);
+        fd.addScaledVector(ax, -fd.dot(ax)); want.addScaledVector(ax, -want.dot(ax));
+        if (fd.lengthSq() > 1e-6 && want.lengthSq() > 1e-6) { fd.normalize(); want.normalize(); const ang = Math.atan2(_v8.copy(fd).cross(want).dot(ax), fd.dot(want)); _qc.premultiply(_q6.setFromAxisAngle(ax, ang)); }
+        Fh.copy(_qc);
+      }
+      else if (shK > 0.001 || (this.shakeSwap && i === hit)) {
         swing(Ff, person.dir['palmN' + S], _v9.copy(shR).negate(), _qc);
         const ax = _v9, fd = _a.copy(person.dir['palm' + S]).applyQuaternion(_qc), want = _b.copy(shF).addScaledVector(UP, -0.3);
         fd.addScaledVector(ax, -fd.dot(ax)); want.addScaledVector(ax, -want.dot(ax));
@@ -2698,6 +2726,7 @@ export class Figure {
       else Fh.copy(Ff);
       person.drive(S + '_Hand', Fh);
       // a hand on the handle closes round it (about 60, 80 and 55 degrees at the three finger joints); a free hand hangs loose
+      if (tH) person.setFingers(S, tH.curl ?? 0.8, 0); else
       if (shK > 0.001 || swapHold || (this.shakeSwap && i === hit)) person.setFingers(S, swapHold ? 1.02 : 0.3 + 0.32 * shK, 0); else
       person.setFingers(S, i === hit ? 1.02 : m.ball && m.ball.held === p.i ? 0.45 : Math.max(0.3 + 0.65 * gripW, globalThis.__reactAnimOld ? 0 : (this.reactK || 0) * (this.reactFist || 0) * 1.05), i !== hit && !globalThis.__pointOld ? (this.reactK || 0) * (this.reactPoint || 0) : 0);   /* (the free hand clenched for a fist pump, the vamos; its index finger out for Wawrinka's tap to the temple) */
       // legs: the ankle where the clip puts it over the ground, the knee bent the way the clip's is
@@ -3206,7 +3235,7 @@ const ALT_BAD = new Set(['Federer/fh/0', 'Federer/fh/1', 'Alcaraz/fh/1', 'Djokov
 const DONORS = (key, lefty, oneHand) => key === 'serve' ? (lefty ? ['Nadal', 'Federer'] : ['Federer', 'Djokovic', 'Sinner', 'Alcaraz', 'Nadal'])
   : key === 'fh' ? (lefty ? ['Federer', 'Nadal'] : ['Federer', 'Djokovic', 'Sinner', 'Alcaraz', 'Nadal'])   /* (a left-hander with none of his own borrows Federer's classic forehand mirrored, not Nadal's lasso finish over the head, which is Nadal's alone) */
   : key === 'bh' ? (oneHand ? ['Federer'] : lefty ? ['Nadal', 'Djokovic', 'Sinner', 'Alcaraz', 'Agassi'] : ['Djokovic', 'Sinner', 'Alcaraz', 'Nadal', 'Agassi']) : [];
-const GRIP_UP = 0.022, PALM_OFF = 0.024;      // and how far off the palm, into the fingers' curl, the handle's centre lies
+const GRIP_UP = 0.022, PALM_OFF = 0.024; const _pmA = V();      // and how far off the palm, into the fingers' curl, the handle's centre lies
 // an arm's own thickness (about 8 cm across at the elbow): its centre line keeps this far off the trunk, or its skin goes into it
 const LIMB_R = 0.042;
 // which clip joints make each arm and each leg (left, right)

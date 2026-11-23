@@ -12,6 +12,7 @@ import { venueSpec } from './venues.js';
 import { WEATHER, loadSkyTexture } from './skies.js';
 import { Figure, celebFor } from './figure.js';
 import { CELEB_MOTION } from './celebmotion.js';
+import { buildTrophy } from './trophies.js';
 import { loadPerson, loadAvatar } from './people.js';
 import { loadCrowdAtlas } from './crowd.js';
 import { loadSurface } from './textures.js';
@@ -28,16 +29,6 @@ const _v = new THREE.Vector3(), _w = new THREE.Vector3();
 
 // A trophy: a cup on a stem and foot, two handles, a finial; silver for a Grand Slam, gold elsewhere. About 47 cm tall, the size of
 // the big ones; the handles at 27 cm, where his hands hold it.
-function buildTrophy(gold) {
-  const g = new THREE.Group(), mat = new THREE.MeshStandardMaterial({ color: gold ? '#d9b34f' : '#dfe3e8', metalness: 1, roughness: 0.2, envMapIntensity: 1.6 });
-  const prof = [[0, 0], [0.085, 0], [0.085, 0.014], [0.06, 0.024], [0.026, 0.06], [0.02, 0.13], [0.032, 0.15], [0.062, 0.175], [0.086, 0.215], [0.097, 0.27], [0.101, 0.325], [0.106, 0.36], [0.1, 0.366], [0.09, 0.36]].map(([r, y]) => new THREE.Vector2(r, y));
-  g.add(new THREE.Mesh(new THREE.LatheGeometry(prof, 48), mat));
-  const lid = new THREE.Mesh(new THREE.LatheGeometry([[0, 0.43], [0.02, 0.425], [0.03, 0.40], [0.07, 0.375], [0.092, 0.365], [0, 0.365]].map(([r, y]) => new THREE.Vector2(r, y)).reverse(), 40), mat); g.add(lid);
-  const fin = new THREE.Mesh(new THREE.SphereGeometry(0.022, 16, 12), mat); fin.position.y = 0.45; g.add(fin);
-  for (const sd of [-1, 1]) { const h = new THREE.Mesh(new THREE.TorusGeometry(0.06, 0.01, 10, 28, Math.PI), mat); h.rotation.z = sd > 0 ? -Math.PI / 2 : Math.PI / 2; h.position.set(sd * 0.095, 0.27, 0); g.add(h); }
-  g.traverse(o => { if (o.isMesh) o.castShadow = true; });
-  return g;
-}
 const _held = new THREE.Vector3();          // the bounced ball's place: its own vector, since the camera reuses _w before the ball is drawn
 
 // the cut from the celebration and the walk to the handshake at the net, seconds after the last point
@@ -167,7 +158,8 @@ export class Game {
       } else if (S.t >= tEnd && !S.done) { S.done = true; if (S.onDone) S.onDone(); }
     } else {
       S.t2 += dt; const wf = this.fig[S.who];
-      wf.celeb = { kind: 'trophy', u: S.t2, k: 1 }; wf.celebClip = null; wf.celebArm = null; wf.shake = null; wf.shakeSwap = false;
+      if (globalThis.__trophyOld) wf.celeb = { kind: 'trophy', u: S.t2, k: 1 }; else { wf.celeb = null; wf.trophyHold = { u: S.t2, ...(this.trophyObj ? this.trophyObj.userData.grip : { y: 0.27, w: 0.15, curl: 0.82 }) }; }
+      wf.celebClip = null; wf.celebArm = null; wf.shake = null; wf.shakeSwap = false;
       this.confettiStep(dt);
       if (S.t2 >= 7.4 && !S.done) { S.done = true; if (S.onDone) S.onDone(); }
     }
@@ -185,8 +177,10 @@ export class Game {
     this.fig[1 - w].group.visible = false; if (f.racket) f.racket.visible = false;
     m.ball.visible = false; m.ball.held = -1; m.ball.live = false; if (this.fx && this.fx.reset) this.fx.reset();
     for (const g of this.fig) { g.inited = false; g.handInit = false; g.shake = null; g.shakeSwap = false; } this.settle = true;
-    const T = this.cfg && this.cfg.T, gold = !(T && T.level === 'slam');
-    if (!this.trophyObj) { this.trophyObj = buildTrophy(gold); this.gfx.scene.add(this.trophyObj); }
+    // (the event's own trophy, trophies.js: he said "the trophies should be accurate")
+    const T = this.cfg && this.cfg.T, key = T ? T.key : 'plain';
+    if (this.trophyObj && this.trophyObj.userData.key !== key) { this.gfx.scene.remove(this.trophyObj); this.trophyObj.traverse(o => { if (o.isMesh) o.geometry.dispose(); }); this.trophyObj = null; }
+    if (!this.trophyObj) { this.trophyObj = buildTrophy(key, this.gfx.renderer); this.gfx.scene.add(this.trophyObj); }
     this.trophyObj.visible = true;
     this.confettiInit(p.x, p.z);
     this.cine = { kind: 'trophy', t: 0, who: w }; this.fig[0].setFirstPerson(false); this.cam.snap = true; if (this.ui && this.ui.cine) this.ui.cine(true); if (this.ui && this.ui.trophyOn) this.ui.trophyOn();
@@ -196,10 +190,14 @@ export class Game {
   // the trophy in his hands: its handles where the hands are, upright, turned the way he faces
   placeTrophy() {
     const S = this.endSeq; if (!S || S.stage !== 'trophy' || !this.trophyObj) return;
-    const P = this.fig[S.who].person, a = _w.set(0, 0, 0), b = _v.set(0, 0, 0); P.jointPos('L_Hand', a); P.jointPos('R_Hand', b);
-    const mid = a.add(b).multiplyScalar(0.5), hx = b.x - a.x, hz = b.z - a.z;
-    this.trophyObj.position.set(mid.x, mid.y - 0.255, mid.z);
-    this.trophyObj.rotation.set(0, -Math.atan2(hz, hx), 0);   // (its handles along the line between his hands)
+    const f = this.fig[S.who], O = this.trophyObj, G = O.userData.grip;
+    if (globalThis.__trophyOld || !G) { const P = f.person, a = _w.set(0, 0, 0), b = _v.set(0, 0, 0); P.jointPos('L_Hand', a); P.jointPos('R_Hand', b);
+      const mid = a.add(b).multiplyScalar(0.5), hx = b.x - a.x, hz = b.z - a.z; O.position.set(mid.x, mid.y - 0.255, mid.z); O.rotation.set(0, -Math.atan2(hz, hx), 0); return; }
+    // its two grip points where his palms are: between them, the line through them its own, upright, its front the way he faces;
+    // scaled a little to the span his hands have (the arms cannot always reach a trophy's exact width) so they are in his hands
+    const a = f.palmAt(0, _w), b = f.palmAt(1, _v), dx = b.x - a.x, dz = b.z - a.z, span = Math.hypot(dx, dz), sc = Math.min(1.12, Math.max(0.9, span / (2 * G.w)));
+    O.scale.setScalar(sc); O.position.set((a.x + b.x) / 2, (a.y + b.y) / 2 - G.y * sc, (a.z + b.z) / 2); O.rotation.set(0, Math.atan2(dz, -dx), 0);
+    this.trophyFit = { span, want: 2 * G.w, sc };
   }
   confettiInit(cx, cz) {
     if (!this.confetti) {
@@ -226,7 +224,7 @@ export class Game {
     this.endSeq = null;
     if (this.trophyObj) this.trophyObj.visible = false;
     if (this.confetti) this.confetti.mesh.visible = false;
-    for (const f of this.fig || []) { f.celeb = null; f.celebClip = null; f.celebArm = null; f.shake = null; f.shakeSwap = false; if (f.group) f.group.visible = true; if (f.racket) f.racket.visible = true; }
+    for (const f of this.fig || []) { f.celeb = null; f.celebClip = null; f.celebArm = null; f.shake = null; f.shakeSwap = false; f.trophyHold = null; if (f.group) f.group.visible = true; if (f.racket) f.racket.visible = true; }
   }
 
   setCamera(mode) {

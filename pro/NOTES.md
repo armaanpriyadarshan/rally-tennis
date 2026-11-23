@@ -1360,3 +1360,32 @@ still in the air, both in a stroke's finish, for two or three frames.
 - **No scrollbars** (he said "also get rid of the visible scrollbar everywhere on the site"): one rule at the end of the first
   stylesheet of every page (pro/index.html, pro/dev.html, classic/index.html, classic/clips.html, classic/bake-view.html):
   `scrollbar-width: none` on everything and `::-webkit-scrollbar { display: none }`. Lists still scroll by wheel, touch and keys.
+- **Trophies, each event's own, and held properly** (he said "the hands are fucked up on the trophy screen and the trophies should be
+  accurate"). Filmed first: the hands were on the front of a generic cup, the right one still a racket hand's fist turned the wrong
+  way, the left open and splayed, and lifted overhead its foot went into his head.
+  - js/trophies.js: every event's winner's trophy built from what it is (form, material, size, how it is held). Sources: Australian
+    Open, Norman Brookes Challenge Cup (Warwick Vase form, 28 cm, bowl 25.7 cm, 39 cm across the handles, plinth 15.5 cm); Wimbledon
+    (silver-gilt, 47 cm, 19 cm across, pineapple on the lid); Roland Garros, Coupe des Mousquetaires (silver, vine-leaf border, swan
+    handles); US Open (Tiffany sterling, ~47 cm, scrolled handles); ATP Finals (sterling, eight-sided, ~60 cm). The Masters and 500s
+    from a research pass on 2024-2026 ceremony photos and articles (a subagent, 2026-11-23): Monte-Carlo plain bowl on a wood plinth
+    (monaco-tribune.com 2026 Sinner); Rome bell urn on grey marble (tennis.com 2026); Paris, Fanti's bronze tree (lefigaro.fr 2014,
+    corrieredellosport.it 2025); Madrid 2026 "Aphormē" (mutuamadridopen.com posts 109196, 100713); Canada two racket heads since 2021
+    (leveil.com); Miami Lasvit cut crystal ~50 cm (denik.cz); Indian Wells Baccarat star ~48 cm (desertsun.com 2026); Shanghai Royal
+    Selangor magnolia petals (rolexshanghaimasters.com museum); Cincinnati Rookwood ceramic white into blue (rookwood.com); Rotterdam
+    Marcelis resin slab (sabinemarcelis.com); Dallas arch over a box of balls (boblillypromo.com); Doha golden falcon (thepeninsulaqatar.com);
+    Rio Bernardo silver mesh Sugarloaf (tenisnews.com.br); Dubai silver dhow (challengetrophies.co.uk); Acapulco TANE silver gourd
+    (elle.mx 2026); Barcelona Godó cup, 71 cm (lavanguardia.com 2023); Munich chrome slab (bmwgroup newsroom 2026); Hamburg 2026
+    printed totem (sustainawards.com); Halle Dodt covered cup (terrawortmann-open.de); Queen's 76 cm covered cup (lta.org.uk,
+    theguardian.com 2009); Washington after Safer's "Serve" (georgetowner.com); Tokyo (japantimes.co.jp 2026); Beijing China Cup after
+    the Jin'ou Yonggu (chinaopen.com); Basel (Wikimedia Commons, Vacherot 2026); Vienna Mutsch brass (rainermutsch.com). The less
+    sure ones (Miami's exact silhouette, Cincinnati's size, Dallas, Washington, Munich, Shanghai's current version) are modelled from
+    the descriptions. Each carries its grip (userData.grip: height and half-span of its handles, or its sides/base/stem, and the
+    fingers' close). pro/tools/steps_trophies.mjs stands them all in rows on a court.
+  - Metal and glass reflect a studio (trophies.js `studio`, PMREM of grey walls and soft lights; `__trophyEnvOld`): reflecting the
+    stadium, the Finals' silver came out navy black in Turin.
+  - figure.js `trophyHold` (game.js sets it from the grip; `__trophyOld` for the old pose): the hands where its grip points are,
+    palms turned in to face each other, fingers forward round a handle and up as it goes up, closed by the grip's curl (0.82 round a
+    handle, 0.4-0.6 pressed on a body); a narrow one (a stem, a slim body) in one hand above the other. Lifted as high as the arms
+    reach there (computed from the span and how far in front; set out of reach, the hands were left wide of a narrow trophy), a little
+    in front of his head. game.js placeTrophy puts it where the palms are (Figure.palmAt): its grip points between them, scaled to
+    their span within ±10% (measured after the fix: 0.93-1.00 at five events).
