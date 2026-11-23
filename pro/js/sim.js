@@ -314,6 +314,17 @@ export class Match {
     st.tc = this.t + dt;
     st.timing = tau == null ? null : tau - want;          // + early release, - late
     if (it.merciful && st.timing != null) { const w = this.timingWindow[i] * 1.5 + (globalThis.__pressureOld ? 0 : 0.06); st.timing = clamp(st.timing, -w, w); }   /* (with pressure timing a press well off the moment is that far off, and costs: kept within half a window more, timing hardly mattered) */
+    // (With the first game's controls his timing is when he pressed against the moment a player would: just before the ball reaches
+    // the racket, 0.08 s before contact - Perfect within 0.06 s of it, Good within 0.12. It was judged against the swing's start,
+    // 0.15-0.24 s before contact: pressed as the ball came to him, he was a sixth of a second late, his shot came off weak, and a
+    // touch later he missed it altogether - he said "the assist keeps setting up to miss shots". An early press is still held and
+    // swung on time; the swing is as before. `__pressTimeOld`.)
+    if (it.merciful && it.pressAt != null && st.tc != null && !globalThis.__pressTimeOld) {
+      // (when the ball is at the racket: as the swing is set, or - pressed after it had come through - when it went by, from its
+      // speed toward him; the swing itself may be later or sooner, a held early press or a late one)
+      const toward = b.vz * p.sgn, tReach = tau != null && tau > 0.02 ? this.t + tau : this.t + (cz - b.z) * p.sgn / Math.max(1, toward);
+      const e = it.pressAt - (tReach - (globalThis.__pressIdeal ?? 0.08)); st.pressE = e;
+      st.timing = e <= 0 ? Math.min(0.25, -e) * (this.timingWindow[i] / 0.14) : -Math.min(0.25, e) * (this.timingWindow[i] / 0.12); }
     if (tau != null) { const pr2 = predict(b, this.env, { bounces: 1, dt: 1 / 240, maxT: dt }); st.cp = { x: pr2.end.x, y: pr2.end.y, z: pr2.end.z }; }
     st.intent = it; st.kind = it.kind || st.kind;
     st.held = this.t - st.t0;
@@ -778,7 +789,11 @@ export class Match {
     const hiMax = b.bounces === 0 ? REACH.jump : REACH.hi;
     const reachMax = REACH.max * (prof.height / 1.85);
     const mer = st.merciful ? (this.mercy ? this.mercy[p.i] : 1) : 0;   // classic controls: a wider reach, most of all behind him (less of it on the harder levels)
-    if (lat > reachMax * (1 + 0.12 * mer) || relZ < -(REACH.back + 2.1 * mer) || relZ > REACH.front + 0.35 * mer || h < REACH.lo || h > hiMax + 0.2 * mer || b.z * p.sgn < -0.25) {
+    // (a late press with the first game's controls still meets a ball that has come through past him by up to two metres, at every
+    // level: at Tour's 1.24 m, pressed as the ball reached him he swung at air one ball in six - "the assist keeps setting up to miss
+    // shots". Late, it comes off weak; it is not missed. `__lateReachOld`)
+    const merB = st.merciful && !globalThis.__lateReachOld ? Math.max(mer, 0.8) : mer;
+    if (lat > reachMax * (1 + 0.12 * mer) || relZ < -(REACH.back + 2.1 * merB) || relZ > REACH.front + 0.35 * mer || h < REACH.lo || h > hiMax + 0.2 * mer || b.z * p.sgn < -0.25) {
       this.emit('whiff', { who: p.i, lat, relZ, h });
       return;
     }
@@ -838,8 +853,8 @@ export class Match {
     // (With the first game's controls a press made early is held and the swing goes on the moment, so it always measured Perfect:
     // 98% of the test bot's shots. Perfect is a press made on the moment - within 0.09 s before it, fading out by 0.18 s; one made
     // earlier plays as before, Good.)
-    const lead = it.pressLead || 0, pfLead = 1 - clamp((lead - (globalThis.__pfLead ?? 0.09)) / 0.09, 0, 1);
-    const pf = !st.auto && !globalThis.__perfectOld && !volley && (kind === 'drive' || kind === 'flat' || kind === 'loop' || kind === 'slice') ? (1 - clamp((Math.abs(timRaw) - win * 0.5) / Math.max(0.005, win * 0.5), 0, 1)) * pfLead : 0;
+    const lead = st.pressE != null ? 0 : (it.pressLead || 0), pfLead = 1 - clamp((lead - (globalThis.__pfLead ?? 0.09)) / 0.09, 0, 1);
+    const pf = !st.auto && !globalThis.__perfectOld && !volley && (kind === 'drive' || kind === 'flat' || kind === 'loop' || kind === 'slice') ? (st.pressE != null ? 1 - clamp((Math.abs(st.pressE) - 0.06) / 0.03, 0, 1) : (1 - clamp((Math.abs(timRaw) - win * 0.5) / Math.max(0.005, win * 0.5), 0, 1)) * pfLead) : 0;
     if (pf > 0 && kind !== 'slice') power = Math.min(1, power + 0.12 * pf);
     st.perfect = pf;
     const retPen = b.isServe ? clamp((vin - 17) / 12, 0, 1.4) * lerp(1.15, 0.80, prof.ret) * TUNE.retPen : 0;
@@ -854,6 +869,24 @@ export class Match {
     // ---- what the player is trying to do ----
     const wingKmh = wing === 'fh' ? prof.fhKmh : prof.bhKmh, wingRpm = wing === 'fh' ? prof.fhRpm : prof.bhRpm;
     const weak = clamp(stretch * 1.1 + Math.pow(pSpeed / 7, 2) * 0.5 + rushed * 0.5 + jam * 0.4 + (relZ < 0 ? 0.3 : 0) + retPen * TUNE.retWeak, 0, 1);
+    // ---- a person's groundstroke (he said "rework the entire shooting system - i hate it right now. i feel completely powerless even
+    // with good aim and perfect strokes even though i should be smashing through players"). Its quality Q is how well he met it:
+    // his timing - Perfect 1, Good 0.72 falling to 0.5 at the window's edge, off the window down to 0.15 - less what the ball did to
+    // him (stretched, jammed, running, dug out low), and a little more off an easy ball. Q, not a chosen power, sets how hard the
+    // racket comes through: the pace (from his own average up to 1.36 times it - 170 km/h off Nadal's 127), the spin that comes with
+    // it and keeps a hard ball in, how low over the net, how near his aim, and how hard it is to send back. (Before, the pace was the
+    // game's choice and was then cut until the ball cleared the net by its margin, so a perfect stroke went about as fast as any.)
+    // `__strikeOld`.
+    const strike = !st.auto && !globalThis.__strikeOld && !volley && (kind === 'drive' || kind === 'flat' || kind === 'loop');
+    let Q = 0;
+    if (strike) { const ta = Math.abs(timRaw), half = win * 0.5;
+      const e = st.pressE, tq = e != null
+        ? (e <= 0 ? (-e <= 0.06 ? 1 : -e <= 0.14 ? lerp(1, 0.72, (-e - 0.06) / 0.08) : lerp(0.72, 0.45, clamp((-e - 0.14) / 0.2, 0, 1)))       // early: held and swung on time, a little less each tenth
+                  : (e <= 0.06 ? 1 : e <= 0.12 ? lerp(1, 0.6, (e - 0.06) / 0.06) : lerp(0.6, 0.15, clamp((e - 0.12) / 0.1, 0, 1))))     // late: it gets past him
+        : ta <= half ? lerp(0.72, 1, pfLead) : ta <= win ? lerp(0.72, 0.5, (ta - half) / Math.max(1e-3, half)) : lerp(0.5, 0.15, clamp((ta - win) / 0.07, 0, 1));
+      const dq = 1 - clamp(weak * 0.75 + jam * 0.3 + (h < 0.45 ? (0.45 - h) * 1.2 : 0), 0, 0.75);
+      Q = clamp(tq * dq + 0.12 * easyT, 0, 1); }
+    st.q = Q;
     let v, top, side = 0, minClear, sig = 1, mode = 'speed', el = 0;
     let tx = it.tx == null ? 0 : it.tx, tz = it.tz == null ? -p.sgn * 9 : it.tz;
     // on the easier levels the target is kept far enough inside the lines for this particular ball
@@ -862,11 +895,12 @@ export class Match {
       const mx = Math.max(0.2, COURT.halfW - R.x * a), mz = Math.max(COURT.svc - 0.5, COURT.halfLen - R.z * a);
       tx = clamp(tx, -mx, mx); if (Math.abs(tz) > mz) tz = Math.sign(tz) * mz;
     }
-    if (pf > 0) {
+    const lineK = strike ? clamp((Q - 0.55) / 0.4, 0, 1) : pf;   // (the better struck, the nearer the line he aims at)
+    if (lineK > 0) { const pf = lineK;
       const ax = Math.abs(tx), dz = Math.abs(tz), lineX = COURT.halfW - (globalThis.__pfLineX ?? 0.3), lineZ = COURT.halfLen - (globalThis.__pfLineZ ?? 0.75);
       if (ax > 1.0) tx = Math.sign(tx) * (ax + (lineX - ax) * pf * clamp((ax - 1.0) / 1.5, 0, 1));          // an angle aimed goes to the line
       const cross = ax > 2.8 && Math.sign(tx) === -Math.sign(b.x || 1e-6) && Math.abs(b.x) > 0.6;
-      if (cross && dz < 9.8) tz = Math.sign(tz) * lerp(dz, globalThis.__pfAngleZ ?? 8.0, 0.7 * pf);                  // across court as wide as it goes: short and wide, off the court
+      if (cross && dz < 9.8) tz = Math.sign(tz) * lerp(dz, globalThis.__pfAngleZ ?? 10.2, 0.7 * pf);                 // across court as wide as it goes: to the deep corner by the sideline, out wide after it bounces (aimed short, at 8 m, it could not be hit hard: 95-115 km/h)
       else if (dz > 8.5) tz = Math.sign(tz) * (dz + (lineZ - dz) * pf);                                          // deep goes to the baseline
     }
     const forceBlock = !volley && (stretch > 0.75 || (weak > 0.8 && kind !== 'lob'));
@@ -909,6 +943,12 @@ export class Match {
     if (mode === 'speed' && kind !== 'slice' && kind !== 'block' && kind !== 'volley') { v *= 1 + clamp((vin - 14) / 60, -0.06, 0.12); v *= 1 - 0.34 * weak; top *= 1 - 0.3 * weak; }
     // low balls cannot be ripped: the strings can only lift so much
     if (kind === 'drive' || kind === 'flat') { const low = clamp((0.5 - h) / 0.5, 0, 1); v *= 1 - 0.22 * low; top *= 1 + 0.12 * low; }
+    let topMax = top;
+    if (strike) { const loopy = kind === 'loop' || !!st.loop;
+      v = wingKmh / 3.6 * lerp(0.92, globalThis.__strikeTop ?? 1.36, Q) * (kind === 'flat' ? 1.06 : 1) * (loopy ? 0.82 : 1) * (1 - 0.18 * clamp((0.5 - h) / 0.5, 0, 1));
+      top = kind === 'flat' ? wingRpm * lerp(0.45, 0.6, Q) : wingRpm * lerp(0.95, 1.2, Q) * (loopy ? 1.15 : 1);
+      minClear = (loopy ? lerp(1.4, 1.0, Q) : lerp(1.0, globalThis.__strikeClr ?? 0.3, Q)) * (prof.arcS || 1);
+      topMax = kind === 'flat' ? top * 1.25 : top * 1.45; }   // (to keep a hard ball in, more spin before less pace)
     const p0 = { x: b.x, y: b.y, z: b.z };
     let sol = null;
     if (mode === 'el') {
@@ -917,10 +957,10 @@ export class Match {
       for (let k = 0; k < 10 && kind === 'drop' && el < dropEl0 && (!sol || !sol.ok || sol.clear < (globalThis.__dropClr ?? 0.3)); k++) { el = Math.min(dropEl0, el + 0.03); sol = solveSpeed(p0, tx, tz, el, top, side, env); }
     }
     else {
-      for (let k = 0; k < 26; k++) {
+      for (let k = 0; k < 34; k++) {
         sol = solveShot(p0, tx, tz, v, top, side, env, false);
         if (!sol.ok) { v *= 1.06; continue; }
-        if (sol.clear < minClear) { v *= 0.965; continue; }
+        if (sol.clear < minClear) { if (top < topMax - 1) { top = Math.min(topMax, top * 1.1); continue; } v *= 0.965; continue; }
         break;
       }
     }
@@ -934,13 +974,14 @@ export class Match {
     const steady = lerp(1.28, 0.92, prof.cons) * this.diffScale[p.i] * (it.sigma || 1) * clean;
     // a clean swing takes the level's share off the routine part of the spread only: off an easy ball it goes where it
     // was sent, while what makes a ball hard (pace, width, running, a stretch) is still all there
-    const k = (st.auto ? sig * steady * (1 + diff) : sig * (steady / clean) * (clean + diff)) * (1 - (globalThis.__easyAcc ?? 0.4) * easyT) * (1 - (globalThis.__pfAcc ?? 0.82) * pf * (1 - 0.5 * clamp(diff / 1.5, 0, 1)));   // (and nearer his aim; Perfect most of all, less so off a hard ball)
+    const k = strike ? sig * this.diffScale[p.i] * (it.sigma || 1) * lerp(1.15, 0.9, prof.cons) * (0.12 + 1.3 * Math.pow(1 - Q, 1.2)) * (1 + 0.5 * clamp(diff / 1.5, 0, 1))
+      : (st.auto ? sig * steady * (1 + diff) : sig * (steady / clean) * (clean + diff)) * (1 - (globalThis.__easyAcc ?? 0.4) * easyT) * (1 - (globalThis.__pfAcc ?? 0.82) * pf * (1 - 0.5 * clamp(diff / 1.5, 0, 1)));   // (and nearer his aim; Perfect most of all, less so off a hard ball)
     // timing drags the ball: early pulls it across the body, late pushes it wide
     const pull = -clamp(tim, -0.11, 0.13) * TUNE.timPull * (relX >= 0 ? 1 : -1) * p.hs * p.sgn;
     let outEl = sol.el + rng.g() * TUNE.sigEl * k - clamp(tim, -0.1, 0.1) * TUNE.timEl;
     const outAz = sol.az + rng.g() * TUNE.sigAz * k + pull;
     let outV = sol.speed * (1 + rng.g() * TUNE.sigV * k);
-    if (!st.auto && timAbs > 0.03) outV *= 1 - clamp((timAbs - 0.03) * 2.2, 0, 0.25);
+    if (!st.auto && !strike && timAbs > 0.03) outV *= 1 - clamp((timAbs - 0.03) * 2.2, 0, 0.25);
     // Off-centre contact: the ball comes off dead and low. This is where most balls in
     // the net come from -- a clean swing that is a few centimetres out on the strings.
     let mistimed = false;
@@ -976,11 +1017,11 @@ export class Match {
     if (D < 6.2) p.wentNet = true;
     this.contactInfo = { who: p.i, diff, wing, kind, weak, stretch, h, vin, timing: timRaw, power, shank };
     this.incoming = this.makeIncoming();
-    b.threat = shotThreat(outV, sol.top, this.incoming.land, diff, kind);
+    b.threat = shotThreat(outV, sol.top, this.incoming.land, diff, kind); if (strike && b.threat > 0) b.threat = clamp(b.threat + (globalThis.__strikeThr ?? 0.45) * Q * Q, 0, 1);   /* (a ball struck well is hard to send back: the other man's timing and footing suffer) */
     const q = st.auto ? 1 : clamp(1 - timAbs / 0.10, 0, 1);
     this.emit('hit', { who: p.i, kind, wing, speed: outV, x: p0.x, y: p0.y, z: p0.z, q, timing: st.auto ? null : timRaw, window: win, power, diff, shank, volley, ret: wasServe, top: sol.top, vin, pf: st.auto || globalThis.__perfectOld ? null : (st.perfect || 0) });
     if (this.online && p.i === 0) this.shotOut(p, kind, wing, outV, diff);
-    if (this.shotLog) this.shotLog.push({ who: p.i, kind, wing, kmh: outV * 3.6, h, diff, D, top: sol.top, land: this.incoming.land, clear: this.incoming.netY == null ? null : this.incoming.netY - netHeightAt(0), tgt: [tx, tz], vin: vin * 3.6, lat: relX, relZ, ret: wasServe, volley, state: it.state, slack: it.slack, rally: this.rally, pt: this.history.length, weak, pSpeed, mistimed, perfect: !st.auto && Math.abs(timRaw) < win * 0.5, pf: st.perfect || 0, easy: st.easy || 0, power });
+    if (this.shotLog) this.shotLog.push({ who: p.i, kind, wing, kmh: outV * 3.6, h, diff, D, top: sol.top, land: this.incoming.land, clear: this.incoming.netY == null ? null : this.incoming.netY - netHeightAt(0), tgt: [tx, tz], vin: vin * 3.6, lat: relX, relZ, ret: wasServe, volley, state: it.state, slack: it.slack, rally: this.rally, pt: this.history.length, weak, pSpeed, mistimed, perfect: !st.auto && Math.abs(timRaw) < win * 0.5, pf: st.perfect || 0, q: st.q || 0, easy: st.easy || 0, power });
   }
 }
 

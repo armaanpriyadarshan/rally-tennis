@@ -294,7 +294,7 @@ export class Human {
             this.aim.X = X; this.aim.D = D;
             // (how long before this moment Space was pressed: an early press is held and goes now, as it always has, but only one
             // pressed on the moment is Perfect - sim.js, the Perfect shot)
-            const st = m.release(i, { kind, tx: X * s, tz: D * s, power, merciful: true, tcAt: planned != null ? planned : undefined, pressLead: this.pressAt != null ? Math.max(0, m.t - this.pressAt) : 0 });
+            const st = m.release(i, { kind, tx: X * s, tz: D * s, power, merciful: true, tcAt: planned != null ? planned : undefined, pressLead: this.pressAt != null ? Math.max(0, m.t - this.pressAt) : 0, pressAt: this.pressAt != null && m.t - this.pressAt < 1.7 ? this.pressAt : m.t });
             this.choice = null;
             this.kind = kind; this.buf = -9; if (st) this.lastSwing = { t: m.t, timing: st.timing };
           }

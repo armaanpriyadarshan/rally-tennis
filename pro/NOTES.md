@@ -1435,3 +1435,22 @@ still in the air, both in a stroke's finish, for two or three frames.
   exactly, flat/kick/slice, the event's own wind): 95-100% went in, the faults long. Aimed a little safer (0.3 m inside the T or
   wide line, 0.5 m inside the service line) with a tenth of the scatter: 100% in at the US Open, Wimbledon and Acapulco (400 points
   each), still a median 0.32-0.35 m from the line.
+- **The shooting system reworked** (he said "the assist keeps setting up to miss shots", then "perfect shots still arent that
+  good bro. none of my shots have like any speed. can you just rework the entire shooting system - i hate it right now. i feel
+  completely powerless even with good aim and perfect strokes even though i should be smashing through players"). sim.js, a
+  person's groundstrokes (drive, flat, loop; `__strikeOld` for the old):
+  - Quality Q from how he met it: his timing (below) less what the ball did to him (stretched, jammed, running, dug out low), a
+    little more off an easy ball. Q sets the racket's speed through the ball: pace from 0.92 to 1.36 times his own average
+    (Nadal 127 → 170 km/h Perfect), topspin rising with it (0.95-1.2 of his own), net clearance from 1.0 m down to 0.3 m, and
+    to keep a hard ball in, more spin (up to 1.45×) before any less pace. The scatter falls with Q (0.12 + 1.3(1-Q)^1.2); the
+    better struck, the nearer the line aimed at; a ball struck well is harder to send back (+0.45Q² threat: the receiver's
+    timing and footing suffer). Before, the pace was the game's choice and was then cut until the ball cleared the net by its
+    margin: a perfect stroke went about as fast as any.
+  - Timing with the first game's controls is now when he pressed against the moment a player would, just before the ball reaches
+    the racket (0.08 s before contact): Perfect within 0.06 s, Good within 0.12 (early presses, still held and swung on time,
+    fall off gently; late ones faster); it was judged against the swing's start, 0.15-0.24 s before contact, so a press as the
+    ball came to him was a sixth of a second late. A late press meets a ball up to 2 m past him at every level (`__lateReachOld`;
+    at Tour 1.24 m): pressed as the ball reached him, whiffs 110 → 23 in 400 points.
+  - A Perfect full angle across court goes to the deep corner by the sideline (aimed short, at 8 m, it could only go 95-115 km/h).
+  - Measured (classicbot, Nadal v Djokovic at Tour, pressed on the moment): Perfect drives p10 112 / p50 159 / p90 178 km/h,
+    ~0.37 m inside the line, 0-2% missed; points won 78-84%, rallies 4.4 shots.
