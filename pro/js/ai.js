@@ -254,7 +254,9 @@ export class AI {
     const cross = -(Math.sign(cX) || (r.u() < 0.5 ? 1 : -1));
     const open = Math.abs(oX) > 0.8 ? -Math.sign(oX) : cross;
     const oppBh = opp.hs;                               // X sign of the opponent's backhand wing
-    const agg = prof.agg;
+    // (a man whose forehand is his weapon plays it as one, whatever his aggression overall: Nadal's measured aggression is the
+    // tour's lowest, 0.19, and taken for his forehand too it looped back most balls, a quarter of them two metres over the net)
+    const agg = pl.wing === 'fh' && prof.fhAgg != null && !globalThis.__fhAggOld ? prof.fhAgg : prof.agg;
     const T = (X, D, kind, power) => ({ kind, power, tx: X * sgn, tz: D * sgn });
     let goNet = this.goNet;
 

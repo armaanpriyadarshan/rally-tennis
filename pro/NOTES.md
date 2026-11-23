@@ -1316,3 +1316,30 @@ still in the air, both in a stroke's finish, for two or three frames.
   - and both walk to the net once it is won: the winner at once, the loser after a moment, slower, each stopping a metre short of it
     a little apart (`game.netWalk`, `__netWalkOld`). Filmed: Nadal walking in with the fist pumping at his chest and the racket up in
     front, then on to the net with his arms loose; Federer the same from behind. The face is not touched.
+- **Black flashes, again** (he said "also there are still those black flashes"): the change of ends dipped the picture to black for
+  0.9 s every time the players changed ends. Gone: the stadium is turned round at the straight cut to the next point, as every other
+  cut is straight (`__flipFadeOld`).
+- **Celebration: both arms up, the racket in hand** (he said "i think the celebration should literally just be holding hands up with
+  racket in hands. youre fucking it up too much"): figure.js `celebArm.kind === 'up'`, arms only, the body and legs his own. The
+  hands go up beside the head in a V (0.15-0.65 s), held, down by 3.3 s as he walks. The racket: four angles filmed close from the
+  front, side and back with the arms up (pro/tools/steps_celebwalk.mjs is the walk/stance probe): straight up out of the fist is
+  what the hand's rest axis gives (the rig's grip axis lies 28° off the forearm) and is the flagpole he disliked; chosen: up, a little
+  out and leaning back over the shoulder, [0.30, 0.75, -0.60]. It goes up and down round by his side, not past his face.
+  `__celebFistOld` for Nadal's tracked fist pump.
+- **Both walk to the net, and shake hands** (he said "the opponent player should walk to the net too", then "the players should
+  shake after a match"): the loser's legs did step (measured: ankles lifting 0.12-0.16 m, steps every 0.5 s), but he set off a
+  second late at 0.95 m/s and the picture moved on at 4.4 s with him three metres from where he stood. Now the winner sets off at
+  1.1 s (1.2 m/s, arms still up), the loser at 1.5 s (1.15 m/s), his arms hanging (the whole-body 'lost' pose dropped,
+  `__lostOld`). At 3.9 s a straight cut to the two of them at the net (game.js SHAKE_CUT): each 0.42 m from it, 0.2 m to his
+  left, right hands out over the tape, meeting (wrists 7-9 cm apart, measured), pumped twice (±3 cm), let go; the trophy or the
+  results at 6.25 s. Everyone shakes with his right hand: a right-hander's racket goes to his left hand, hanging, for it
+  (figure.js `shakeSwap`: the racket placed in the left palm, that hand closed on it); a left-hander's stays in his left.
+  `__shakeOld`. pro/tools/steps_shake.mjs films it.
+- **Nadal's forehand** (he said "nadals forehand needs to be buffed bro", "the topspin makes rafas forehand so slow and so high
+  instead of it being a lethal weapon like it is irl"). Measured with tools/classicbot.mjs `fh=2` (new: each man's drives by kind,
+  speed, spin, net clearance, depth), 400 points against Djokovic, Challenger: his forehand averaged 113 km/h over the net by
+  0.95 m (Sinner 125 km/h, 0.71 m); a quarter of them loops at 84 km/h, 2.1 m over. The cause was his aggression: Tennis
+  Abstract's, the tour's lowest (0.19), taken for his forehand too, so the shot choice looped back high balls and rallied at low
+  power. A forehand aggression of its own (data.js FH_AGG, Nadal 0.7; ai.js decide; `__fhAggOld`): 121 km/h, 0.77 m (drives
+  129 km/h, 0.71 m), points won 65% → 73%. Against him at Tour the bot's points fell 46% → 39%. (Tried and taken out: no spin
+  rise on the clearance of a loop, lighter loop spin - neither moved the loops, which are high because they are defensive.)

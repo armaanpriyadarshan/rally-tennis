@@ -423,6 +423,9 @@ export class Figure {
 
   // ---------- per-frame ----------
   // p: sim player; m: match (for time, ball, phase); dt: frame time
+  // a right-hander's racket in his left hand as he shakes hands: hanging down by his side, the head a little forward (world)
+  swapDir(fwd, right) { const d = this._swD || (this._swD = new THREE.Vector3()); (this._swF || (this._swF = new THREE.Vector3())).copy(fwd); (this._swR || (this._swR = new THREE.Vector3())).copy(right);
+    return d.set(0, -0.86, 0).addScaledVector(fwd, 0.45).addScaledVector(right, -0.1).normalize(); }
   update(dt, p, m, o = {}) {
     // The body is moved by the player's velocity as it changes no faster than legs can change it, about eighteen metres a second
     // each second: the game gives a well-timed split step its first step at once, two and a half metres a second in a frame, and
@@ -681,7 +684,20 @@ export class Figure {
     // frame by frame, at Barcelona (celebmotion.js celeb_fists); the racket is held upright and low in front, as in the picture he
     // showed of Alcaraz; the body and legs are his own walk to the net. (The whole tracked body was tried: the tracker swapped his
     // hands and he turned a third of a circle walking to his chair, and played on the figure he twisted side-on with his arms crossed.)
-    if (this.celebArm && this.celebArm.k > 0.001) { const C = CELEB_MOTION.celeb_fists, k = clamp(this.celebArm.k, 0, 1);
+    // Both arms up, the racket in his hand: nothing more (he said "the celebration should literally just be holding hands up with
+    // racket in hands"). The hands go up beside the head in a V and stay there; the racket is where a fist round its handle leaves
+    // it with the arm up and the palm turned in, its head up over his shoulder and leaning back, not stood straight up out of his
+    // fist (it was the flagpole he complained of); up, out a little and leaning back, as the close shots of four angles showed most
+    // natural. On the way up and down it goes round by his side (carried round in front, its head came down past his face). The
+    // body and legs are his own: he can walk with them up.
+    if (this.celebArm && this.celebArm.k > 0.001 && this.celebArm.kind === 'up') { const k = clamp(this.celebArm.k, 0, 1), y = 2.0 + 0.015 * Math.sin(this.celebArm.u * 2.1);
+      const Rp = globalThis.__upR || [0.40, y, 0.10], Lp = globalThis.__upL || [-0.40, y, 0.10], dT = globalThis.__upDir || [0.30, 0.75, -0.60], dM = [0.80, 0.45, 0.40];
+      const k1 = sm(k * 2), k2 = sm(k * 2 - 1), d0 = pose.dir || [0, -0.6, 0.8];
+      const dA = d0.map((v, q) => v + (dM[q] - v) * k1), dir = dA.map((v, q) => v + (dT[q] - v) * k2), dl = Math.hypot(...dir) || 1;
+      const bl = (a, b) => a.map((v, q) => v + (b[q] - v) * k);
+      pose = { ...pose, L: bl(pose.L, Lp), R: bl(pose.R, Rp), dir: dir.map(v => v / dl), nrm: globalThis.__upNrm || [1, 0, 0], lgrip: (pose.lgrip || 0) * (1 - k), elbows: (pose.elbows || 0) * (1 - k) };
+      this.reactK = Math.max(this.reactK, k); this.reactFist = globalThis.__upFist ?? 1; this.reactShout = 0; this.reactPoint = 0; this.reactPole = null; }
+    else if (this.celebArm && this.celebArm.k > 0.001) { const C = CELEB_MOTION.celeb_fists, k = clamp(this.celebArm.k, 0, 1);
       if (C && C.J) { const n = C.J.pelvis.length / 3, x = clamp(this.celebArm.u * 60, 0, n - 1.001), f0 = Math.floor(x), w = x - f0;
         const g = (nm, c) => C.J[nm][f0 * 3 + c] * (1 - w) + C.J[nm][(f0 + 1) * 3 + c] * w;
         const mx = (g('lsho', 0) + g('rsho', 0)) / 2, mz = (g('lsho', 2) + g('rsho', 2)) / 2; let ax = g('rsho', 0) - g('lsho', 0), az = g('rsho', 2) - g('lsho', 2); const al = Math.hypot(ax, az) || 1; ax /= al; az /= al;
@@ -691,6 +707,15 @@ export class Figure {
         const bl = (a, b) => a.map((v, q) => v + (b[q] - v) * k);
         pose = { ...pose, L: bl(pose.L, Lp), R: bl(pose.R, Rp), dir: bl(pose.dir, dR), nrm: pose.nrm || [1, 0, 0], lgrip: (pose.lgrip || 0) * (1 - k) };
         this.reactK = Math.max(this.reactK, k); this.reactFist = 1; this.reactShout = 0; } }
+    // The handshake at the net, after the match (game.js sets this.shake = { k, pump }: k how far the hand is out, pump its height
+    // off the grip, metres). Everyone shakes with his right hand, out in front of him over the net, a little to his right, where the
+    // other man's meets it: a right-hander has put his racket in his left hand, hanging by his side (this.shakeSwap, below, at
+    // the hands and the racket); a left-hander's racket stays in his left hand, hanging, and his free right hand goes out.
+    if (this.shake && this.shake.k > 0.001) { const k = clamp(this.shake.k, 0, 1), at = globalThis.__shakeAt || [0.2, 1.04, 0.42], y = at[1] + (this.shake.pump || 0);
+      const bl = (a, b) => a.map((v, q) => v + (b[q] - v) * k), Sh = [at[0], y, at[2]];
+      if (this.lefty) pose = { ...pose, L: bl(pose.L, [-Sh[0], Sh[1], Sh[2]]), R: bl(pose.R, HANG.R), dir: bl(pose.dir, HANG.dir), nrm: pose.nrm || [1, 0, 0], lgrip: (pose.lgrip || 0) * (1 - k), lean: (pose.lean || 0) + 0.08 * k };
+      else pose = { ...pose, R: bl(pose.R, Sh), L: bl(pose.L, [-0.25, 0.93, 0.10]), lgrip: (pose.lgrip || 0) * (1 - k), lean: (pose.lean || 0) + 0.08 * k };
+      this.reactK = Math.max(this.reactK, k); this.reactFist = 0; this.reactShout = 0; this.reactPoint = 0; this.reactPole = null; }
     if (this.celebClip && this.celebClip.k > 0.001 && !globalThis.__celebMocapOld) { const cc = strokeClip({ celeb: CELEB_MOTION }, 'celeb', 'celeb_' + this.celebClip.kind, this.lefty);
       if (cc) { const S = sampleAt(cc, clamp(this.celebClip.u, cc.span[0], cc.span[1]), this._celS || (this._celS = new Float32Array(N3))), sd = this.lefty ? 'l' : 'r', e = J[sd + 'elb'], w = J[sd + 'wri'];
         const fx = (S[w * 3] - S[e * 3]) * this.hs, fy = S[w * 3 + 1] - S[e * 3 + 1], fz = S[w * 3 + 2] - S[e * 3 + 2], hi = S[w * 3 + 1] > 1.6;
@@ -2637,7 +2662,19 @@ export class Figure {
       const Ff = person.setLimb(S, 'arm', el, wrist[i], qChest, sh[i], _qa, _qb);
       // the hand turns at the wrist so the handle lies across the palm
       const Fh = this.Fhand[i];
-      if (i === hit) { swing(Ff, person.dir['grip' + S], this.rk.dir, _qc); Fh.copy(_qc); }            // the fist closes exactly along the handle
+      // (the handshake: the right hand out, its palm to his left and the fingers forward and a little down; and a right-hander's
+      // racket held in his left hand, hanging, the hand closed round the handle)
+      const shK = this.shake && i === 1 && person.dir['palmN' + S] ? clamp(this.shake.k || 0, 0, 1) : 0, swapHold = this.shakeSwap && i === off;
+      const shF = shK > 0.001 || this.shakeSwap ? (this._shF || (this._shF = V())).set(0, 0, -1).applyQuaternion(this.frame.quaternion) : null, shR = shF ? (this._shR || (this._shR = V())).set(1, 0, 0).applyQuaternion(this.frame.quaternion) : null;
+      if (shK > 0.001 || (this.shakeSwap && i === hit)) {
+        swing(Ff, person.dir['palmN' + S], _v9.copy(shR).negate(), _qc);
+        const ax = _v9, fd = _a.copy(person.dir['palm' + S]).applyQuaternion(_qc), want = _b.copy(shF).addScaledVector(UP, -0.3);
+        fd.addScaledVector(ax, -fd.dot(ax)); want.addScaledVector(ax, -want.dot(ax));
+        if (fd.lengthSq() > 1e-6 && want.lengthSq() > 1e-6) { fd.normalize(); want.normalize(); const ang = Math.atan2(_v8.copy(fd).cross(want).dot(ax), fd.dot(want)); _qc.premultiply(_q6.setFromAxisAngle(ax, ang)); }
+        Fh.copy(Ff).slerp(_qc, shK);
+      }
+      else if (swapHold) { swing(Ff, person.dir['grip' + S], this.swapDir(shF, shR), _qc); Fh.copy(_qc); }
+      else if (i === hit) { swing(Ff, person.dir['grip' + S], this.rk.dir, _qc); Fh.copy(_qc); if (globalThis.__dbgGrip) this.dbgGrip = person.dir['grip' + S].clone().applyQuaternion(Ff); }            // the fist closes exactly along the handle
       else if (gripW > 0.001 && !(m.ball && m.ball.held === p.i)) {
         // the off hand closes round the handle from the other side: its palm faces the hitting hand's through the grip
         swing(Ff, person.dir['grip' + S], this.rk.dir, _qc);
@@ -2661,6 +2698,7 @@ export class Figure {
       else Fh.copy(Ff);
       person.drive(S + '_Hand', Fh);
       // a hand on the handle closes round it (about 60, 80 and 55 degrees at the three finger joints); a free hand hangs loose
+      if (shK > 0.001 || swapHold || (this.shakeSwap && i === hit)) person.setFingers(S, swapHold ? 1.02 : 0.3 + 0.32 * shK, 0); else
       person.setFingers(S, i === hit ? 1.02 : m.ball && m.ball.held === p.i ? 0.45 : Math.max(0.3 + 0.65 * gripW, globalThis.__reactAnimOld ? 0 : (this.reactK || 0) * (this.reactFist || 0) * 1.05), i !== hit && !globalThis.__pointOld ? (this.reactK || 0) * (this.reactPoint || 0) : 0);   /* (the free hand clenched for a fist pump, the vamos; its index finger out for Wawrinka's tap to the temple) */
       // legs: the ankle where the clip puts it over the ground, the knee bent the way the clip's is
       const hip = i === 0 ? hipL : hipR, ft = this.feet[i], jh = LJ[i][0], jk = LJ[i][1], ja = LJ[i][2], jt = LJ[i][3];
@@ -2803,13 +2841,18 @@ export class Figure {
     if (this.dbgOn && this.dbgDir) this.dbgDir.c5 = this.rk.dir.clone();
     _m.makeBasis(x, this.rk.dir, z); R.quaternion.setFromRotationMatrix(_m);
     R.position.copy(_grip).addScaledVector(this.rk.dir, GRIP_UP * H);
+    // (shaking hands, a right-hander's racket is in his left hand: in its palm, hanging)
+    if (this.shakeSwap) { const OS = off === 0 ? 'L' : 'R', d = this.swapDir(this._swF, this._swR); person.arm.updateWorldMatrix(false, true); person.jointPos(OS + '_Hand', _rg2);
+      const g2 = _rg1.copy(person.dir['palm' + OS]).applyQuaternion(this.Fhand[off]).add(_rg2); if (person.dir['palmN' + OS]) g2.addScaledVector(_rg3.copy(person.dir['palmN' + OS]).applyQuaternion(this.Fhand[off]), PALM_OFF * H);
+      const zz = _rg4.copy(this._swR).addScaledVector(d, -this._swR.dot(d)).normalize(), xx = _rgE.copy(d).cross(zz).normalize();
+      _m.makeBasis(xx, d, zz); R.quaternion.setFromRotationMatrix(_m); R.position.copy(g2).addScaledVector(d, GRIP_UP * H); }
     // The free hand on the racket, last. It was aimed at the handle (or the throat) before the arms were solved, but each arm is
     // then kept within its reach, off its own shoulder, out of the body and to an arm's speed on its own, and the racket goes
     // where the hitting hand ends up: the hand meant to be holding it was left up to a third of a metre off it, through a
     // two-hander's swing and in the ready position. So now that the racket is placed, that arm is solved again to put the palm
     // where it grips, and the hand closed round it.
     if (!((this.gripOn || 0) > 0.01) || (m.ball && m.ball.held === p.i)) { this.rgOk = false; this.rgElOk = false; if (this.rgCor) this.rgCor.set(0, 0, 0); this.regripShort = 0; }   /* (and nothing out of reach while not holding it: kept from the last frame it held on, the hold that lets go as the throat goes out of reach never took the racket again, the free hand left off it in the ready position) */
-    if ((this.gripOn || 0) > 0.01 && !(m.ball && m.ball.held === p.i) && !globalThis.__noRegrip) {
+    if ((this.gripOn || 0) > 0.01 && !(m.ball && m.ball.held === p.i) && !globalThis.__noRegrip && !this.shakeSwap) {
       // (all the way on the handle until the grip is mostly let go of, then off it quickly: in proportion to the grip, the hand
       // was left hovering a hand's breadth off the throat through the first tenth of a second of every forehand take-back)
       const OS = off === 0 ? 'L' : 'R', HS = hit === 0 ? 'L' : 'R', wOn = globalThis.__rgOld ? this.gripOn : sm((this.gripOn - 0.3) / 0.45), sO = globalThis.__rgShOld ? (off === 0 ? shL : shR) : person.jointPos(OS + '_UpperArm', _rgSh);   /* (from the shoulder joint where the skeleton has it now: solved from the one worked out for the arms earlier, a few centimetres off it as the trunk turns and bobs at a run, the arm was laid in the right directions from the wrong place and the hand landed that far off the handle, the same however often it was solved again) */

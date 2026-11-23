@@ -93,6 +93,10 @@ const ERA = {
 // (the 2026-11 additions go on the end: a player's id is his place in this list, and saved seasons keep ids)
 export const ROSTER = ['Alcaraz', 'Sinner', 'Djokovic', 'Nadal', 'Federer', 'Sampras', 'Agassi', 'Lendl', 'Borg', 'McEnroe', 'Connors', 'Laver',
   'Murray', 'Wawrinka', 'Zverev', 'Thiem', 'Medvedev', 'Tsitsipas', 'del Potro', 'Roddick', 'Kyrgios', 'Monfils', 'Becker', 'Edberg', 'Ivanisevic', 'Wilander', 'Kuerten', 'Hewitt'];
+// A forehand played as a weapon, whatever the man's aggression overall (ai.js decide): Nadal's measured aggression is the lowest
+// on the tour (Tennis Abstract's, which counts the whole of his game), and his forehand, the shot he won with, came out of it a
+// slow loop - he said "the topspin makes rafas forehand so slow and so high instead of it being a lethal weapon like it is irl".
+const FH_AGG = { Nadal: 0.7 };
 export const PLAYERS = ROSTER.map(n => PLAYER_FACTS.find(f => f.name === n)).filter(Boolean).map((f, id) => {
   const e = ERA[f.name] || {};
   const rep = f.rep !== false;                         // false: the stat tables only cover the end of the career
@@ -134,6 +138,7 @@ export const PLAYERS = ROSTER.map(n => PLAYER_FACTS.find(f => f.name === n)).fil
     flat: clamp(0.12 + norm(3200 - fhRpm, 0, 1900) * 0.5, 0.1, 0.65),
     fhBias: lerp(0.05, 0.65, norm(or(f.fhShare, 49), 39, 55)),
     aceAim: norm(or(f.aces, 5), 2, 11),
+    fhAgg: FH_AGG[f.name] != null ? FH_AGG[f.name] : null,
   };
   return { id, facts: f, look, base, hold, brk, overall, win, active: f.rank != null };
 });
@@ -193,7 +198,7 @@ export function profileFor(id, surface, key) {
   if (surface === 'clay' && k > 0) { b.fhRpm *= 1 + k * 0.6; b.bhRpm *= 1 + k * 0.6; }        // the clay-courter's heavier ball
   b.fhRpm *= S.spin; b.bhRpm *= S.spin; b.arcS = S.arc;
   b.net = clamp(b.net * S.net, 0, 0.9); b.sv = clamp(b.sv * S.sv, 0, 0.9); b.drop = clamp(b.drop * S.drop, 0, 0.2); b.slice = clamp(b.slice * S.slice, 0, 0.6);
-  b.agg = clamp(b.agg + S.agg, 0.05, 0.97);
+  b.agg = clamp(b.agg + S.agg, 0.05, 0.97); if (b.fhAgg != null) b.fhAgg = clamp(b.fhAgg + S.agg, 0.05, 0.97);
   b.adv = adv;
   return b;
 }

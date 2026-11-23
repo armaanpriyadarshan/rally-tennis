@@ -19,7 +19,7 @@ const input = { takeMouse: () => ({ x: 0, y: 0 }), move: () => ({ x: 0, y: 0 }),
 const game = { input, opts: { controls: 'classic', assist: +(a.assist ?? 2), markers: true }, audio: null };
 const H = new Human(game); H.safe = D.safe; H.srvSafe = D.srvSafe;
 const P0 = playerByName(a.p0 || 'Federer'), P1 = playerByName(a.p1 || 'Nadal');
-const m = new Match({ env: { surface: a.surface || 'hard' }, format: 'slam5', p0: profileFor(P0.id, 'hard'), p1: profileFor(P1.id, 'hard', D), seed: 5, firstServer: 0, pace: 0.05, quick: true });
+const m = new Match({ env: { surface: a.surface || 'hard' }, format: 'slam5', p0: profileFor(P0.id, 'hard'), p1: profileFor(P1.id, 'hard', D), seed: 5, firstServer: 0, pace: 0.05, quick: true, logShots: !!a.fh });
 m.diffScale[1] = D.err; m.diffScale[0] = D.aid; m.cleanK[0] = D.clean == null ? 1 : D.clean; m.mercy[0] = D.mercy == null ? 1 : D.mercy; m.timingWindow[0] = D.window; m.aimSafe[0] = D.aimSafe;
 let plan = null, srvAt = null, lastInc = null; const kinds = {}, hts = [], hsp = []; let netYs = []; let whiffs = 0, ownSide = 0, lastHitEv = null, firstB = false;
 process.on('exit', () => { netYs.sort((a, b) => a - b); if (netYs.length) console.log('rally balls into the net:', netYs.length, 'hit the net at height m: p10', netYs[Math.floor(netYs.length * 0.1)].toFixed(2), 'median', netYs[netYs.length >> 1].toFixed(2), 'p90', netYs[Math.floor(netYs.length * 0.9)].toFixed(2)); });
@@ -55,3 +55,9 @@ const pc = (x, y) => y ? (100 * x / y).toFixed(0) + '%' : '-', mine = pts.filter
 const why = pts.reduce((o, p) => { const k = (p.winner === 0 ? '+' : '-') + p.why; o[k] = (o[k] || 0) + 1; return o; }, {});
 console.log(`${D.name}: points won ${pc(pts.filter(p => p.winner === 0).length, pts.length)}  on serve ${pc(mine.filter(p => p.winner === 0).length, mine.length)}  on return ${pc(his.filter(p => p.winner === 0).length, his.length)}  | 1st serve in ${pc(st.s1In, st.s1Tot)}  aces ${st.aces}  double faults ${st.df}  rally ${(pts.reduce((x, p) => x + p.rally, 0) / pts.length).toFixed(1)}`);
 console.log(JSON.stringify(why));
+// fh=1: each man's groundstrokes, forehand and backhand drives (not slices, lobs, drops): how many, speed off the racket (km/h),
+// topspin (rpm), height over the net (m), and how deep they land (m from the baseline they are hit at)
+if (a.fh) for (const who of [0, 1]) for (const wing of ['fh', 'bh']) { const L = m.shotLog.filter(s => s.who === who && s.wing === wing && (s.kind === 'drive' || s.kind === 'flat' || s.kind === 'loop') && !s.ret && !s.volley && s.land);
+  if (!L.length) continue; const av = f => (L.reduce((t, s) => t + f(s), 0) / L.length), md = f => { const v = L.map(f).filter(x => x != null).sort((x, y) => x - y); return v.length ? v[v.length >> 1] : null; };
+  console.log(`${who === 0 ? 'you ' : 'cpu '} ${(who === 0 ? P0 : P1).facts.name.padEnd(9)} ${wing} n ${String(L.length).padStart(4)}  ${av(s => s.kmh).toFixed(0)} km/h  ${av(s => s.top).toFixed(0)} rpm  clears ${md(s => s.clear).toFixed(2)} m  lands ${md(s => 11.885 - Math.abs(s.land.z)).toFixed(2)} m from the line`);
+  if (a.fh === '2') for (const k of ['drive', 'flat', 'loop']) { const K = L.filter(s => s.kind === k); if (K.length) console.log(`      ${k.padEnd(5)} n ${String(K.length).padStart(4)}  ${(K.reduce((t, s) => t + s.kmh, 0) / K.length).toFixed(0)} km/h  ${(K.reduce((t, s) => t + s.top, 0) / K.length).toFixed(0)} rpm  clears ${(K.map(s => s.clear).sort((x, y) => x - y)[K.length >> 1]).toFixed(2)}  weak ${(K.reduce((t, s) => t + (s.weak || 0), 0) / K.length).toFixed(2)}  h ${(K.reduce((t, s) => t + s.h, 0) / K.length).toFixed(2)}`); } }
