@@ -1396,3 +1396,10 @@ still in the air, both in a stroke's finish, for two or three frames.
   the time; the other places drawn by weight without putting back (key u^(1+i/5.5) at a big event, u^(1+i/9) at a 500, i his place
   in the order), the Finals still the top eight. Now the rest are in 22-47% of fields (Wawrinka 22%, season 30%; Kuerten 27/23%;
   Ivanisevic 25/20%), the five 84-100%. A field shown is the field played (the draw's seed kept with the seedings).
+- **Walked to the handshake, no cut** (he said "dont teleport the players to the shake they should walk for it"): game.js `walkTo`,
+  each straight to his place at the net (0.42 m from it, 0.2 m to his left) at 1.55 m/s, the winner from 1.1 s with his arms still
+  up, the loser from 1.5 s; the handshake starts a quarter second after both are there (measured, Federer-Nadal from the baselines:
+  11.6 s), the trophy or the results 2.25 s later. Space skips straight to them. A right-hander passes his racket to his left hand
+  on the way (figure.js `handover`, the winner at 3.35 s once his arms are down, the loser at 2.1 s): the racket brought across at
+  the waist, the left hand onto the handle above the right (lgrip), at 0.35 s it is the left hand's, slid down to the handle's end
+  and let down to hang by his side over half a second (filmed close: no jump). `__shakeCutOld` for the cut; tools/steps_walkshake.mjs.

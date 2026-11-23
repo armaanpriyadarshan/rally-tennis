@@ -118,7 +118,7 @@ export class Game {
     if (this.arena && this.arena.crowd && this.arena.crowd.cheer) this.arena.crowd.cheer(1, 6);
     if (this.audio && this.audio.applause) this.audio.applause(1, 5);
   }
-  endSkip() { const S = this.endSeq; if (!S) return; if (S.stage === 'cel' && S.trophy) { S.t = Math.max(S.t, (globalThis.__shakeOld || globalThis.__celebFistOld ? 4.4 : SHAKE_CUT + 2.35) - 0.2); } else if (!S.done) { S.done = true; if (S.onDone) S.onDone(); } }
+  endSkip() { const S = this.endSeq; if (!S) return; if (S.stage === 'cel' && S.trophy) { if (!S.sting) { S.sting = true; if (this.ui && this.ui.sting) this.ui.sting(); } this.beginTrophy(); } else if (!S.done) { S.done = true; if (S.onDone) S.onDone(); } }
   endFrame(dt) {
     const S = this.endSeq, m = this.match; S.t += dt;
     const I = this.input; if (I && (I.pressed.has('Space') || I.pressed.has('Enter'))) { I.takePressed(); I.takeEdges(); if (!S.skipT || this.time - S.skipT > 0.4) { S.skipT = this.time; this.endSkip(); } }
@@ -137,19 +137,34 @@ export class Game {
       if (fo && !globalThis.__netWalkOld) { const C = CELEB_MOTION['celeb_' + S.kind], u = S.t - 0.35;
         let vw = 1.15; if (C && C.root && u > 0) { const n = C.root.length / 2, f = Math.min(n - 2, Math.floor(u * 60)); if (u * 60 < n - 1) vw = Math.hypot(C.root[f * 2 + 2] - C.root[f * 2], C.root[f * 2 + 3] - C.root[f * 2 + 1]) * 60 * kc + 1.15 * (1 - kc); }
         this.netWalk(S.who, S.t > 0.35 ? vw : 0, dt, 0.55); this.netWalk(1 - S.who, S.t > 1.0 ? 0.95 * sm((S.t - 1.0) / 0.6) : 0, dt, -0.55); }
-      else if (!globalThis.__netWalkOld && !(S.t >= SHAKE_CUT && !globalThis.__shakeOld)) { this.netWalk(S.who, 1.2 * sm((S.t - 1.1) / 0.7), dt, 0.55); this.netWalk(1 - S.who, 1.15 * sm((S.t - 1.5) / 0.7), dt, -0.55); }
+      else if (!globalThis.__netWalkOld && (globalThis.__shakeOld || (globalThis.__shakeCutOld && S.t < SHAKE_CUT))) { this.netWalk(S.who, 1.2 * sm((S.t - 1.1) / 0.7), dt, 0.55); this.netWalk(1 - S.who, 1.15 * sm((S.t - 1.5) / 0.7), dt, -0.55); }
       if (fo || globalThis.__lostOld) lf.celeb = { kind: 'lost', u: S.t - 0.6, k: sm((S.t - 0.6) / 0.7) }; else { lf.celeb = null; lf.celebArm = null; }
       // Then the handshake (he said "the players should shake after a match"): a straight cut, as a broadcast cuts, from the walk
       // to the two of them at the net, each a step from it and a little to his left, right hands out over the tape; a few pumps of
       // the hands, and let go. A right-hander has his racket in his left hand for it.
-      if (!globalThis.__shakeOld && !fo) {
+      const cutOld = !!globalThis.__shakeCutOld;
+      if (!globalThis.__shakeOld && !fo && cutOld) {
         if (S.t >= SHAKE_CUT && !S.shook) { S.shook = true;
           for (const i of [0, 1]) { const p = m.players[i], f = this.fig[i]; p.x = -0.2 * p.sgn; p.z = p.sgn * 0.42; p.vx = 0; p.vz = 0; f.celebArm = null; f.celeb = null; f.shakeSwap = !f.lefty; f.inited = false; f.handInit = false; }
           this.settle = true; if (this.cam) this.cam.snap = true; }
         if (S.shook) { const u = S.t - SHAKE_CUT, k = sm((u - 0.1) / 0.45) * (1 - sm((u - 1.9) / 0.35)), pump = 0.03 * Math.sin(Math.PI * 2 * 2.0 * Math.max(0, u - 0.6)) * sm((u - 0.6) / 0.15) * (1 - sm((u - 1.55) / 0.2));
           for (const f of this.fig) f.shake = { k, pump }; }
       }
-      const tEnd = !globalThis.__shakeOld && !fo ? SHAKE_CUT + 2.35 : 4.4;
+      // ...not cut to: they walk all the way (he said "dont teleport the players to the shake they should walk for it"), each
+      // straight to his place at the net, a step from it and a little to his left; a right-hander passes his racket to his left hand
+      // on the way (the winner once his arms are down, the loser soon after he sets off: figure.js handover); when both are there,
+      // right hands out over the tape, a few pumps, let go.
+      if (!globalThis.__shakeOld && !fo && !cutOld) {
+        const v = globalThis.__shakeWalk ?? 1.55;
+        const at = i => { const p = m.players[i]; return Math.hypot(p.x + 0.2 * p.sgn, p.z - p.sgn * 0.42); };
+        this.walkTo(S.who, -0.2 * m.players[S.who].sgn, m.players[S.who].sgn * 0.42, v * sm((S.t - 1.1) / 0.7), dt);
+        this.walkTo(1 - S.who, -0.2 * m.players[1 - S.who].sgn, m.players[1 - S.who].sgn * 0.42, v * sm((S.t - 1.5) / 0.7), dt);
+        for (const [i, t0] of [[S.who, 3.35], [1 - S.who, 2.1]]) { const f = this.fig[i]; if (!f.lefty && S.t >= t0) f.handover = { u: S.t - t0 }; }
+        if (S.shakeT == null && ((at(0) < 0.06 && at(1) < 0.06) || S.t > 18)) S.shakeT = S.t + 0.25;   // (a breath once both are there)
+        if (S.shakeT != null) { const u = S.t - S.shakeT, k = sm((u - 0.0) / 0.45) * (1 - sm((u - 1.8) / 0.35)), pump = 0.03 * Math.sin(Math.PI * 2 * 2.0 * Math.max(0, u - 0.5)) * sm((u - 0.5) / 0.15) * (1 - sm((u - 1.45) / 0.2));
+          for (const f of this.fig) f.shake = { k: Math.max(0, k), pump }; }
+      }
+      const tEnd = globalThis.__shakeOld || fo ? 4.4 : cutOld ? SHAKE_CUT + 2.35 : S.shakeT != null ? S.shakeT + 2.25 : 1e9;
       // close on the winner after a moment on the wide picture
       if (globalThis.__celebCloseOld && S.t > 1.1 && !S.closeUp) {   /* (no close-up: he said "i dont like the closeup on them"; the picture stays on the camera he plays with) */ S.closeUp = true; this.cine = { kind: 'react', t: 0, who: S.who, side: Math.random() < 0.5 ? -1 : 1, seed: Math.random(), hold: true }; this.fig[0].setFirstPerson(false); this.cam.snap = true; if (this.ui && this.ui.cine) this.ui.cine(true); }
       if (S.trophy) {
@@ -159,10 +174,16 @@ export class Game {
     } else {
       S.t2 += dt; const wf = this.fig[S.who];
       if (globalThis.__trophyOld) wf.celeb = { kind: 'trophy', u: S.t2, k: 1 }; else { wf.celeb = null; wf.trophyHold = { u: S.t2, ...(this.trophyObj ? this.trophyObj.userData.grip : { y: 0.27, w: 0.15, curl: 0.82 }) }; }
-      wf.celebClip = null; wf.celebArm = null; wf.shake = null; wf.shakeSwap = false;
+      wf.celebClip = null; wf.celebArm = null; wf.shake = null; wf.shakeSwap = false; wf.handover = null;
       this.confettiStep(dt);
       if (S.t2 >= 7.4 && !S.done) { S.done = true; if (S.onDone) S.onDone(); }
     }
+  }
+  // one man's walk to a place (x, z): straight there at speed v (m/s), slowing over the last 0.8 m, stopping on it
+  walkTo(i, tx, tz, v, dt) {
+    const p = this.match.players[i], dx = tx - p.x, dz = tz - p.z, d = Math.hypot(dx, dz), sp = Math.min(v * Math.min(1, d / 0.8), d / Math.max(dt, 1e-3));
+    if (d < 0.01 || sp < 0.01) { p.vx = 0; p.vz = 0; return; }
+    p.vx = dx / d * sp; p.vz = dz / d * sp; p.x += p.vx * dt; p.z += p.vz * dt;
   }
   // one man's walk to the net: straight to a metre short of it, a little to one side, at speed v (m/s), stopping smoothly
   netWalk(i, v, dt, side) {
@@ -176,7 +197,7 @@ export class Game {
     p.x = 0; p.z = p.sgn * 5.0; p.vx = 0; p.vz = 0;
     this.fig[1 - w].group.visible = false; if (f.racket) f.racket.visible = false;
     m.ball.visible = false; m.ball.held = -1; m.ball.live = false; if (this.fx && this.fx.reset) this.fx.reset();
-    for (const g of this.fig) { g.inited = false; g.handInit = false; g.shake = null; g.shakeSwap = false; } this.settle = true;
+    for (const g of this.fig) { g.inited = false; g.handInit = false; g.shake = null; g.shakeSwap = false; g.handover = null; } this.settle = true;
     // (the event's own trophy, trophies.js: he said "the trophies should be accurate")
     const T = this.cfg && this.cfg.T, key = T ? T.key : 'plain';
     if (this.trophyObj && this.trophyObj.userData.key !== key) { this.gfx.scene.remove(this.trophyObj); this.trophyObj.traverse(o => { if (o.isMesh) o.geometry.dispose(); }); this.trophyObj = null; }
@@ -224,7 +245,7 @@ export class Game {
     this.endSeq = null;
     if (this.trophyObj) this.trophyObj.visible = false;
     if (this.confetti) this.confetti.mesh.visible = false;
-    for (const f of this.fig || []) { f.celeb = null; f.celebClip = null; f.celebArm = null; f.shake = null; f.shakeSwap = false; f.trophyHold = null; if (f.group) f.group.visible = true; if (f.racket) f.racket.visible = true; }
+    for (const f of this.fig || []) { f.celeb = null; f.celebClip = null; f.celebArm = null; f.shake = null; f.shakeSwap = false; f.handover = null; f.trophyHold = null; if (f.group) f.group.visible = true; if (f.racket) f.racket.visible = true; }
   }
 
   setCamera(mode) {

@@ -12,7 +12,7 @@ export default async function ({ ev, shot }) {
     if (!g.endSeq) g.endSequence({ trophy: false });
     for (const el of document.body.querySelectorAll('body > *:not(canvas)')) el.style.display = 'none';
     window.__em.t0 = g.time; return 'winner ' + m.score.winner; })()`));
-  for (const at of (E.AT || '3.8,4.0,4.6,5.0,5.4,6.0').split(',').map(Number)) {
+  for (const at of (E.AT || '11.5,12.2,12.8,13.4').split(',').map(Number)) {
     console.log('SH', at, await ev(`(() => { const { g } = window.__em; while (g.time - window.__em.t0 < ${at}) g.frame(1 / 60); const V = g.gfx.camera.position.constructor, j = (i, n) => { const v = new V(); g.fig[i].person.jointPos(n, v); return v; };
       const a = j(0, 'R_Hand'), b = j(1, 'R_Hand'); return 'gap ' + a.distanceTo(b).toFixed(2) + ' A ' + [a.x, a.y, a.z].map(v => v.toFixed(2)) + ' B ' + [b.x, b.y, b.z].map(v => v.toFixed(2)) + ' p ' + g.match.players.map(p => p.x.toFixed(2) + ',' + p.z.toFixed(2)).join(' '); })()`));
     const tag = String(at).replace('.', '_');

@@ -428,7 +428,10 @@ export class Figure {
     out.add(_pmA.copy(d['palm' + S]).applyQuaternion(this.Fhand[i])); if (d['palmN' + S]) out.addScaledVector(_pmA.copy(d['palmN' + S]).applyQuaternion(this.Fhand[i]), PALM_OFF * this.H); return out; }
   // a right-hander's racket in his left hand as he shakes hands: hanging down by his side, the head a little forward (world)
   swapDir(fwd, right) { const d = this._swD || (this._swD = new THREE.Vector3()); (this._swF || (this._swF = new THREE.Vector3())).copy(fwd); (this._swR || (this._swR = new THREE.Vector3())).copy(right);
-    return d.set(0, -0.86, 0).addScaledVector(fwd, 0.45).addScaledVector(right, -0.1).normalize(); }
+    d.set(0, -0.86, 0).addScaledVector(fwd, 0.45).addScaledVector(right, -0.1).normalize();
+    // (just taken from the right hand, from the way it pointed then, let down over half a second)
+    if (this.handover && this.swapFrom) { const e = sm((this.handover.u - 0.35) / 0.5); if (e < 1) d.copy(_pmB.copy(this.swapFrom).lerp(d, e)).normalize(); }
+    return d; }
   update(dt, p, m, o = {}) {
     // The body is moved by the player's velocity as it changes no faster than legs can change it, about eighteen metres a second
     // each second: the game gives a well-timed split step its first step at once, two and a half metres a second in a frame, and
@@ -710,6 +713,15 @@ export class Figure {
         const bl = (a, b) => a.map((v, q) => v + (b[q] - v) * k);
         pose = { ...pose, L: bl(pose.L, Lp), R: bl(pose.R, Rp), dir: bl(pose.dir, dR), nrm: pose.nrm || [1, 0, 0], lgrip: (pose.lgrip || 0) * (1 - k) };
         this.reactK = Math.max(this.reactK, k); this.reactFist = 1; this.reactShout = 0; } }
+    // On the walk to the net a right-hander passes his racket to his left hand, to shake with his right (game.js sets this.handover
+    // = { u }, seconds since it began): the racket brought across in front of him at the waist, the left hand onto the handle just
+    // above the right; at 0.35 s it is the left hand's (this.shakeSwap), the right lets go, and the racket is let down to hang by his
+    // left side as both arms go back to his walk. (Cut to at the net, it was simply in his left hand; walked, it would have jumped.)
+    if (this.handover && !this.lefty && !globalThis.__handoverOld) { const u = this.handover.u, a = sm(u / 0.3) * (1 - sm((u - 0.35) / 0.4));
+      if (u >= 0.35 && !this.shakeSwap) { this.shakeSwap = true; (this.swapFrom || (this.swapFrom = V())).copy(this.rk.dir); }
+      if (a > 0.001) { const bl = (x, y) => x.map((v, q) => v + (y[q] - v) * a);
+        pose = { ...pose, R: bl(pose.R, [-0.02, 1.0, 0.3]), L: bl(pose.L, [-0.06, 1.03, 0.31]), dir: bl(pose.dir || [0, -0.6, 0.8], [-0.3, -0.55, 0.78]), lgrip: Math.max(pose.lgrip || 0, this.shakeSwap ? 0 : a), lgripAt: 0.085 };
+        this.reactK = Math.max(this.reactK, a); } }
     // The handshake at the net, after the match (game.js sets this.shake = { k, pump }: k how far the hand is out, pump its height
     // off the grip, metres). Everyone shakes with his right hand, out in front of him over the net, a little to his right, where the
     // other man's meets it: a right-hander has put his racket in his left hand, hanging by his side (this.shakeSwap, below, at
@@ -2874,7 +2886,7 @@ export class Figure {
     if (this.shakeSwap) { const OS = off === 0 ? 'L' : 'R', d = this.swapDir(this._swF, this._swR); person.arm.updateWorldMatrix(false, true); person.jointPos(OS + '_Hand', _rg2);
       const g2 = _rg1.copy(person.dir['palm' + OS]).applyQuaternion(this.Fhand[off]).add(_rg2); if (person.dir['palmN' + OS]) g2.addScaledVector(_rg3.copy(person.dir['palmN' + OS]).applyQuaternion(this.Fhand[off]), PALM_OFF * H);
       const zz = _rg4.copy(this._swR).addScaledVector(d, -this._swR.dot(d)).normalize(), xx = _rgE.copy(d).cross(zz).normalize();
-      _m.makeBasis(xx, d, zz); R.quaternion.setFromRotationMatrix(_m); R.position.copy(g2).addScaledVector(d, GRIP_UP * H); }
+      _m.makeBasis(xx, d, zz); R.quaternion.setFromRotationMatrix(_m); R.position.copy(g2).addScaledVector(d, (GRIP_UP - (this.handover && this.swapFrom ? 0.085 * (1 - sm((this.handover.u - 0.35) / 0.5)) : 0)) * H); }   /* (taken where the left hand closed on it, just above the right, and let slide down to the handle's end) */
     // The free hand on the racket, last. It was aimed at the handle (or the throat) before the arms were solved, but each arm is
     // then kept within its reach, off its own shoulder, out of the body and to an arm's speed on its own, and the racket goes
     // where the hitting hand ends up: the hand meant to be holding it was left up to a third of a metre off it, through a
@@ -3235,7 +3247,7 @@ const ALT_BAD = new Set(['Federer/fh/0', 'Federer/fh/1', 'Alcaraz/fh/1', 'Djokov
 const DONORS = (key, lefty, oneHand) => key === 'serve' ? (lefty ? ['Nadal', 'Federer'] : ['Federer', 'Djokovic', 'Sinner', 'Alcaraz', 'Nadal'])
   : key === 'fh' ? (lefty ? ['Federer', 'Nadal'] : ['Federer', 'Djokovic', 'Sinner', 'Alcaraz', 'Nadal'])   /* (a left-hander with none of his own borrows Federer's classic forehand mirrored, not Nadal's lasso finish over the head, which is Nadal's alone) */
   : key === 'bh' ? (oneHand ? ['Federer'] : lefty ? ['Nadal', 'Djokovic', 'Sinner', 'Alcaraz', 'Agassi'] : ['Djokovic', 'Sinner', 'Alcaraz', 'Nadal', 'Agassi']) : [];
-const GRIP_UP = 0.022, PALM_OFF = 0.024; const _pmA = V();      // and how far off the palm, into the fingers' curl, the handle's centre lies
+const GRIP_UP = 0.022, PALM_OFF = 0.024; const _pmA = V(), _pmB = V();      // and how far off the palm, into the fingers' curl, the handle's centre lies
 // an arm's own thickness (about 8 cm across at the elbow): its centre line keeps this far off the trunk, or its skin goes into it
 const LIMB_R = 0.042;
 // which clip joints make each arm and each leg (left, right)
