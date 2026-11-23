@@ -5,6 +5,8 @@
  img{background:#fff;border:1px solid #24405f;display:block;height:74vh}
  figcaption{margin-top:10px;font-weight:700;letter-spacing:.04em}
  .n{color:#7fd;font-weight:400;font-size:12px;max-width:340px;margin:8px auto 0;line-height:1.55;text-align:left}
+  /* no scrollbars anywhere on the site (he said "get rid of the visible scrollbar everywhere on the site"); lists still scroll by wheel, touch and keys */
+  * { scrollbar-width: none !important; } *::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
 </style>
 <figure><img src="model-tpose.png"><figcaption>Idle</figcaption>
 <div class=n>21 tapered segments, ray-traced with true surface normals. Lean athletic

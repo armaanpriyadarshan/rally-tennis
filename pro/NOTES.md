@@ -1357,3 +1357,6 @@ still in the air, both in a stroke's finish, for two or three frames.
   human.js), and against a man at the net it chose a lob 10-50% of the time. Not for a person now (`coach.noLob`): the choice is a
   pass; he lobs when he holds ↑, as before. The computer still lobs. classicbot, 400 points at Tour: his lobs 24 → 5 (those 5 are the
   bot holding ↑). `__autoLobOld`.
+- **No scrollbars** (he said "also get rid of the visible scrollbar everywhere on the site"): one rule at the end of the first
+  stylesheet of every page (pro/index.html, pro/dev.html, classic/index.html, classic/clips.html, classic/bake-view.html):
+  `scrollbar-width: none` on everything and `::-webkit-scrollbar { display: none }`. Lists still scroll by wheel, touch and keys.

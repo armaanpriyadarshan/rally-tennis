@@ -10,6 +10,8 @@
   img { display:block; background:#12243c; border-radius:3px; image-rendering:auto; }
   figcaption { margin-top:7px; font-size:12.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:#cfe0f5; }
   figcaption span { display:block; font-weight:400; text-transform:none; letter-spacing:0; color:#7f95b3; font-size:12px; margin-top:2px; }
+  /* no scrollbars anywhere on the site (he said "get rid of the visible scrollbar everywhere on the site"); lists still scroll by wheel, touch and keys */
+  * { scrollbar-width: none !important; } *::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
 </style>
 <h1>Rally — stroke animations, slowed down</h1>
 <p class="sub">Every frame is the real renderer driven through the real swing, sampled at 16 phases and played

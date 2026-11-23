@@ -1,6 +1,8 @@
 <!doctype html>
 <html><head><meta charset="utf-8"><title>Rally Pro · dev view</title>
-<style>html,body{margin:0;height:100%;background:#000;overflow:hidden}canvas{width:100%;height:100%;display:block}#i{position:fixed;left:8px;top:8px;color:#fff;font:12px monospace;text-shadow:0 0 3px #000}</style>
+<style>html,body{margin:0;height:100%;background:#000;overflow:hidden}canvas{width:100%;height:100%;display:block}#i{position:fixed;left:8px;top:8px;color:#fff;font:12px monospace;text-shadow:0 0 3px #000}  /* no scrollbars anywhere on the site (he said "get rid of the visible scrollbar everywhere on the site"); lists still scroll by wheel, touch and keys */
+  * { scrollbar-width: none !important; } *::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
+</style>
 <script type="importmap">{"imports":{"three":"./vendor/three/three.module.js","three/addons/":"./vendor/three/addons/"}}</script>
 </head><body><canvas id="c"></canvas><div id="i"></div>
 <script type="module">

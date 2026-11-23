@@ -363,6 +363,8 @@
   #wipe b { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; font: 800 calc(var(--u) * 6.4)/.9 var(--f); opacity: 0; transition: opacity .12s; text-align: center; white-space: nowrap; }
   #wipe b small { margin-top: calc(var(--u) * 1.6); font: 400 calc(var(--u) * 1.7)/1 var(--f); padding: calc(var(--u) * .8) calc(var(--u) * 1.3); background: var(--lime); color: #020700; }
   #wipe.in b { opacity: 1; transition-delay: .14s; }
+  /* no scrollbars anywhere on the site (he said "get rid of the visible scrollbar everywhere on the site"); lists still scroll by wheel, touch and keys */
+  * { scrollbar-width: none !important; } *::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
 </style>
 <script type="importmap">{"imports":{"three":"./vendor/three/three.module.js","three/addons/":"./vendor/three/addons/"}}</script>
 </head>

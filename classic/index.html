@@ -292,6 +292,8 @@
   .spin { display:inline-block; width:12px; height:12px; border:2px solid #ffffff30; border-top-color: var(--atp);
           border-radius:50%; animation:sp .8s linear infinite; vertical-align:-2px; margin-right:7px; }
   @keyframes sp { to { transform: rotate(360deg); } }
+  /* no scrollbars anywhere on the site (he said "get rid of the visible scrollbar everywhere on the site"); lists still scroll by wheel, touch and keys */
+  * { scrollbar-width: none !important; } *::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
 </style>
 </head>
 <body>
