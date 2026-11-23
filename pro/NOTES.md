@@ -1260,3 +1260,12 @@ still in the air, both in a stroke's finish, for two or three frames.
 - **The scoring chips renamed and reordered** (he said "it should be before tiebreak. also rename them to like five sets, three sets
   instead of tour and short"): Five sets · Three sets · One set · Classic · Tiebreak. "Tour" (best of five at the slams, three elsewhere)
   and "Short" (sets to four) are no longer offered; the default is three sets, and a saved Tour or Short becomes three sets.
+- **Timed aim back, still nothing shown before the hit** (he said "also bring back the aiming system just dont make the aiming thing
+  visible until the ball is hit"): how long ← or → is held for this ball sets the angle again (a tap a little off the middle, 0.4 s or
+  more to the line), `__timedAimOld` for the fixed angle; no aim circle before he hits, the lime circle once his ball is struck. Tour
+  with the timed aim (classicbot, timing like his, Auto, 600 points): 46 % of points.
+- **Why the broadcast views differ between tournaments** (he asked): the camera itself is the same everywhere, 9.6 m up and 30 m
+  behind the middle of the court on a 31° lens (measured at all 30 venues, six seconds each; its crane only lifted at Wimbledon, to
+  10 m for a moment). What differs is the stadium round it, shot at the same moment in eight venues: where the camera stands among the
+  stands (in six of them the heads of the rows in front of it run along the bottom of the picture, at Melbourne and Shanghai not), how
+  far and how steeply the stands rise, the walls and court colours, and day or night; and the picture pans after the near player.

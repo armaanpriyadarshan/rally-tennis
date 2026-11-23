@@ -172,6 +172,13 @@ export class Human {
         // (and the arrows pressed with Space, or any time after it until the swing goes, are the aim: read only as it went, a sixth of a
         // second before the ball, an arrow pressed with an early Space and let go of in between was not the aim, and the ball went where
         // the game chose; he said "sometimes the aiming on the stroke doesnt listen to keypresses". One held as it goes still wins.)
+        // Timed aim (as Tennis Elbow 4's): how long ← or → has been held for this ball sets the angle - a tap goes a little off the middle,
+        // held four tenths of a second or more it goes for the line, closer to it than the old fixed angle and so more often out. Kept after
+        // the key is let go, until the swing goes. (He chose it, took it out on 2026-11-23 with the aim circle, and asked for it back the same
+        // day, "just dont make the aiming thing visible until the ball is hit": no circle before the hit, the landing circle after.)
+        if (this.aimHFor !== m.incoming) { this.aimHFor = m.incoming; this.aimHDir = 0; this.aimHT = null; this.aimHDur = 0; }
+        if (mine) { if (lat) { if (this.aimHDir !== lat || this.aimHT == null) { this.aimHDir = lat; this.aimHT = m.t; } this.aimHDur = m.t - this.aimHT; }
+          else { this.aimHT = null; if (latT && this.aimHDir !== latT) { this.aimHDir = latT; this.aimHDur = 1 / 60; } } }
         if (!globalThis.__aimLatchOld && mine && this.buf > m.t && this.aimFor === m.incoming) { if (latT) this.aimL = latT; if (fkT) this.aimF = fkT; if (!lat) lat = this.aimL || 0; if (!fk) fk = this.aimF || 0; }
         // He reads the ball and turns for it on his own, as early as a player does (about 0.85 s out, as the computer does):
         // the shoulders turn and the racket goes back on the side the ball is coming to, whether or not Space has been
@@ -248,7 +255,9 @@ export class Human {
           if (fire) {
             // the angle is his if he holds one; otherwise the game's choice of where
             const chX = ch ? ch.tx * s : 0, chD = ch ? ch.tz * s : -(COURT.halfLen - Math.max(2.4, this.safe[1] + 1.6));
-            let X = lat ? lat * (COURT.halfW - this.safe[0] - 0.75) : clamp(chX, -(COURT.halfW - this.safe[0]), COURT.halfW - this.safe[0]), D = chD, power = ch ? ch.power : 0.74;
+            const aimF = globalThis.__timedAimOld ? 1 : clamp(((this.aimHDir === lat ? this.aimHDur : 0) - 0.05) / 0.35, 0, 1);
+            const latX = globalThis.__timedAimOld ? COURT.halfW - this.safe[0] - 0.75 : 1.3 + (COURT.halfW - this.safe[0] - 0.3 - 1.3) * aimF;
+            let X = lat ? lat * latX : clamp(chX, -(COURT.halfW - this.safe[0]), COURT.halfW - this.safe[0]), D = chD, power = ch ? ch.power : 0.74;
             // his own drop shot dies just over the net, his lob lands deep; with no angle held, both go away from the other man
             const away = -Math.sign(opp.x * s || 1);
             if (own === 'drop') { X = lat ? lat * (COURT.halfW - 1.5) : away * (COURT.halfW - 1.9); D = -2.1; power = 0.4; }
