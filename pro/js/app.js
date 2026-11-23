@@ -558,13 +558,31 @@ class App {
     if (this.mode !== 'match') return;
     const g = this.game, s = g.match.score, me = g.cfg.p0, opp = g.cfg.p1, won = s.winner === 0;
     this.input.unlock(); this.input.enabled = false;
-    const res = { a: me, b: opp, winner: won ? me : opp, loser: won ? opp : me, sets: s.sets.map(x => ({ g: [x.g[0], x.g[1]], tb: x.tb })) };
+    let res = { a: me, b: opp, winner: won ? me : opp, loser: won ? opp : me, sets: s.sets.map(x => ({ g: [x.g[0], x.g[1]], tb: x.tb })) };
+    if (g.cfg.format === 'classic' && !globalThis.__classicScoreOld && g.cfg.T) res = this.fullScore(res, g.cfg.T);
     this.tab(null); $('#bug').classList.add('off');
     this.lower(`${full(res.winner)}<small>${esc(PLAYERS[res.winner].facts.country || '')}</small>`, `Defeated <b>${esc(pname(res.loser))}</b> ${scoreLine(res, res.winner)}`);
     // then the numbers, which carry the names and the score themselves: the result card makes way for them
     setTimeout(() => { if (this.mode === 'match') { this.lower(null); this.showStats(true); } }, 2400);
     const o = $('#overlay'); o.className = 'result'; o.innerHTML = '<div class="box"><button class="btn go" data-ok>Continue</button></div>';
     o.querySelector('[data-ok]').onclick = () => { o.className = 'hidden'; this.afterMatch(res); };
+  }
+  // A classic-scoring match (first to three games) put as the match it stands for, so it reads like every other result in the draw
+  // (he said "on classic mode you should still make scores that look like the other ones after a result based on the game"): of
+  // simulated matches between the two at this event in its own format (best of three, of five at a Slam) that the same man won,
+  // the one whose share of games to the loser is nearest his share in the game played - 3-0 comes out one-sided, 3-2 tight.
+  // The games actually played are kept on it (`classic`).
+  fullScore(res, T) {
+    const won = res.winner === res.a, gs = r => { let w = 0, l = 0; for (const x of r.sets) { const a = x.g[0], b = x.g[1]; if (won) { w += a; l += b; } else { w += b; l += a; } } return [w, l]; };
+    const [w0, l0] = gs(res), share = l0 / Math.max(1, w0 + l0), R = rng((Date.now() ^ (Math.random() * 0xfffff)) & 0xfffff);
+    // (and the sets the loser took as near the games he took: none from 3-0, one of a best of five from 3-1, as many as he can from
+    // 3-2 - five sets at a Slam, three elsewhere)
+    const need = ((T.bestOf || 3) + 1) / 2, lostSets = r => r.sets.filter(x => (x.g[0] > x.g[1]) !== won).length;
+    const wantSets = l0 >= 2 ? need - 1 : l0 === 1 ? (need >= 3 ? 1 : 0) : 0;
+    let best = null, bd = 1e9;
+    for (let k = 0; k < 600 && !(best && bd < 0.06 && k > 120); k++) { const r = simMatch(res.a, res.b, T, R); if (r.winner !== res.winner) continue;
+      const [w, l] = gs(r), d = Math.abs(l / Math.max(1, w + l) - share) + 0.3 * Math.abs(lostSets(r) - wantSets) + R() * 0.04; if (d < bd) { bd = d; best = r; } }
+    return best ? { ...res, sets: best.sets.map(x => ({ g: [x.g[0], x.g[1]], tb: x.tb })), classic: res.sets } : res;
   }
   leave(sim) {
     const g = this.game, c = this.ctx;

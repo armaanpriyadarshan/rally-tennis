@@ -1500,3 +1500,9 @@ still in the air, both in a stroke's finish, for two or three frames.
   arrival where he is (a drop shot that never comes to him still by the plan); and that arrival is taken at a height he can hit, not
   where a lob crosses over him at 5.7 m (`__tcSpotOld`, `__tauHOld`). In-air whiffs 9 → 4-5 per 500 points; the rest are balls at
   his ankles 2-3.5 m wide.
+- **A classic-scoring result reads like the rest** (he said "on classic mode you should still make scores that look like the other
+  ones after a result based on the game"): app.js `fullScore` - his first-to-three-games match is put as the match it stands for,
+  in the event's own format: of simulated matches between the two (season.js simMatch) that the same man won, the one nearest in
+  the loser's share of games and in the sets he took (none from 3-0; one of a best of five from 3-1; as many as he can from 3-2).
+  Shown on the result card and recorded in the draw; the games played are kept on the result (`classic`). Examples: Roland Garros
+  3-0 → 6-1 6-0 6-3, 3-1 → 6-2 6-1 6-7(5) 6-0, 3-2(5) → 6-1 4-6 6-7(4) 6-3 6-2; Rome 3-2(5) → 6-1 4-6 6-4. `__classicScoreOld`.
