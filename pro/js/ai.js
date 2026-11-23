@@ -267,7 +267,7 @@ export class AI {
     if (meAtNet) {
       pl.state = 'net';
       if (pl.pre && h > 1.95) return T(open * (HW - 1.5), -(HL - r.range(3.5, 5.5)), 'smash', 0.9);
-      if (r.u() < 0.14 * prof.touch + (oD < -HL - 1 ? 0.12 : 0)) return T(open * (HW - 1.5), -r.range(1.6, 2.6), 'drop', 0.4);
+      if (!this.noDrop && r.u() < 0.14 * prof.touch + (oD < -HL - 1 ? 0.12 : 0)) return T(open * (HW - 1.5), -r.range(1.6, 2.6), 'drop', 0.4);   // (not for a person: he plays one when he asks, ↓, "it shouldnt autodropshot")
       return T(open * (HW - r.range(1.1, 1.7)), -(HL - r.range(1.8, 4.0)), pl.pre ? 'volley' : 'drive', pl.pre ? 0.62 : 0.6);
     }
     // ---- returning serve ----
@@ -307,7 +307,7 @@ export class AI {
     }
     if (state === 'attack') {
       // the drop shot, when he is camped behind the baseline
-      if (oD < -(HL + 0.9) && cD < 11.6 && r.u() < prof.drop * (cpu ? 6.5 : 3.2) + (cpu && oD < -(HL + 2.2) ? 0.08 : 0))
+      if (!this.noDrop && oD < -(HL + 0.9) && cD < 11.6 && r.u() < prof.drop * (cpu ? 6.5 : 3.2) + (cpu && oD < -(HL + 2.2) ? 0.08 : 0))
         return T(open * (HW - r.range(1.2, 1.8)), -r.range(1.5, 2.7), 'drop', 0.4);
       // the short angle crosscourt, from inside the court: it lands near the side line in front of the service line and
       // goes off the court, dragging him with it

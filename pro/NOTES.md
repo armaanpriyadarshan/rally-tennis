@@ -1511,3 +1511,13 @@ still in the air, both in a stroke's finish, for two or three frames.
   and matches the loser's share of games (or points) and the sets he took (from a multi-set match, half from the sets he won in it).
   Examples: Roland Garros one set 6-2 → 6-1 6-3 6-3, 7-6(4) → five sets; US Open match tiebreak 10-8 → five sets; Rome 10-3 → 6-1 6-3;
   Wimbledon three sets 6-4 3-6 7-5 → 7-5 6-3 3-6 5-7 6-4, 6-2 6-3 → 6-3 6-2 6-3. The match as played is kept on it (`played`).
+- **No auto drop shot; drops as good as they are timed; real fists** (he said "it shouldnt autodropshot either. and shot timing
+  should affect drop shot quality", and "the hands are still fucked on the match point celebration. should be fists"):
+  - `coach.noDrop` (ai.js decide, `__autoDropOld`): the game no longer chooses a drop shot for a person; ↓ still plays one.
+  - A person's drop shot takes the shot quality Q from his timing (sim.js, `__dropQOld`): well timed it dies short with all the
+    backspin his touch gives and goes near his aim; mistimed it floats higher and deeper, with less spin, wider of the mark. Perfect
+    counts for drops. classicbot, 500 points: on the moment, landing 2.15 m from the net (p80 2.5), 0.24 m off his aim, -3280 rpm;
+    late, 2.48 (p80 4.68), 1.13 m, -2690; early, 2.55 (p80 4.03), 1.47 m, -2670.
+  - people.js setFingers `fist`: toward a clenched fist (knuckles 86°, the middle joints 97°, the thumb folded across) where the
+    grip curl alone stopped at 57° at the knuckles - a fist made with it was a claw. Used for every free-hand fist (the arms-up
+    celebration again, the fist pumps between points); `__fistOld`, `__upOpen` for the open hand.

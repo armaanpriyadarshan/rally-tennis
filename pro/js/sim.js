@@ -866,7 +866,7 @@ export class Match {
     const lead = st.pressE != null ? 0 : (it.pressLead || 0), pfLead = 1 - clamp((lead - (globalThis.__pfLead ?? 0.09)) / 0.09, 0, 1);
     // (volleys and overheads too: he said "the assist keeps mistiming net shots and volleys" - timed within 0.06 s, no volley was ever
     // Perfect, so every one read Good, Early or Late and played as an ordinary volley. `__volPfOld`)
-    const pf = !st.auto && !globalThis.__perfectOld && (!volley || !globalThis.__volPfOld) && (kind === 'drive' || kind === 'flat' || kind === 'loop' || kind === 'slice' || kind === 'volley' || kind === 'smash') ? (st.pressE != null ? 1 - clamp(((st.pressE < 0 ? -st.pressE - PF_EARLY : st.pressE - PF_LATE)) / 0.02, 0, 1) : (1 - clamp((Math.abs(timRaw) - win * 0.5) / Math.max(0.005, win * 0.5), 0, 1)) * pfLead) : 0;
+    const pf = !st.auto && !globalThis.__perfectOld && (!volley || !globalThis.__volPfOld) && (kind === 'drive' || kind === 'flat' || kind === 'loop' || kind === 'slice' || kind === 'volley' || kind === 'smash' || kind === 'drop') ? (st.pressE != null ? 1 - clamp(((st.pressE < 0 ? -st.pressE - PF_EARLY : st.pressE - PF_LATE)) / 0.02, 0, 1) : (1 - clamp((Math.abs(timRaw) - win * 0.5) / Math.max(0.005, win * 0.5), 0, 1)) * pfLead) : 0;
     if (pf > 0 && kind !== 'slice') power = Math.min(1, power + 0.12 * pf);
     st.perfect = pf;
     const retPen = b.isServe ? clamp((vin - 17) / 12, 0, 1.4) * lerp(1.15, 0.80, prof.ret) * TUNE.retPen : 0;
@@ -891,7 +891,8 @@ export class Match {
     // `__strikeOld`.
     const strike = !st.auto && !globalThis.__strikeOld && !volley && (kind === 'drive' || kind === 'flat' || kind === 'loop');
     let Q = 0;
-    if (strike) { const ta = Math.abs(timRaw), half = win * 0.5;
+    const dropQ = !st.auto && kind === 'drop' && !globalThis.__dropQOld;   // (a person's drop shot is as good as his timing too)
+    if (strike || dropQ) { const ta = Math.abs(timRaw), half = win * 0.5;
       // (Perfect from 0.07 s early to 0.10 s late: what he sees and presses reaches the game 30-80 ms after it happens - the screen's
       // and the keyboard's delay - and at ±0.06 he said "still cant get any perfects")
       const e = st.pressE, tq = e != null
@@ -945,6 +946,11 @@ export class Match {
       // about a metre); only a ball struck to finish the point is driven low and flat
       default:      kind = 'drive'; v = wingKmh / 3.6 * lerp(0.80, 1.20, power); top = wingRpm * lerp(1.06 + 0.16 * clamp((wingRpm - 2600) / 700, 0, 1), 0.92, power); /* a heavy-topspin player's rally ball carries more than his average, his drive less */ minClear = lerp(0.86, 0.32, clamp((power - 0.55) / 0.45, 0, 1)); sig = 1;
     }
+    // His drop shot as good as he timed it (he said "shot timing should affect drop shot quality"): well timed, it dies short with
+    // all the backspin his touch gives it and goes near where he meant; mistimed, it floats - higher, deeper, less spin, wider of the
+    // mark - and sits up for the other man.
+    if (dropQ) { const bad = 1 - Q; el += 0.1 * bad; dropEl0 = Math.max(dropEl0, el); top *= lerp(0.6, 1.1, Q); sig *= lerp(1.7, 1.0, Q);
+      if (Math.abs(tz) > 0.5) tz = Math.sign(tz) * (Math.abs(tz) + 0.6 * bad + 2.4 * bad * bad); }
     // In a person's hands the length of the hold shapes the topspin shot: a short tap is the
     // rally ball — slower, heavier, well over the net — and a long hold flattens it into a drive.
     if (!st.auto && kind === 'drive') { const w = loopW(power); v *= lerp(1, 0.86, w); top *= lerp(1, 1.2, w); minClear = lerp(0.28, 1.05, w); sig = lerp(1, 0.82, w); if (w > 0.6) st.loop = true; }

@@ -738,11 +738,14 @@ export class Person {
     return Fl;
   }
   // Close the fingers by `k` (0 open … 1 fist) round whatever the hand is holding.
-  setFingers(S, k, point = 0) {           // point: the index finger held out straight (0..1) while the others close by k
+  // fist (0..1): toward a clenched fist - the knuckles bent square, the fingers folded into the palm, the thumb across them - where
+  // k alone closes a hand round a handle (at its fullest the knuckles bent sixty degrees: a fist made with it was a claw)
+  setFingers(S, k, point = 0, fist = 0) {           // point: the index finger held out straight (0..1) while the others close by k
     for (let f = 0; f <= 4; f++) for (const seg of ['', '1', '2']) {
       const n = B(S + '_Finger' + f + seg), b = this.bones[n]; if (!b) continue;
       const r = this.rest[n], kf = f === 1 ? k * (1 - point) + 0.08 * point : k;
-      const a = f === 0 ? (seg === '' ? 0.25 : 0.45) * kf : (seg === '' ? 1.0 : seg === '1' ? 1.25 : 0.9) * kf;
+      let a = f === 0 ? (seg === '' ? 0.25 : 0.45) * kf : (seg === '' ? 1.0 : seg === '1' ? 1.25 : 0.9) * kf;
+      if (fist > 0) { const fa = f === 0 ? (seg === '' ? 0.55 : seg === '1' ? 0.85 : 0.7) : f === 1 && point > 0 ? a : (seg === '' ? 1.5 : seg === '1' ? 1.7 : 1.05); a += (fa - a) * Math.min(1, fist); }
       b.quaternion.copy(r.lq).multiply(_q.setFromAxisAngle(FINGER_AXIS, a * (S === 'L' ? 1 : 1)));
     }
   }

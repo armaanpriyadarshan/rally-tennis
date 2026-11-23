@@ -35,7 +35,7 @@ export function reachOf(m, p) {
 }
 export class Human {
   constructor(game) {
-    this.g = game; this.coach = new AI(); this.coach.eagerPre = true; this.coach.noLob = !globalThis.__autoLobOld; this.coach.noSlice = !globalThis.__autoSliceOld; this.aim = { X: 0, D: -9.5 }; this.hold = null; this.power = 0; this.lastTiming = null; this.tau = null; this.kind = 'drive';
+    this.g = game; this.coach = new AI(); this.coach.eagerPre = true; this.coach.noLob = !globalThis.__autoLobOld; this.coach.noSlice = !globalThis.__autoSliceOld; this.coach.noDrop = !globalThis.__autoDropOld; this.aim = { X: 0, D: -9.5 }; this.hold = null; this.power = 0; this.lastTiming = null; this.tau = null; this.kind = 'drive';
     this.safe = [0.35, 0.9]; this.srvSafe = 0.35;       // how far inside the lines the aim marker is kept (set from the difficulty)
     this.readAt = 0; this.readInc = null; this.buf = -9;
     this.build = 'classic-9';                        // named in the local play log, so a browser running a stale copy shows up

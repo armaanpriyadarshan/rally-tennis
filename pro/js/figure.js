@@ -702,7 +702,7 @@ export class Figure {
       const dA = d0.map((v, q) => v + (dM[q] - v) * k1), dir = dA.map((v, q) => v + (dT[q] - v) * k2), dl = Math.hypot(...dir) || 1;
       const bl = (a, b) => a.map((v, q) => v + (b[q] - v) * k);
       pose = { ...pose, L: bl(pose.L, Lp), R: bl(pose.R, Rp), dir: dir.map(v => v / dl), nrm: globalThis.__upNrm || [1, 0, 0], lgrip: (pose.lgrip || 0) * (1 - k), elbows: (pose.elbows || 0) * (1 - k) };
-      this.reactK = Math.max(this.reactK, k); this.reactFist = globalThis.__upFist ?? (globalThis.__upFistOld ? 1 : 0); this.reactShout = 0; this.reactPoint = 0; this.reactPole = null; this.upOpen = globalThis.__upFistOld ? 0 : k; }
+      this.reactK = Math.max(this.reactK, k); this.reactFist = globalThis.__upOpen ? 0 : 1; this.reactShout = 0; this.reactPoint = 0; this.reactPole = null; this.upOpen = globalThis.__upOpen ? k : 0; }   /* (a fist, a real one: he said "should be fists") */
     else if (this.celebArm && this.celebArm.k > 0.001) { const C = CELEB_MOTION.celeb_fists, k = clamp(this.celebArm.k, 0, 1);
       if (C && C.J) { const n = C.J.pelvis.length / 3, x = clamp(this.celebArm.u * 60, 0, n - 1.001), f0 = Math.floor(x), w = x - f0;
         const g = (nm, c) => C.J[nm][f0 * 3 + c] * (1 - w) + C.J[nm][(f0 + 1) * 3 + c] * w;
@@ -2751,7 +2751,7 @@ export class Figure {
       if (tH) person.setFingers(S, tH.curl ?? 0.8, 0); else
       if (i === off && (this.upOpen || 0) > 0.001 && !this.shakeSwap) person.setFingers(S, lerp(0.3, 0.12, this.upOpen), 0); else
       if (shK > 0.001 || swapHold || (this.shakeSwap && i === hit)) person.setFingers(S, swapHold ? 1.02 : 0.3 + 0.32 * shK, 0); else
-      person.setFingers(S, i === hit ? 1.02 : m.ball && m.ball.held === p.i ? 0.45 : Math.max(0.3 + 0.65 * gripW, globalThis.__reactAnimOld ? 0 : (this.reactK || 0) * (this.reactFist || 0) * 1.05), i !== hit && !globalThis.__pointOld ? (this.reactK || 0) * (this.reactPoint || 0) : 0);   /* (the free hand clenched for a fist pump, the vamos; its index finger out for Wawrinka's tap to the temple) */
+      person.setFingers(S, i === hit ? 1.02 : m.ball && m.ball.held === p.i ? 0.45 : Math.max(0.3 + 0.65 * gripW, globalThis.__reactAnimOld ? 0 : (this.reactK || 0) * (this.reactFist || 0) * 1.05), i !== hit && !globalThis.__pointOld ? (this.reactK || 0) * (this.reactPoint || 0) : 0, i !== hit && !(m.ball && m.ball.held === p.i) && !globalThis.__fistOld ? (this.reactK || 0) * (this.reactFist || 0) * (1 - clamp(gripW * 2, 0, 1)) : 0);   /* (the free hand clenched for a fist pump, the vamos; its index finger out for Wawrinka's tap to the temple) */
       // legs: the ankle where the clip puts it over the ground, the knee bent the way the clip's is
       const hip = i === 0 ? hipL : hipR, ft = this.feet[i], jh = LJ[i][0], jk = LJ[i][1], ja = LJ[i][2], jt = LJ[i][3];
       const ankle = _an[i];
