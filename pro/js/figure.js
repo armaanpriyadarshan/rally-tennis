@@ -671,6 +671,11 @@ export class Figure {
       // down by the hip to the top of the head, both arms passed up through the chest on the way to the hands-on-head)
       if (!globalThis.__reactBowOld) { const bow = Math.sin(Math.PI * clamp(k, 0, 1)) * (globalThis.__reactBow ?? 0.26); if (bow > 0.001) for (const hk of ['R', 'L']) if (R[hk][1] > 1.3) pose[hk] = [pose[hk][0], pose[hk][1], pose[hk][2] + bow]; }
     }
+    // At the end of a match (game.js, endSequence): the winner's celebration, the loser's walk off in his head, or the trophy held up.
+    // The game sets this.celeb = { kind, u, k } each frame; kind picks a track below, u is its clock, k how far it holds the body.
+    if (this.celeb && CELEB[this.celeb.kind]) { const C = this.celeb, T = CELEB[C.kind], k = clamp(C.k, 0, 1);
+      if (k > 0.001) { const R = T.at(C.u, this); pose = blendPose(pose, R, k); this.reactK = Math.max(this.reactK, k); this.reactShout = (T.shout || 0); this.reactFist = T.fist || 0; this.reactPoint = 0; this.reactPole = null;
+        const bow = Math.sin(Math.PI * k) * 0.26; if (bow > 0.001 && k < 0.999) for (const hk of ['R', 'L']) if (R[hk][1] > 1.3) pose[hk] = [pose[hk][0], pose[hk][1], pose[hk][2] + bow]; } }
     // The small things players do between points. After a point that is nothing to shout about, now and then: a wipe of the
     // forehead with the wristband, a look down at the strings, a twirl of the racket in the hand as he turns away. Waiting
     // to receive, now and then a spin of the racket in his hands. (Without them, between the points every man stood or walked
@@ -3373,6 +3378,63 @@ const FH_SLICE = track([
 // out from the leg and half way to level, forty-five degrees forward and tipped out, the wrist cocked to hold it there, as
 // nobody holds a racket while pumping the other fist. `__hangOld` before load.)
 const HANG = globalThis.__hangOld ? { R: [0.27, 0.92, 0.12], dir: [0.15, -0.70, 0.70], nrm: [1, 0, 0] } : { R: [0.27, 0.91, 0.12], dir: [0.04, -0.90, 0.43], nrm: [1, 0, 0] };   /* (the hand where it was, out from the hip: drawn in to it, McEnroe's forearm went into his side) */
+// The end of a match. Winning: both arms up in a V and held (the racket in the hand, pointing up), a crouched double fist pump and the
+// roar into the arms up, or the arms spread out to the crowd and a hand on the heart; losing, head down, hands hanging. The trophy:
+// held in both hands at the chest, lifted over the head and held there, brought down to the chest again. (Hand places as everywhere
+// here: [x right, y up, f forward] for a 1.85 m right-hander, R the racket hand.)
+const CELEB = {
+  arms: Object.assign(track([
+    { u: 0.00, ...HANG, L: [-0.22, 0.95, 0.12], twist: 0, lean: 0.06, crouch: 0.04, stance: 0.26, lgrip: 0, head: 0.0 },
+    { u: 0.40, R: [0.42, 2.02, 0.16], L: [-0.42, 2.02, 0.16], dir: [0.25, 0.95, 0.15], nrm: [1, 0, 0], twist: 0, lean: -0.08, crouch: 0.02, stance: 0.30, lgrip: 0, head: 0.38 },
+    { u: 1.20, R: [0.44, 1.96, 0.14], L: [-0.44, 1.96, 0.14], dir: [0.25, 0.95, 0.15], nrm: [1, 0, 0], twist: 0.08, lean: -0.06, crouch: 0.04, stance: 0.30, lgrip: 0, head: 0.32 },
+    { u: 2.00, R: [0.43, 2.03, 0.16], L: [-0.43, 2.03, 0.16], dir: [0.25, 0.95, 0.15], nrm: [1, 0, 0], twist: -0.08, lean: -0.08, crouch: 0.02, stance: 0.30, lgrip: 0, head: 0.40 },
+    { u: 2.90, R: [0.40, 1.94, 0.15], L: [-0.40, 1.94, 0.15], dir: [0.25, 0.95, 0.15], nrm: [1, 0, 0], twist: 0, lean: -0.04, crouch: 0.03, stance: 0.29, lgrip: 0, head: 0.30 },
+    { u: 3.80, R: [0.30, 1.05, 0.18], L: [-0.26, 1.02, 0.14], dir: [0.1, -0.5, 0.85], nrm: [1, 0, 0], twist: 0, lean: 0.04, crouch: 0.03, stance: 0.27, lgrip: 0, head: 0.10 },
+    { u: 4.80, ...HANG, L: [-0.22, 0.95, 0.12], twist: 0, lean: 0.06, crouch: 0.03, stance: 0.25, lgrip: 0, head: 0.05 },
+  ]), { shout: 0.32, fist: 0.6 }),
+  fists: Object.assign(track([
+    { u: 0.00, ...HANG, L: [-0.22, 0.95, 0.12], twist: 0, lean: 0.06, crouch: 0.04, stance: 0.27, lgrip: 0, head: 0.0 },
+    { u: 0.30, R: [0.30, 1.22, 0.30], L: [-0.30, 1.24, 0.30], dir: [0.3, 0.6, 0.75], nrm: [1, 0, 0], twist: 0, lean: 0.30, crouch: 0.20, stance: 0.38, lgrip: 0, head: 0.25 },
+    { u: 0.55, R: [0.30, 0.98, 0.22], L: [-0.30, 0.98, 0.22], dir: [0.3, 0.3, 0.9], nrm: [1, 0, 0], twist: 0, lean: 0.38, crouch: 0.26, stance: 0.40, lgrip: 0, head: 0.20 },
+    { u: 0.80, R: [0.30, 1.26, 0.30], L: [-0.30, 1.26, 0.30], dir: [0.3, 0.6, 0.75], nrm: [1, 0, 0], twist: 0, lean: 0.30, crouch: 0.20, stance: 0.40, lgrip: 0, head: 0.28 },
+    { u: 1.05, R: [0.30, 0.98, 0.22], L: [-0.30, 0.98, 0.22], dir: [0.3, 0.3, 0.9], nrm: [1, 0, 0], twist: 0, lean: 0.38, crouch: 0.26, stance: 0.40, lgrip: 0, head: 0.20 },
+    { u: 1.70, R: [0.40, 1.98, 0.14], L: [-0.40, 1.98, 0.14], dir: [0.25, 0.95, 0.15], nrm: [1, 0, 0], twist: 0, lean: -0.06, crouch: 0.04, stance: 0.31, lgrip: 0, head: 0.40 },
+    { u: 2.90, R: [0.42, 2.02, 0.16], L: [-0.42, 2.02, 0.16], dir: [0.25, 0.95, 0.15], nrm: [1, 0, 0], twist: 0.06, lean: -0.08, crouch: 0.03, stance: 0.30, lgrip: 0, head: 0.36 },
+    { u: 3.80, R: [0.30, 1.05, 0.18], L: [-0.26, 1.02, 0.14], dir: [0.1, -0.5, 0.85], nrm: [1, 0, 0], twist: 0, lean: 0.04, crouch: 0.03, stance: 0.27, lgrip: 0, head: 0.10 },
+    { u: 4.80, ...HANG, L: [-0.22, 0.95, 0.12], twist: 0, lean: 0.06, crouch: 0.03, stance: 0.25, lgrip: 0, head: 0.05 },
+  ]), { shout: 0.45, fist: 1 }),
+  crowd: Object.assign(track([
+    { u: 0.00, ...HANG, L: [-0.22, 0.95, 0.12], twist: 0, lean: 0.06, crouch: 0.04, stance: 0.26, lgrip: 0, head: 0.0 },
+    { u: 0.45, R: [0.72, 1.48, 0.10], L: [-0.72, 1.48, 0.10], dir: [0.85, 0.45, 0.2], nrm: [0, 0, 1], twist: 0.25, lean: -0.04, crouch: 0.02, stance: 0.30, lgrip: 0, head: 0.25 },
+    { u: 1.40, R: [0.72, 1.52, 0.08], L: [-0.72, 1.52, 0.08], dir: [0.85, 0.45, 0.2], nrm: [0, 0, 1], twist: -0.30, lean: -0.04, crouch: 0.02, stance: 0.30, lgrip: 0, head: 0.28 },
+    { u: 2.30, R: [0.70, 1.50, 0.10], L: [-0.70, 1.50, 0.10], dir: [0.85, 0.45, 0.2], nrm: [0, 0, 1], twist: 0.25, lean: -0.04, crouch: 0.02, stance: 0.30, lgrip: 0, head: 0.25 },
+    { u: 2.90, R: [0.32, 1.00, 0.16], L: [-0.04, 1.34, 0.17], dir: [0.1, -0.5, 0.85], nrm: [1, 0, 0], twist: 0, lean: 0.04, crouch: 0.02, stance: 0.27, lgrip: 0, head: 0.12 },
+    { u: 3.90, R: [0.30, 1.00, 0.16], L: [-0.04, 1.34, 0.17], dir: [0.1, -0.5, 0.85], nrm: [1, 0, 0], twist: 0, lean: 0.06, crouch: 0.02, stance: 0.27, lgrip: 0, head: 0.08 },
+    { u: 4.80, ...HANG, L: [-0.22, 0.95, 0.12], twist: 0, lean: 0.06, crouch: 0.03, stance: 0.25, lgrip: 0, head: 0.05 },
+  ]), { shout: 0.2, fist: 0 }),
+  lost: Object.assign(track([
+    { u: 0.00, ...HANG, L: [-0.22, 0.95, 0.12], twist: 0, lean: 0.06, crouch: 0.04, stance: 0.24, lgrip: 0, head: 0.0 },
+    { u: 0.80, R: [0.26, 0.76, 0.04], L: [-0.24, 0.82, 0.04], dir: [0.05, -0.8, 0.6], nrm: [1, 0, 0], twist: 0, lean: 0.20, crouch: 0.02, stance: 0.18, lgrip: 0, head: -0.50 },
+    { u: 4.80, R: [0.26, 0.76, 0.04], L: [-0.24, 0.82, 0.04], dir: [0.05, -0.8, 0.6], nrm: [1, 0, 0], twist: 0, lean: 0.18, crouch: 0.02, stance: 0.18, lgrip: 0, head: -0.45 },
+  ]), { shout: 0, fist: 0 }),
+  trophy: Object.assign(track([
+    { u: 0.00, R: [0.15, 1.24, 0.34], L: [-0.15, 1.24, 0.34], dir: [0, -0.3, 0.95], nrm: [1, 0, 0], twist: 0, lean: 0.02, crouch: 0.02, stance: 0.26, lgrip: 0, head: 0.05 },
+    { u: 0.90, R: [0.15, 1.26, 0.34], L: [-0.15, 1.26, 0.34], dir: [0, -0.3, 0.95], nrm: [1, 0, 0], twist: 0, lean: 0.02, crouch: 0.04, stance: 0.27, lgrip: 0, head: 0.10 },
+    { u: 1.30, R: [0.155, 1.72, 0.50], L: [-0.155, 1.72, 0.50], dir: [0, 0.6, 0.8], nrm: [1, 0, 0], twist: 0, lean: -0.02, crouch: 0.03, stance: 0.28, lgrip: 0, head: 0.25 },   // (up in front of his face, not through it)
+    { u: 1.70, R: [0.155, 2.10, 0.14], L: [-0.155, 2.10, 0.14], dir: [0, 0.9, 0.4], nrm: [1, 0, 0], twist: 0, lean: -0.06, crouch: 0.02, stance: 0.29, lgrip: 0, head: 0.40 },
+    { u: 2.60, R: [0.155, 2.04, 0.15], L: [-0.155, 2.04, 0.15], dir: [0, 0.9, 0.4], nrm: [1, 0, 0], twist: 0.05, lean: -0.05, crouch: 0.03, stance: 0.29, lgrip: 0, head: 0.36 },
+    { u: 3.50, R: [0.155, 2.11, 0.14], L: [-0.155, 2.11, 0.14], dir: [0, 0.9, 0.4], nrm: [1, 0, 0], twist: -0.05, lean: -0.06, crouch: 0.02, stance: 0.29, lgrip: 0, head: 0.42 },
+    { u: 5.20, R: [0.155, 2.06, 0.14], L: [-0.155, 2.06, 0.14], dir: [0, 0.9, 0.4], nrm: [1, 0, 0], twist: 0, lean: -0.05, crouch: 0.03, stance: 0.29, lgrip: 0, head: 0.36 },
+    { u: 5.75, R: [0.155, 1.74, 0.52], L: [-0.155, 1.74, 0.52], dir: [0, 0.6, 0.8], nrm: [1, 0, 0], twist: 0, lean: -0.02, crouch: 0.03, stance: 0.28, lgrip: 0, head: 0.22 },
+    { u: 6.30, R: [0.15, 1.30, 0.32], L: [-0.15, 1.30, 0.32], dir: [0, -0.3, 0.95], nrm: [1, 0, 0], twist: 0, lean: 0.02, crouch: 0.02, stance: 0.27, lgrip: 0, head: 0.12 },
+    { u: 20.0, R: [0.15, 1.30, 0.32], L: [-0.15, 1.30, 0.32], dir: [0, -0.3, 0.95], nrm: [1, 0, 0], twist: 0, lean: 0.02, crouch: 0.02, stance: 0.27, lgrip: 0, head: 0.12 },
+  ]), { shout: 0.15, fist: 0 }),
+};
+// which celebration each man is known for (Djokovic's arms to the crowd, Nadal's fists, Federer's arms up); anyone else by chance
+const CELEB_STYLE = { Nadal: 'fists', Alcaraz: 'fists', Djokovic: 'crowd', Sinner: 'arms', Federer: 'arms', Sampras: 'arms', Agassi: 'crowd', Lendl: 'arms', Borg: 'arms',
+  McEnroe: 'fists', Connors: 'fists', Laver: 'arms', Murray: 'fists', Wawrinka: 'fists', Zverev: 'arms', Thiem: 'fists', Medvedev: 'arms', Tsitsipas: 'crowd', 'del Potro': 'arms',
+  Roddick: 'fists', Kyrgios: 'crowd', Monfils: 'crowd', Becker: 'fists', Edberg: 'arms', Ivanisevic: 'arms', Wilander: 'arms', Kuerten: 'crowd', Hewitt: 'fists' };
+export function celebFor(fig) { return CELEB_STYLE[fig.look && fig.look.name] || ['arms', 'fists', 'crowd'][Math.floor(Math.random() * 3)]; }
 const REACT_ANIM = {
   // (the fist pump as players do it: the fist up to the chin with the elbow tucked down by the ribs, then pulled hard down to
   // the hip, the trunk crunching forward into it, twice. It was a fist held out at the stomach, the forearm level, moving a

@@ -1269,3 +1269,12 @@ still in the air, both in a stroke's finish, for two or three frames.
   10 m for a moment). What differs is the stadium round it, shot at the same moment in eight venues: where the camera stands among the
   stands (in six of them the heads of the rows in front of it run along the bottom of the picture, at Melbourne and Shanghai not), how
   far and how steeply the stands rise, the walls and court colours, and day or night; and the picture pans after the near player.
+- **Celebrations after matches, and a trophy scene if he wins** (he asked for both): at match point the match is held where it ended
+  (out of any serve or stroke it was in), the winner celebrates as he is known to (`CELEB_STYLE` in figure.js: both arms up in a V and
+  held; a crouched double fist pump and roar into the arms up; arms spread to the crowd and a hand on the heart), the loser's head goes
+  down, and after a moment on the wide picture the camera goes in close on the winner; the crowd and the applause swell. If it is his
+  title (a quick match he wins, or the final of an event), a wipe at 5 s to the ceremony: him on the court with the trophy (silver at
+  a Grand Slam, gold elsewhere, a lathed cup with handles, 47 cm) held at the chest, lifted up in front of his face and held over his
+  head, brought down again; confetti coming down; the camera going slowly round him from in front, the stands soft behind; the score
+  bug off. The results come up at 5.2 s (no trophy) or 12.5 s (trophy), and Space or Enter moves it on. `game.endSequence`,
+  `tools/steps_endmatch.mjs` (films it, a quick match's points given to one man). `__endSeqOld` for the old 5 s wait.

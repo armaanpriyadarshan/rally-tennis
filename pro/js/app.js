@@ -336,7 +336,7 @@ class App {
 
   // ---------- a match ----------
   async play(ctx, p0, p1, T, round) {
-    this.ctx = ctx;
+    this.ctx = ctx; this.round = round || null;
     const s = this.sel, set = this.set;
     const session = ctx.kind === 'quick' && s.session !== 'auto' ? s.session : (T.night && Math.random() < 0.4 ? 'night' : 'day');
     const weather = T.indoor ? 'roof' : rollWeather(T, session);
@@ -414,6 +414,7 @@ class App {
   replay(on) { $('#replay').classList.toggle('on', on); $('#reticle').style.opacity = on ? 0 : 1; $('#meter').classList.remove('on'); if (on) { this.tab(null); $('#fb').classList.remove('on'); } }
   cine(on) { $('#reticle').style.opacity = on ? 0 : 1; $('#meter').classList.remove('on'); }
   // into and out of a replay: the slabs close, hold on the mark, and open
+  trophyOn() { $('#bug').classList.add('off'); this.lower(null); }   // (the trophy without the score bug over it)
   sting() { const w = $('#wipe'); w.querySelector('b').innerHTML = MARK; w.dataset.ev = $('#hud').dataset.ev || 'atp'; w.className = 'in'; clearTimeout(this.stingT); this.stingT = setTimeout(() => { if (this.mode === 'match') w.className = ''; }, 560); }
   // Electronic line calling: for a ball within a hand's width of a line, show where it landed.
   lineCall(e, g) {
@@ -477,7 +478,12 @@ class App {
       case 'game': this.bug(g); break;
       case 'set': this.bug(g); break;
       case 'changeEnds': if (e.sit && m.score.g[0] + m.score.g[1] > 0) setTimeout(() => { if (this.mode === 'match' && !g.over && !this.statsOpen) this.statOn(g); }, m.quick ? 1900 : 2600); break;
-      case 'match': this.save(); setTimeout(() => this.finish(), 5200); break;
+      case 'match': { this.save();
+        // a celebration after every match, and the trophy if it is his title: a quick match, or the final of an event (he asked for
+        // "celebrations after matches and a trophy scene if you win"); the results come up when it is over or he moves it on
+        const c = this.ctx || {}, won = m.score.winner === 0 && c.kind !== 'online', title = won && (c.kind === 'quick' || this.round === 'F');
+        if (g.endSequence && !globalThis.__endSeqOld) g.endSequence({ trophy: title, onDone: () => this.finish() }); else setTimeout(() => this.finish(), 5200);
+        break; }
     }
   }
   frame(g, dt) {

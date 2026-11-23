@@ -10,7 +10,7 @@ import { SightGrid } from './sight.js';
 import { insideCourt } from './staff.js';
 import { venueSpec } from './venues.js';
 import { WEATHER, loadSkyTexture } from './skies.js';
-import { Figure } from './figure.js';
+import { Figure, celebFor } from './figure.js';
 import { loadPerson, loadAvatar } from './people.js';
 import { loadCrowdAtlas } from './crowd.js';
 import { loadSurface } from './textures.js';
@@ -24,6 +24,19 @@ const clamp = THREE.MathUtils.clamp, lerp = THREE.MathUtils.lerp;
 const damp = (a, b, k, dt) => a + (b - a) * (1 - Math.exp(-k * dt));
 const sm = x => { x = Math.min(1, Math.max(0, x)); return x * x * (3 - 2 * x); };
 const _v = new THREE.Vector3(), _w = new THREE.Vector3();
+
+// A trophy: a cup on a stem and foot, two handles, a finial; silver for a Grand Slam, gold elsewhere. About 47 cm tall, the size of
+// the big ones; the handles at 27 cm, where his hands hold it.
+function buildTrophy(gold) {
+  const g = new THREE.Group(), mat = new THREE.MeshStandardMaterial({ color: gold ? '#d9b34f' : '#dfe3e8', metalness: 1, roughness: 0.2, envMapIntensity: 1.6 });
+  const prof = [[0, 0], [0.085, 0], [0.085, 0.014], [0.06, 0.024], [0.026, 0.06], [0.02, 0.13], [0.032, 0.15], [0.062, 0.175], [0.086, 0.215], [0.097, 0.27], [0.101, 0.325], [0.106, 0.36], [0.1, 0.366], [0.09, 0.36]].map(([r, y]) => new THREE.Vector2(r, y));
+  g.add(new THREE.Mesh(new THREE.LatheGeometry(prof, 48), mat));
+  const lid = new THREE.Mesh(new THREE.LatheGeometry([[0, 0.43], [0.02, 0.425], [0.03, 0.40], [0.07, 0.375], [0.092, 0.365], [0, 0.365]].map(([r, y]) => new THREE.Vector2(r, y)).reverse(), 40), mat); g.add(lid);
+  const fin = new THREE.Mesh(new THREE.SphereGeometry(0.022, 16, 12), mat); fin.position.y = 0.45; g.add(fin);
+  for (const sd of [-1, 1]) { const h = new THREE.Mesh(new THREE.TorusGeometry(0.06, 0.01, 10, 28, Math.PI), mat); h.rotation.z = sd > 0 ? -Math.PI / 2 : Math.PI / 2; h.position.set(sd * 0.095, 0.27, 0); g.add(h); }
+  g.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  return g;
+}
 const _held = new THREE.Vector3();          // the bounced ball's place: its own vector, since the camera reuses _w before the ball is drawn
 
 export class Game {
@@ -46,6 +59,7 @@ export class Game {
     const indoor = spec.indoor || W.indoor;
     const skyTex = W.sky && !indoor ? await loadSkyTexture(W.sky) : null;
     if (this.fx) { this.gfx.scene.remove(this.fx.group); }
+    this.endCleanup();
     for (const f of this.fig) this.gfx.scene.remove(f.group);
     const model = await loadPerson('m04');
     const [pc, pk] = await Promise.all([loadSurface(spec.surface), loadSurface('concrete')]);
@@ -95,6 +109,92 @@ export class Game {
     return this;
   }
   stop() { this.running = false; if (this.audio) this.audio.stopMatch(); }
+
+  // ---------- the end of a match ----------
+  // He asked for "celebrations after matches and a trophy scene if you win". The match is held where it ended; the winner celebrates
+  // as he is known to (figure.js CELEB), the loser hangs his head, the picture going in close on the winner; and if it is the player's
+  // title, a wipe to the trophy: him on the court with it held up over his head, confetti coming down, the camera going slowly round.
+  // Space or Enter moves it on. onDone is called when it is over (the results come up over it, and it plays on behind them).
+  endSequence(o = {}) {
+    const m = this.match, w = m.score.winner; if (w == null || w < 0) { if (o.onDone) o.onDone(); return; }
+    this.endSeq = { t: 0, who: w, trophy: !!o.trophy, onDone: o.onDone || null, stage: 'cel', kind: celebFor(this.fig[w]), done: false };
+    // (out of whatever the point had them doing: a match that ended as he waited to serve kept his off hand on the ball and his body
+    // in the serve's stance, and the trophy was held in one hand)
+    m.phase = 'done'; m.phaseT = 0; m.ball.held = -1; for (const p of m.players) { p.vx = 0; p.vz = 0; p.stroke = null; p.lastStroke = null; }
+    if (this.arena && this.arena.crowd && this.arena.crowd.cheer) this.arena.crowd.cheer(1, 6);
+    if (this.audio && this.audio.applause) this.audio.applause(1, 5);
+  }
+  endSkip() { const S = this.endSeq; if (!S) return; if (S.stage === 'cel' && S.trophy) { S.t = Math.max(S.t, 4.95); } else if (!S.done) { S.done = true; if (S.onDone) S.onDone(); } }
+  endFrame(dt) {
+    const S = this.endSeq, m = this.match; S.t += dt;
+    const I = this.input; if (I && (I.pressed.has('Space') || I.pressed.has('Enter'))) { I.takePressed(); I.takeEdges(); if (!S.skipT || this.time - S.skipT > 0.4) { S.skipT = this.time; this.endSkip(); } }
+    if (S.stage === 'cel') {
+      const wf = this.fig[S.who], lf = this.fig[1 - S.who];
+      wf.celeb = { kind: S.kind, u: S.t - 0.35, k: sm((S.t - 0.35) / 0.4) * (1 - sm((S.t - 4.6) / 0.5)) };
+      lf.celeb = { kind: 'lost', u: S.t - 0.6, k: sm((S.t - 0.6) / 0.7) };
+      // close on the winner after a moment on the wide picture
+      if (S.t > 1.1 && !S.closeUp) { S.closeUp = true; this.cine = { kind: 'react', t: 0, who: S.who, side: Math.random() < 0.5 ? -1 : 1, seed: Math.random(), hold: true }; this.fig[0].setFirstPerson(false); this.cam.snap = true; if (this.ui && this.ui.cine) this.ui.cine(true); }
+      if (S.trophy) {
+        if (S.t >= 4.95 && !S.sting) { S.sting = true; if (this.ui && this.ui.sting) this.ui.sting(); }
+        if (S.t >= 5.15) this.beginTrophy();
+      } else if (S.t >= 5.2 && !S.done) { S.done = true; if (S.onDone) S.onDone(); }
+    } else {
+      S.t2 += dt; const wf = this.fig[S.who];
+      wf.celeb = { kind: 'trophy', u: S.t2, k: 1 };
+      this.confettiStep(dt);
+      if (S.t2 >= 7.4 && !S.done) { S.done = true; if (S.onDone) S.onDone(); }
+    }
+  }
+  beginTrophy() {
+    const S = this.endSeq, m = this.match, w = S.who, p = m.players[w], f = this.fig[w];
+    S.stage = 'trophy'; S.t2 = 0;
+    p.x = 0; p.z = p.sgn * 5.0; p.vx = 0; p.vz = 0;
+    this.fig[1 - w].group.visible = false; if (f.racket) f.racket.visible = false;
+    m.ball.visible = false; m.ball.held = -1; m.ball.live = false; if (this.fx && this.fx.reset) this.fx.reset();
+    for (const g of this.fig) { g.inited = false; g.handInit = false; } this.settle = true;
+    const T = this.cfg && this.cfg.T, gold = !(T && T.level === 'slam');
+    if (!this.trophyObj) { this.trophyObj = buildTrophy(gold); this.gfx.scene.add(this.trophyObj); }
+    this.trophyObj.visible = true;
+    this.confettiInit(p.x, p.z);
+    this.cine = { kind: 'trophy', t: 0, who: w }; this.fig[0].setFirstPerson(false); this.cam.snap = true; if (this.ui && this.ui.cine) this.ui.cine(true); if (this.ui && this.ui.trophyOn) this.ui.trophyOn();
+    if (this.arena && this.arena.crowd && this.arena.crowd.cheer) this.arena.crowd.cheer(1, 12);
+    if (this.audio && this.audio.applause) this.audio.applause(1, 9);
+  }
+  // the trophy in his hands: its handles where the hands are, upright, turned the way he faces
+  placeTrophy() {
+    const S = this.endSeq; if (!S || S.stage !== 'trophy' || !this.trophyObj) return;
+    const P = this.fig[S.who].person, a = _w.set(0, 0, 0), b = _v.set(0, 0, 0); P.jointPos('L_Hand', a); P.jointPos('R_Hand', b);
+    const mid = a.add(b).multiplyScalar(0.5), hx = b.x - a.x, hz = b.z - a.z;
+    this.trophyObj.position.set(mid.x, mid.y - 0.255, mid.z);
+    this.trophyObj.rotation.set(0, -Math.atan2(hz, hx), 0);   // (its handles along the line between his hands)
+  }
+  confettiInit(cx, cz) {
+    if (!this.confetti) {
+      const n = 700, geo = new THREE.PlaneGeometry(0.035, 0.055), mat = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, toneMapped: false });
+      const mesh = new THREE.InstancedMesh(geo, mat, n); mesh.frustumCulled = false; const col = new THREE.Color(), pal = ['#ffffff', '#f5d76e', '#e9b949', '#d4ff3a', '#9fd3ff', '#ff8a8a'];
+      for (let i = 0; i < n; i++) { col.set(pal[i % pal.length]); mesh.setColorAt(i, col); }
+      this.confetti = { mesh, n, P: new Float32Array(n * 3), V: new Float32Array(n * 3), R: new Float32Array(n * 3), M: new THREE.Matrix4(), Q: new THREE.Quaternion(), E: new THREE.Euler(), S: new THREE.Vector3(1, 1, 1), X: new THREE.Vector3() };
+      this.gfx.scene.add(mesh);
+    }
+    const C = this.confetti; C.cx = cx; C.cz = cz; C.mesh.visible = true;
+    for (let i = 0; i < C.n; i++) this.confettiSpawn(i, true);
+  }
+  confettiSpawn(i, first) { const C = this.confetti, r = Math.random, P = C.P, V = C.V, R = C.R;
+    P[i * 3] = C.cx + (r() - 0.5) * 9; P[i * 3 + 1] = first ? 1.5 + r() * 9 : 8 + r() * 3; P[i * 3 + 2] = C.cz + (r() - 0.5) * 9;
+    V[i * 3] = (r() - 0.5) * 0.4; V[i * 3 + 1] = -(0.55 + r() * 0.6); V[i * 3 + 2] = (r() - 0.5) * 0.4; R[i * 3] = r() * 6.28; R[i * 3 + 1] = r() * 6.28; R[i * 3 + 2] = 2 + r() * 6; }
+  confettiStep(dt) { const C = this.confetti; if (!C) return; const P = C.P, V = C.V, R = C.R, tt = this.time;
+    for (let i = 0; i < C.n; i++) { const j = i * 3;
+      P[j] += (V[j] + Math.sin(tt * 1.7 + i) * 0.25) * dt; P[j + 1] += V[j + 1] * dt; P[j + 2] += (V[j + 2] + Math.cos(tt * 1.3 + i * 0.7) * 0.25) * dt;
+      R[j] += R[j + 2] * dt; R[j + 1] += R[j + 2] * 0.6 * dt;
+      if (P[j + 1] < 0.01) { P[j + 1] = 0.01; V[j] = 0; V[j + 1] = 0; V[j + 2] = 0; R[j + 2] = 0; if (Math.random() < dt * 0.02) this.confettiSpawn(i, false); }
+      C.X.set(P[j], P[j + 1], P[j + 2]); C.Q.setFromEuler(C.E.set(R[j], R[j + 1], 0)); C.M.compose(C.X, C.Q, C.S); C.mesh.setMatrixAt(i, C.M); }
+    C.mesh.instanceMatrix.needsUpdate = true; }
+  endCleanup() {
+    this.endSeq = null;
+    if (this.trophyObj) this.trophyObj.visible = false;
+    if (this.confetti) this.confetti.mesh.visible = false;
+    for (const f of this.fig || []) { f.celeb = null; if (f.group) f.group.visible = true; if (f.racket) f.racket.visible = true; }
+  }
 
   setCamera(mode) {
     this.camMode = mode;
@@ -171,7 +271,8 @@ export class Game {
     // Space (or a click) skips a replay; taken here, before the player's own controls can read it as a toss
     if (this.replay && this.input) { const I = this.input; if (I.pressed.has('Space') || I.pressed.has('Enter') || I.edges.some(e => e.type === 'down')) { I.takePressed(); I.takeEdges(); this.replay.skip = true; } }
     if (this.net) { if (!this.netGo) { this.gfx.render(dt); return; } this.netIn(); }
-    if (!this.paused) {
+    if (this.endSeq && !this.paused) this.endFrame(dt);
+    if (!this.paused && !this.endSeq) {
       this.acc += Math.min(dt, 0.05) * this.timeScale;
       let n = 0;
       while (this.acc >= STEP && n++ < 40) { this.keep(m); m.step(STEP); this.acc -= STEP; if (m.events.length) this.drain(); }
@@ -192,6 +293,7 @@ export class Game {
     // stance, feet and hands are already where they will be, as if the shot had been running all along.
     if (this.settle) { this.settle = false; for (let k = 0; k < 45; k++) for (let i = 0; i < 2; i++) this.fig[i].update(1 / 60, m.players[i], m); }
     for (let i = 0; i < 2; i++) this.fig[i].update(sdt, m.players[i], m);
+    if (this.endSeq) this.placeTrophy();
     // a slide on clay throws up dust and leaves its streak in the court
     for (let i = 0; i < 2; i++) { const sf = this.fig[i].slideFx; if (!sf || sdt <= 0) continue;
       this.slideAcc = (this.slideAcc || 0) + sdt;
@@ -517,7 +619,7 @@ export class Game {
     const m = this.match, c = this.cine;
     if (c) {
       c.t += dt;
-      const done = c.kind === 'intro' ? c.t >= c.dur : (m.phase === 'ready' && m.phaseT > 0.05) || m.phase === 'toss' || m.phase === 'live' || c.t > 9;
+      const done = c.kind === 'trophy' || c.hold ? false : c.kind === 'intro' ? c.t >= c.dur : (m.phase === 'ready' && m.phaseT > 0.05) || m.phase === 'toss' || m.phase === 'live' || c.t > 9;
       if (done || this.replay) this.endCine();
     } else if (this.cineAt && !this.replay && !this.pendingReplay && this.human && m.phase === 'over' && m.phaseT >= this.cineAt.after) {
       const e = this.cineAt.e; this.cineAt = null;
@@ -542,6 +644,13 @@ export class Game {
       cam.position.set(lerp(-A.hx - 3, -5.5, u), lerp(17, 4.4, u), lerp(A.hz + 9, A.hz + 1.5, u));
       cam.lookAt(lerp(1.5, p.x * 0.5, u), lerp(0, 1.1, u), lerp(-5, -2, u));
       fov = lerp(44, 50, u); this.gfx.setFocus(70, 40, 0.004);
+    } else if (c.kind === 'trophy') {
+      // round him slowly from in front, a little below his hands, the stands behind him soft
+      const p = m.players[c.who], f = this.fig[c.who], s = p.sgn, R = 4.3, a = -0.42 + Math.min(0.84, c.t * 0.095), hy = 1.25 + 0.12 * Math.sin(c.t * 0.4);
+      if (f.person) f.person.jointPos('Pelvis', _w); const px = f.person ? _w.x : p.x, pz = f.person ? _w.z : p.z;
+      cam.position.set(px + Math.sin(a) * R, hy, pz - s * Math.cos(a) * R);
+      cam.lookAt(px, 1.62, pz);
+      fov = 34; this.gfx.setFocus(R + 2.5, 8, 0.01);
     } else if (c.kind === 'react') {
       // a long lens on the man who won it, drifting slowly round him
       const p = m.players[c.who], f = this.fig[c.who], s = p.sgn, d = 4.6 - Math.min(1.2, c.t * 0.22), a = c.side * (0.5 + c.t * 0.05);
