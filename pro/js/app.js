@@ -440,8 +440,8 @@ class App {
       else if (type === 'tossMiss' || type === 'tossCatch' || type === 'fault') this.plog.push([type, +m.t.toFixed(2)]); }
     switch (type) {
       case 'hit':
-        if (e.kind === 'serve') { this.tab(null); this.ext(e.who, `<b>${Math.round(e.speed * 3.6)}</b><i>km/h</i>${e.stype === 'kick' ? 'Kick · ' : e.stype === 'slice' ? 'Slice · ' : e.stype === 'flat' ? 'Flat · ' : ''}${e.serveNum === 1 ? '1st' : '2nd'} serve`, 2.6); if (e.who === 0 && e.q < 0.55) this.fb('Mistimed', '#ff6a4d'); }
-        else if (e.who === 0 && e.timing != null) { const a = Math.abs(e.timing), w = e.window || 0.035; this.fb(e.shank ? 'Frame' : a < w * 0.5 ? 'Perfect' : a < w ? 'Good' : e.timing > 0 ? 'Early' : 'Late', e.shank ? '#ff6a4d' : a < w * 0.5 ? '#e2f03a' : a < w ? '#fff' : '#ff6a4d'); }
+        if (e.kind === 'serve') { this.tab(null); this.ext(e.who, `<b>${Math.round(e.speed * 3.6)}</b><i>km/h</i>${e.stype === 'kick' ? 'Kick · ' : e.stype === 'slice' ? 'Slice · ' : e.stype === 'flat' ? 'Flat · ' : ''}${e.serveNum === 1 ? '1st' : '2nd'} serve`, 2.6); if (e.who === 0 && e.q < 0.55) this.fb('Mistimed', '#ff6a4d'); else if (e.who === 0 && e.pf >= 0.99) this.fb('Perfect', '#e2f03a'); }
+        else if (e.who === 0 && e.timing != null) { const a = Math.abs(e.timing), w = e.window || 0.035, pfct = e.pf != null ? e.pf >= 0.99 : a < w * 0.5;   /* (Perfect only when it is: a held early press is Good) */ this.fb(e.shank ? 'Frame' : pfct ? 'Perfect' : a < w ? 'Good' : e.timing > 0 ? 'Early' : 'Late', e.shank ? '#ff6a4d' : pfct ? '#e2f03a' : a < w ? '#fff' : '#ff6a4d'); }
         break;
       case 'bounce': if (e.first && !e.dead && e.miss != null && Math.abs(e.miss) < 0.07) this.lineCall(e, g); break;
       case 'whiff': if (e.who === 0) this.fb(e.relZ > 1 ? 'Early' : e.relZ < -0.3 ? 'Late' : 'Missed', '#ff6a4d'); break;

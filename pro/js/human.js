@@ -189,7 +189,7 @@ export class Human {
         // closes; pressed earlier than that, it is remembered and goes as the ball comes into reach
         // (a touch early, never a miss). Pressed late, it is late. The arrows held as the swing starts are the aim.
         const mine = m.ball.live && m.ball.lastHit !== i, st0 = p.stroke, swinging = !!st0 && !st0.done && st0.tc != null;
-        if (go && mine && !swinging) { this.buf = m.t + 1.6; this.aimFor = m.incoming; this.aimL = latT; this.aimF = fkT; }   // armed for this ball: pressed early, the swing still goes when the ball is on him
+        if (go && mine && !swinging) { this.buf = m.t + 1.6; this.aimFor = m.incoming; this.aimL = latT; this.aimF = fkT; this.pressAt = m.t; }   // armed for this ball: pressed early, the swing still goes when the ball is on him
         // (and the arrows pressed with Space, or any time after it until the swing goes, are the aim: read only as it went, a sixth of a
         // second before the ball, an arrow pressed with an early Space and let go of in between was not the aim, and the ball went where
         // the game chose; he said "sometimes the aiming on the stroke doesnt listen to keypresses". One held as it goes still wins.)
@@ -290,7 +290,9 @@ export class Human {
             else if (own === 'lob') { X = lat ? lat * (COURT.halfW - 1.6) : away * 1.5; D = -(COURT.halfLen - 1.7); power = 0.55; }
             else if (deep) D = -(COURT.halfLen - Math.max(1.3, this.safe[1] + 0.8));
             this.aim.X = X; this.aim.D = D;
-            const st = m.release(i, { kind, tx: X * s, tz: D * s, power, merciful: true, tcAt: planned != null ? planned : undefined });
+            // (how long before this moment Space was pressed: an early press is held and goes now, as it always has, but only one
+            // pressed on the moment is Perfect - sim.js, the Perfect shot)
+            const st = m.release(i, { kind, tx: X * s, tz: D * s, power, merciful: true, tcAt: planned != null ? planned : undefined, pressLead: this.pressAt != null ? Math.max(0, m.t - this.pressAt) : 0 });
             this.choice = null;
             this.kind = kind; this.buf = -9; if (st) this.lastSwing = { t: m.t, timing: st.timing };
           }

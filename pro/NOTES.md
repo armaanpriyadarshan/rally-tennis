@@ -1403,3 +1403,22 @@ still in the air, both in a stroke's finish, for two or three frames.
   on the way (figure.js `handover`, the winner at 3.35 s once his arms are down, the loser at 2.1 s): the racket brought across at
   the waist, the left hand onto the handle above the right (lgrip), at 0.35 s it is the left hand's, slid down to the handle's end
   and let down to hang by his side over half a second (filmed close: no jump). `__shakeCutOld` for the cut; tools/steps_walkshake.mjs.
+- **Better hitting: easy balls punished, Perfect is near-perfect, serves too** (he said, playing Nadal, "even the easy balls dont go
+  fast or accurate", "or flat", "the perfect shots should be like almost perfect, especially serves. rn theyre still ass", "im
+  playing perfectly with nadal and still not hammering it close to the line pulling the opponent out of the court", "fast shots
+  arent that fast", "these rallies take forever btw just make hitting better"). tools/classicbot.mjs `easy=1`, `pf=1` measure it.
+  Before (Nadal v Djokovic, Tour, 500 points): off easy balls 128 km/h, a median 0.86 m from his aim, 8% missed, the same for
+  every man; groundstrokes p50 124 / p90 147 km/h, landing a median 1.0 m inside the nearest line; 45% of points, rallies 7.8.
+  - The easy ball (sim.js `easyT`, a person's only): coming slowly (a rally ball reaches the racket at a median 48 km/h; full
+    under 34, none over 49), met nearly standing, not stretched or jammed, knee to shoulder, cleanly timed: up to +0.25 power, 6%
+    more pace, 30% less topspin, 45% less net clearance, 40% less scatter. `__easyOld`.
+  - Perfect (sim.js `pf`): inside half the timing window AND, with the first game's controls, Space pressed on the moment (within
+    0.09 s, fading out by 0.18 s): an early press is held and swung on time, so it used to measure Perfect every time (98% of the
+    bot's shots); it still plays as before but shows Good. A Perfect groundstroke goes to the line he aims at (0.3 m inside the
+    sideline, 0.75 m inside the baseline), a full angle across court comes in short and wide (8 m from the net), +0.12 power, 4%
+    more pace, less spin and net clearance, 82% less scatter (less off a hard ball). A Perfect serve goes to the T or the wide line
+    (0.22 m inside), 0.35 m inside the service line, 6% harder, a fifth of the scatter. The label says Perfect only for these (and
+    now for serves). `__perfectOld`.
+  - After: groundstrokes p50 139 / p90 161 / max 192 km/h; Perfect ones 144 km/h, a median 0.35 m inside the line, 4% missed;
+    Perfect first serves 96-97% in, 0.3 m from the line, Nadal 200 km/h median (217 max), Sinner 214. Points 45% → ~68%, rallies
+    7.8 → 5 shots. He asked for it ("just make hitting better"): Tour is now easier than the ~40% it was set to.

@@ -719,19 +719,28 @@ export class Match {
     }
     st.hit = true;
     const spec = serveSpec(prof, type, first, it.pace == null ? 1 : it.pace, rng);
-    let speed = spec.kmh / 3.6 * lerp(0.80, 1, q);
+    // A Perfect serve (inside half the window) is near-perfect too (he said "the perfect shots should be like almost perfect,
+    // especially serves"): to the line it was aimed along - the T or wide - deep in the box, 6% harder, a fifth of the scatter
+    // (which otherwise keeps each man's first serves going in as often as his do). A person's only. `__perfectOld`.
+    const swin = this.timingWindow[p.i], pf = !st.auto && !globalThis.__perfectOld ? 1 - clamp((Math.abs(tim) - swin * 0.5) / Math.max(0.005, swin * 0.5), 0, 1) : 0;
+    let stx = it.tx, stz = it.tz;
+    if (pf > 0) { const ax = Math.abs(stx), dz = Math.abs(stz), sg = Math.sign(stx) || 1;
+      if (ax > COURT.halfW * 0.55) stx = sg * (ax + (COURT.halfW - (globalThis.__pfSrvX ?? 0.22) - ax) * pf);
+      else if (ax < COURT.halfW * 0.35) stx = sg * (ax + ((globalThis.__pfSrvX ?? 0.22) - ax) * pf);
+      stz = Math.sign(stz) * (dz + (COURT.svc - (globalThis.__pfSrvZ ?? 0.35) - dz) * pf); }
+    let speed = spec.kmh / 3.6 * lerp(0.80, 1, q) * (1 + (globalThis.__pfSrvV ?? 0.06) * pf);
     const p0 = { x: b.x, y: clamp(b.y, contactH - 0.3, contactH + 0.15), z: p.z - p.sgn * 0.45 };
     const top = spec.top * lerp(0.8, 1, q), side = spec.side * p.hs;
     let sol = null;
     for (let k = 0; k < 22; k++) {
-      sol = solveShot(p0, it.tx, it.tz, speed, top, side, this.env, false);
+      sol = solveShot(p0, stx, stz, speed, top, side, this.env, false);
       if (!sol.ok) { speed *= 1.05; continue; }
       if (sol.clear < spec.minClear) { speed *= 0.972; continue; }
       break;
     }
-    if (!sol || !sol.ok) sol = { el: -0.07, az: Math.atan2(it.tx - p0.x, it.tz - p0.z), speed, top, side };
+    if (!sol || !sol.ok) sol = { el: -0.07, az: Math.atan2(stx - p0.x, stz - p0.z), speed, top, side };
     const cal = this.calib[p.i];
-    const kq = (first ? cal.k1 : cal.k2) * lerp(2.4, 1, q) * (st.auto ? 1 : (it.sigma || 1)) * this.diffScale[p.i] * (spec.sig || 1);
+    const kq = (first ? cal.k1 : cal.k2) * lerp(2.4, 1, q) * (st.auto ? 1 : (it.sigma || 1)) * this.diffScale[p.i] * (spec.sig || 1) * (1 - (globalThis.__pfSrvAcc ?? 0.8) * pf);
     const el = sol.el + rng.g() * SERVE_SIG.el * kq - (dy < -0.12 ? (-dy - 0.12) * 0.12 : 0);
     const az = sol.az + rng.g() * SERVE_SIG.az * kq;
     const v = sol.speed * (1 + rng.g() * SERVE_SIG.v * kq);
@@ -751,9 +760,9 @@ export class Match {
     const right = this.deuceSide ? landSide > 0 : landSide < 0;
     const willIn = lz && inServiceBox(lz.x, lz.z, landSide, right) && (this.incoming.netY == null || this.incoming.netY - BALL.r > netHeightAt(0) - 0.02);
     if (first && willIn) { S.s1In++; S.s1Sum += v * 3.6; S.s1N++; } else if (!first && willIn) { S.s2Sum += v * 3.6; S.s2N++; }
-    this.emit('hit', { who: p.i, kind: 'serve', stype: type, speed: v,   /* (stype: an event's own `type` is 'hit') */ x: p0.x, y: p0.y, z: p0.z, q, serveNum: s.serveNum, power: 1, top, side });
+    this.emit('hit', { who: p.i, kind: 'serve', pf, stype: type, speed: v,   /* (stype: an event's own `type` is 'hit') */ x: p0.x, y: p0.y, z: p0.z, q, serveNum: s.serveNum, power: 1, top, side });
     if (this.online && p.i === 0) this.shotOut(p, 'serve', 'fh', v, 0, type);
-    if (this.shotLog) this.shotLog.push({ who: p.i, kind: 'serve', type, first, kmh: v * 3.6, h: p0.y, top, land: lz, clear: sol.clear, willIn, tgt: [it.tx, it.tz] });
+    if (this.shotLog) this.shotLog.push({ who: p.i, kind: 'serve', type, first, kmh: v * 3.6, h: p0.y, top, land: lz, clear: sol.clear, willIn, tgt: [stx, stz], pf });
   }
 
   // The racket arrives. Is the ball there, and what comes off the strings?
@@ -799,7 +808,7 @@ export class Match {
     // go after: his drive off it goes harder and flatter, and the extra pace is not held against him.
     const power0 = clamp(it.power == null ? 0.6 : it.power, 0, 1);
     const upK = clamp((h - 0.98) / 0.35, 0, 1) * (1 - clamp((h - 1.7) / 0.3, 0, 1)), sitsUp = (!st.auto || it.state === 'attack') && !volley && (kind === 'drive' || kind === 'flat') ? upK * upK * (3 - 2 * upK) * (1 - clamp(stretch * 1.5, 0, 1)) * (1 - 0.5 * clamp(pSpeed / 5, 0, 1)) : 0;
-    const power = Math.min(1, power0 + 0.26 * sitsUp);
+    let power = Math.min(1, power0 + 0.26 * sitsUp);
     // a human's release is clean anywhere inside the timing window; only the excess counts against it
     // Pressure timing (as TopSpin 2K25's meter): a person's clean window is narrower against a fast ball, deep in a long rally and when
     // he is stretched or running, and wider off a slow ball that sits up for him; outside it the timing costs (below). He asked for it
@@ -811,6 +820,28 @@ export class Match {
     const aTim = st.auto ? rng.g() * TUNE.cpuTim * thr * lerp(1.25, 0.75, prof.cons) : 0;
     const tim = st.auto ? aTim : Math.sign(timRaw) * Math.max(0, Math.abs(timRaw) - win);
     const timAbs = Math.abs(tim);
+    // An easy ball - coming slowly (at contact a rally ball comes at a median 48 km/h; full under 34, none over 49), met nearly standing still, not stretched or jammed, between the knee and the shoulder - well
+    // timed, is one a tour player puts away: harder, flatter, lower over the net and nearer where he meant it. (Playing Nadal he said
+    // "even the easy balls dont go fast or accurate ... or flat": off easy balls a person's drives went 128-135 km/h whoever he was,
+    // landed a median 0.86 m from his aim, 8% missed; only a ball above 0.98 m counted as sitting up.) A person's only; the more
+    // easy and the cleaner the timing (inside half the window all of it, none at its edge), the more. `__easyOld`.
+    const easyT = !st.auto && !volley && (kind === 'drive' || kind === 'flat') && !globalThis.__easyOld
+      ? clamp(((globalThis.__easyV ?? 13.5) - vin) / (globalThis.__easyW ?? 4), 0, 1) * (1 - clamp(stretch * 2, 0, 1)) * (1 - clamp((pSpeed - 1) / 2, 0, 1)) * clamp((h - 0.45) / 0.25, 0, 1) * (1 - clamp((h - 1.7) / 0.3, 0, 1)) * (1 - jam) * (1 - clamp((Math.abs(timRaw) - win * 0.5) / Math.max(0.005, win * 0.5), 0, 1))
+      : 0;
+    if (easyT > 0) power = Math.min(1, power + (globalThis.__easyPow ?? 0.25) * easyT);
+    st.easy = easyT;
+    // Perfect (inside half the timing window, as the game calls it; fading out to the window's edge) is near-perfect: he said "the
+    // perfect shots should be like almost perfect" and "im playing perfectly with nadal and still not hammering it close to the line
+    // pulling the opponent out of the court". It went where a Good one went, 0.65 m inside the sideline at the widest he could aim and
+    // 1.7 m inside the baseline at the deepest, with 60% of the scatter at Tour. Now: to the line he aims at, a full angle across court
+    // short and wide, harder and lower over the net, a fraction of the scatter. A person's only. `__perfectOld`.
+    // (With the first game's controls a press made early is held and the swing goes on the moment, so it always measured Perfect:
+    // 98% of the test bot's shots. Perfect is a press made on the moment - within 0.09 s before it, fading out by 0.18 s; one made
+    // earlier plays as before, Good.)
+    const lead = it.pressLead || 0, pfLead = 1 - clamp((lead - (globalThis.__pfLead ?? 0.09)) / 0.09, 0, 1);
+    const pf = !st.auto && !globalThis.__perfectOld && !volley && (kind === 'drive' || kind === 'flat' || kind === 'loop' || kind === 'slice') ? (1 - clamp((Math.abs(timRaw) - win * 0.5) / Math.max(0.005, win * 0.5), 0, 1)) * pfLead : 0;
+    if (pf > 0 && kind !== 'slice') power = Math.min(1, power + 0.12 * pf);
+    st.perfect = pf;
     const retPen = b.isServe ? clamp((vin - 17) / 12, 0, 1.4) * lerp(1.15, 0.80, prof.ret) * TUNE.retPen : 0;
     let diff = clamp((vin - 12) / 22, 0, 1.4) * TUNE.pacePen + hPen + Math.pow(pSpeed / 5.5, 2) * TUNE.runPen * (volley ? 0.55 : 1) + stretch * stretch * TUNE.stretchPen + jam * 0.6
              + rushed * 0.7 + Math.max(0, power0 - 0.78) * TUNE.powPen + (halfVolley ? 0.8 : 0) + spinIn / 4000 * 0.22 + retPen
@@ -830,6 +861,13 @@ export class Match {
       const R = ringOf(kind === 'drive' && (it.kind === 'flat') ? 'flat' : kind, prof, this.diffScale[p.i], diff), a = this.aimSafe[p.i];
       const mx = Math.max(0.2, COURT.halfW - R.x * a), mz = Math.max(COURT.svc - 0.5, COURT.halfLen - R.z * a);
       tx = clamp(tx, -mx, mx); if (Math.abs(tz) > mz) tz = Math.sign(tz) * mz;
+    }
+    if (pf > 0) {
+      const ax = Math.abs(tx), dz = Math.abs(tz), lineX = COURT.halfW - (globalThis.__pfLineX ?? 0.3), lineZ = COURT.halfLen - (globalThis.__pfLineZ ?? 0.75);
+      if (ax > 1.0) tx = Math.sign(tx) * (ax + (lineX - ax) * pf * clamp((ax - 1.0) / 1.5, 0, 1));          // an angle aimed goes to the line
+      const cross = ax > 2.8 && Math.sign(tx) === -Math.sign(b.x || 1e-6) && Math.abs(b.x) > 0.6;
+      if (cross && dz < 9.8) tz = Math.sign(tz) * lerp(dz, globalThis.__pfAngleZ ?? 8.0, 0.7 * pf);                  // across court as wide as it goes: short and wide, off the court
+      else if (dz > 8.5) tz = Math.sign(tz) * (dz + (lineZ - dz) * pf);                                          // deep goes to the baseline
     }
     const forceBlock = !volley && (stretch > 0.75 || (weak > 0.8 && kind !== 'lob'));
     if (forceBlock && kind !== 'lob') kind = kind === 'slice' || wing === 'bh' ? 'slice' : 'block';
@@ -865,6 +903,8 @@ export class Match {
     // His own arc: a flat hitter (Connors, Agassi) drives the ball low over the net at his own pace and it skids through;
     // a heavy topspin player keeps his margin and it kicks up. The court shifts everyone (more margin on clay, less on grass).
     if ((kind === 'drive' || kind === 'loop')) minClear *= clamp(1 + (wingRpm - 2500) / 2000 * 0.75, 0.7, 1.15) * (prof.arcS || 1);
+    if (pf > 0 && (kind === 'drive' || kind === 'flat')) { v *= 1 + 0.04 * pf; top *= 1 - 0.12 * pf; minClear *= 1 - (globalThis.__pfClr ?? 0.3) * pf; }   // (Perfect: harder, lower)
+    if (easyT > 0 && (kind === 'drive' || kind === 'flat')) { v *= 1 + 0.06 * easyT; top *= 1 - (globalThis.__easyTop ?? 0.3) * easyT; minClear *= 1 - (globalThis.__easyClr ?? 0.45) * easyT; }   // (harder, flatter, lower: the easy ball, above)
     // a faster incoming ball comes back faster; a stretched or late one comes back softer
     if (mode === 'speed' && kind !== 'slice' && kind !== 'block' && kind !== 'volley') { v *= 1 + clamp((vin - 14) / 60, -0.06, 0.12); v *= 1 - 0.34 * weak; top *= 1 - 0.3 * weak; }
     // low balls cannot be ripped: the strings can only lift so much
@@ -894,7 +934,7 @@ export class Match {
     const steady = lerp(1.28, 0.92, prof.cons) * this.diffScale[p.i] * (it.sigma || 1) * clean;
     // a clean swing takes the level's share off the routine part of the spread only: off an easy ball it goes where it
     // was sent, while what makes a ball hard (pace, width, running, a stretch) is still all there
-    const k = st.auto ? sig * steady * (1 + diff) : sig * (steady / clean) * (clean + diff);
+    const k = (st.auto ? sig * steady * (1 + diff) : sig * (steady / clean) * (clean + diff)) * (1 - (globalThis.__easyAcc ?? 0.4) * easyT) * (1 - (globalThis.__pfAcc ?? 0.82) * pf * (1 - 0.5 * clamp(diff / 1.5, 0, 1)));   // (and nearer his aim; Perfect most of all, less so off a hard ball)
     // timing drags the ball: early pulls it across the body, late pushes it wide
     const pull = -clamp(tim, -0.11, 0.13) * TUNE.timPull * (relX >= 0 ? 1 : -1) * p.hs * p.sgn;
     let outEl = sol.el + rng.g() * TUNE.sigEl * k - clamp(tim, -0.1, 0.1) * TUNE.timEl;
@@ -938,9 +978,9 @@ export class Match {
     this.incoming = this.makeIncoming();
     b.threat = shotThreat(outV, sol.top, this.incoming.land, diff, kind);
     const q = st.auto ? 1 : clamp(1 - timAbs / 0.10, 0, 1);
-    this.emit('hit', { who: p.i, kind, wing, speed: outV, x: p0.x, y: p0.y, z: p0.z, q, timing: st.auto ? null : timRaw, window: win, power, diff, shank, volley, ret: wasServe, top: sol.top, vin });
+    this.emit('hit', { who: p.i, kind, wing, speed: outV, x: p0.x, y: p0.y, z: p0.z, q, timing: st.auto ? null : timRaw, window: win, power, diff, shank, volley, ret: wasServe, top: sol.top, vin, pf: st.auto || globalThis.__perfectOld ? null : (st.perfect || 0) });
     if (this.online && p.i === 0) this.shotOut(p, kind, wing, outV, diff);
-    if (this.shotLog) this.shotLog.push({ who: p.i, kind, wing, kmh: outV * 3.6, h, diff, D, top: sol.top, land: this.incoming.land, clear: this.incoming.netY == null ? null : this.incoming.netY - netHeightAt(0), tgt: [tx, tz], vin: vin * 3.6, lat: relX, relZ, ret: wasServe, volley, state: it.state, slack: it.slack, rally: this.rally, pt: this.history.length, weak, pSpeed, mistimed, perfect: !st.auto && Math.abs(timRaw) < win * 0.5 });
+    if (this.shotLog) this.shotLog.push({ who: p.i, kind, wing, kmh: outV * 3.6, h, diff, D, top: sol.top, land: this.incoming.land, clear: this.incoming.netY == null ? null : this.incoming.netY - netHeightAt(0), tgt: [tx, tz], vin: vin * 3.6, lat: relX, relZ, ret: wasServe, volley, state: it.state, slack: it.slack, rally: this.rally, pt: this.history.length, weak, pSpeed, mistimed, perfect: !st.auto && Math.abs(timRaw) < win * 0.5, pf: st.perfect || 0, easy: st.easy || 0, power });
   }
 }
 
