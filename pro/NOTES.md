@@ -1257,3 +1257,6 @@ still in the air, both in a stroke's finish, for two or three frames.
   the original Rally's rules (`classic/index.html`, `advanceAfterPoint`): one set, first to three games by two, at 2-2 a tiebreak to
   seven by two that decides the match; games played to deuce and advantage. A "Classic" chip beside Tour / Short / One set / Tiebreak.
   Checked by awarding points in the engine: 3-0 and 3-1 win, 2-2 goes to the tiebreak, 6-8 in it ends the match, a game through deuce.
+- **The scoring chips renamed and reordered** (he said "it should be before tiebreak. also rename them to like five sets, three sets
+  instead of tour and short"): Five sets · Three sets · One set · Classic · Tiebreak. "Tour" (best of five at the slams, three elsewhere)
+  and "Short" (sets to four) are no longer offered; the default is three sets, and a saved Tour or Short becomes three sets.

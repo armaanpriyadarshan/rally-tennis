@@ -31,13 +31,14 @@ const KIT_EVENTS = ['ao', 'rg', 'wim', 'us'];
 const LOCAL = location.hostname === '127.0.0.1' || location.hostname === 'localhost';
 
 const SAVE = 'rallypro.settings.v1';
-const DEFAULTS = { controls: 'classic', assist: 1, aimSens: 1, fov: 68, quality: 2, volume: 0.8, voice: true, markers: true, replays: 'best', cam: 'tv', difficulty: 1, format: 'auto', player: null, tips: 0 };
+const DEFAULTS = { controls: 'classic', assist: 1, aimSens: 1, fov: 68, quality: 2, volume: 0.8, voice: true, markers: true, replays: 'best', cam: 'tv', difficulty: 1, format: 'atp3', player: null, tips: 0 };
 
 class App {
   constructor() {
     const saved = JSON.parse(localStorage.getItem(SAVE) || '{}');
     this.set = { ...DEFAULTS, ...saved };
     if (!saved.rev) this.set.assist = DEFAULTS.assist;
+    if (this.set.format === 'auto' || this.set.format === 'short') this.set.format = 'atp3';   // (Tour and Short are no longer offered: three sets)
     // (the broadcast camera is the default view from 2026-11-23, "make the default pov the broadcast": a setting saved before then, which
     // held the old default, is moved to it once; V still changes it)
     if (!saved.camTv) { this.set.cam = 'tv'; this.set.camTv = 1; try { localStorage.setItem(SAVE, JSON.stringify(this.set)); } catch (e) {} }
@@ -216,7 +217,7 @@ class App {
     });
   }
   options() {
-    const s = this.set, fm = [['auto', 'Tour'], ['short', 'Short'], ['one', 'One set'], ['tb10', 'Tiebreak'], ['classic', 'Classic']];
+    const s = this.set, fm = [['slam5', 'Five sets'], ['atp3', 'Three sets'], ['one', 'One set'], ['classic', 'Classic'], ['tb10', 'Tiebreak']];   /* (named by what they are, he asked: "five sets, three sets instead of tour and short"; Classic before Tiebreak) */
     return `<span class="chips">${fm.map(([k, n]) => `<span class="chip ${s.format === k ? 'on' : ''}" data-f="${k}">${n}</span>`).join('')}</span>
       <span class="chips">${DIFFICULTY.map((d, i) => `<span class="chip ${s.difficulty === i ? 'on' : ''}" data-d="${i}">${d.name}</span>`).join('')}</span>`;
   }
