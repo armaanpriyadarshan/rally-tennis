@@ -1243,3 +1243,13 @@ still in the air, both in a stroke's finish, for two or three frames.
   and whipping over in four frames. Audited on the controls (Federer–Nadal, Alcaraz–Sinner, all of today's arm changes against none):
   hand speed on the run median 0.99/1.05 → 0.81/0.89 m/s, Alcaraz's frames over 3 m/s 4.3 → 1.8 %, Federer standing p95 2.5 → 1.2;
   feet and the other arm counts the same within a frame or two. Points won on Tour unchanged (49 %).
+- **"The first frames of walking in the match are fucked"**: at a match's start the bodies were not settled before the first picture
+  (they are at every cut between points), so both men stood in the ready crouch, feet wide and arms hanging out, the weights for
+  upright and for the walk at zero, and lurched up into the walk over half a second. `game.start` now settles them as a cut does
+  (`__openSettleOld`). Filmed (`tools/steps_matchopen.mjs`, close from behind and the broadcast side, every third frame): upright and
+  the racket at his side from the first frame, then walking off.
+- **"All replays should be broadcast replays"**: a replay is now the main broadcast camera, the live `tv` camera fed the replayed
+  point (its crane, its framing of both men, its focus), at one slow pace (0.42, from 1.1 s before the shot to 0.7 s after the bounce),
+  inside the same wipe. `__repTvOld` brings back the side camera and the reverse angle.
+- **"Make the default pov the broadcast"**: `DEFAULTS.cam` is `tv`; a saved setting from before is moved to it once (`camTv`), and V
+  still changes it.

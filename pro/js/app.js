@@ -31,13 +31,16 @@ const KIT_EVENTS = ['ao', 'rg', 'wim', 'us'];
 const LOCAL = location.hostname === '127.0.0.1' || location.hostname === 'localhost';
 
 const SAVE = 'rallypro.settings.v1';
-const DEFAULTS = { controls: 'classic', assist: 1, aimSens: 1, fov: 68, quality: 2, volume: 0.8, voice: true, markers: true, replays: 'best', cam: 'fp', difficulty: 1, format: 'auto', player: null, tips: 0 };
+const DEFAULTS = { controls: 'classic', assist: 1, aimSens: 1, fov: 68, quality: 2, volume: 0.8, voice: true, markers: true, replays: 'best', cam: 'tv', difficulty: 1, format: 'auto', player: null, tips: 0 };
 
 class App {
   constructor() {
     const saved = JSON.parse(localStorage.getItem(SAVE) || '{}');
     this.set = { ...DEFAULTS, ...saved };
     if (!saved.rev) this.set.assist = DEFAULTS.assist;
+    // (the broadcast camera is the default view from 2026-11-23, "make the default pov the broadcast": a setting saved before then, which
+    // held the old default, is moved to it once; V still changes it)
+    if (!saved.camTv) { this.set.cam = 'tv'; this.set.camTv = 1; try { localStorage.setItem(SAVE, JSON.stringify(this.set)); } catch (e) {} }
     if ((saved.rev || 0) < 3) this.set.player = null;        // the tour is twelve players now: old picks no longer point at the same man
     if ((saved.rev || 0) < 4) { this.set.controls = 'classic'; this.set.cam = 'chase'; }     // the first game's controls, seen from behind the player
     if ((saved.rev || 0) < 5) { this.set.cam = 'fp'; this.set.assist = 1; }                  // first person, with Assist footwork (2026-11-11)

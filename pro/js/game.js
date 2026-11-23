@@ -84,6 +84,10 @@ export class Game {
     this.setCamera(cfg.cam || (cfg.demo ? 'tv' : 'fp'));
     this.drawBoard();
     this.acc = 0; this.running = true; this.over = false; this._prev = null;
+    // (the bodies settled into where the match finds them before its first picture, as at every cut between points: not settled, both men
+    // set off from the ready crouch, feet wide and arms hanging out, and lurched up into the walk in the first half second, "the first
+    // frames of walking in the match are fucked")
+    if (!globalThis.__openSettleOld) this.settle = true;
     this.cine = cfg.intro ? { kind: 'intro', t: 0, dur: 3.9 } : null; this.cineAt = null;
     if (this.cine) this.fig[0].setFirstPerson(false);
     if (this.ui) this.ui.matchStart(this);
@@ -377,11 +381,12 @@ export class Game {
   }
   startReplay(e) {
     const R = this.rec; if (!R || R.length < 40) return;
+    if (this.cine && !globalThis.__repTvOld) this.endCine();   // (a shot of the winner still running would take the broadcast camera's place)
     const k = this.strikeOf(e.winner); if (k < 0) return;
     // where the winning ball bounced: the replay ends a moment after it, before the camera has only the back wall to look at
     let bx = 0, bz = -Math.sign(R[k].p[e.winner].z) * 9, tb = R[k].t + 1.2;
     for (let j = k + 1; j < R.length; j++) { const b = R[j].ball; if (b.bounces > 0) { bx = b.x; bz = b.z; tb = R[j].t; break; } }
-    const tc = R[k].t, last = R[R.length - 1].t, from = Math.max(R[0].t, tc - (globalThis.__repCamOld ? 1.1 : 0.65)), end = Math.min(last, tb + (globalThis.__repCamOld ? 0.7 : 0.55));
+    const tc = R[k].t, last = R[R.length - 1].t, repOne = globalThis.__repCamOld || !globalThis.__repTvOld, from = Math.max(R[0].t, tc - (repOne ? 1.1 : 0.65)), end = Math.min(last, tb + (repOne ? 0.7 : 0.55));
     // (kept from half a second before it opens, for the figures' unseen run-in below: cut at the opening itself,
     // as it was, that run-in had nothing to run through, and every replay opened with the figures cold, the springs that keep an
     // arm out of the body starting from nothing in the middle of a swing)
@@ -390,7 +395,7 @@ export class Game {
     this.replay = { frames, t: from, end, tc, speed, who: e.winner, bx, bz, lx: Lp.x, lz: Lp.z, k: 0, side: A.x >= 0 ? 1 : -1, cut: false, cx: null, cz: null };
     this.replays = (this.replays || 0) + 1; this.lastReplayPt = this.match.history.length;
     for (const f of this.fig) { f.inited = false; f.handInit = false; f.setFirstPerson(false); }
-    this.match.timer += globalThis.__repCamOld ? (end - from) / speed + 0.2 : Math.max(0, Math.min(end, tc + 0.42) - from) / 0.28 + Math.max(0, end - Math.max(from, tc + 0.42)) / 0.5 + 0.6;
+    this.match.timer += repOne ? (end - from) / speed + 0.2 : Math.max(0, Math.min(end, tc + 0.42) - from) / 0.28 + Math.max(0, end - Math.max(from, tc + 0.42)) / 0.5 + 0.6;
     this.cam.snap = true;
     // (the ball's streak starts afresh: drawn through the last places it had in the live point, the replay opened on a yellow streak
     // from wherever the point ended to where the replay begins)
@@ -416,7 +421,9 @@ export class Game {
     const rp = this.replay, F = rp.frames, live = this.match;
     // (super slow motion through the shot, from the side, as a broadcast's slow-motion camera has it; then the ball to its bounce at
     // half speed from the other end)
-    if (!globalThis.__repCamOld) rp.speed = rp.t < rp.tc + 0.42 ? 0.28 : 0.5;
+    // (and every replay is now the broadcast's own picture, he said "all replays should be broadcast replays": the main camera, as the
+    // point was seen, at one slow pace. __repTvOld for the side camera and the reverse angle)
+    if (!globalThis.__repCamOld && globalThis.__repTvOld) rp.speed = rp.t < rp.tc + 0.42 ? 0.28 : 0.5;
     if (rp.stingOut == null) rp.t += dt * rp.speed;
     // (and out as it came in: the wipe closes over the replay's last moment and the next point comes up behind it)
     if (this.ui && this.ui.sting && !globalThis.__repStingOld) {
@@ -461,7 +468,12 @@ export class Game {
       rp.pb = { lastHit: b.lastHit, vx: b.vx, vy: b.vy, vz: b.vz };
       const cam = this.gfx.camera, A = this.arena, C = this.cam, s = rp.who === 0 ? 1 : -1;
       let fov;
-      if (!globalThis.__repCamOld && rp.t < rp.tc + 0.42) {
+      if (!globalThis.__repTvOld && !globalThis.__repCamOld) {
+        // the broadcast camera, as in play, following the replayed point (its crane, its framing of both men, its focus)
+        const keepM = this.match, keepMode = this.camMode; this.match = m; this.camMode = 'tv';
+        try { this.updateCamera(dt); } finally { this.match = keepM; this.camMode = keepMode; }
+        fov = cam.fov;
+      } else if (!globalThis.__repCamOld && rp.t < rp.tc + 0.42) {
         // the broadcast's slow-motion camera at the side of the court, at court level and on a long lens, tight on the man hitting it:
         // a little in front of him, so he is seen three-quarters on, the swing across the picture
         const W = P[rp.who], sx = rp.side, fx = clamp(W.x + sx * 6.2, -A.hx + 0.8, A.hx - 0.8), fz = W.z - s * 2.2;
@@ -487,7 +499,7 @@ export class Game {
       }
       C.snap = false;
       if (Math.abs(cam.fov - fov) > 0.01) { cam.fov = fov; cam.updateProjectionMatrix(); C.fov = fov; }
-      if (this.gfx.setFocus) this.gfx.setFocus(cam.position.distanceTo(_w.set(b.x, b.y, b.z)), 12, 0.006);
+      if (this.gfx.setFocus && (globalThis.__repTvOld || globalThis.__repCamOld)) this.gfx.setFocus(cam.position.distanceTo(_w.set(b.x, b.y, b.z)), 12, 0.006);
       const held = b.held >= 0 ? this.fig[b.held].offHand : null;
       this.fx.update(sdt, b, cam, { held, maxScale: 1.6 });
       this.fx.showLanding(null, 0); this.fx.showAim(0, 0, 1, "#fff", 0); if (this.fx.showMine) this.fx.showMine(null);
