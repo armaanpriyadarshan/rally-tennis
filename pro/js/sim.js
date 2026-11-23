@@ -856,7 +856,9 @@ export class Match {
     // 98% of the test bot's shots. Perfect is a press made on the moment - within 0.09 s before it, fading out by 0.18 s; one made
     // earlier plays as before, Good.)
     const lead = st.pressE != null ? 0 : (it.pressLead || 0), pfLead = 1 - clamp((lead - (globalThis.__pfLead ?? 0.09)) / 0.09, 0, 1);
-    const pf = !st.auto && !globalThis.__perfectOld && !volley && (kind === 'drive' || kind === 'flat' || kind === 'loop' || kind === 'slice') ? (st.pressE != null ? 1 - clamp(((st.pressE < 0 ? -st.pressE - PF_EARLY : st.pressE - PF_LATE)) / 0.02, 0, 1) : (1 - clamp((Math.abs(timRaw) - win * 0.5) / Math.max(0.005, win * 0.5), 0, 1)) * pfLead) : 0;
+    // (volleys and overheads too: he said "the assist keeps mistiming net shots and volleys" - timed within 0.06 s, no volley was ever
+    // Perfect, so every one read Good, Early or Late and played as an ordinary volley. `__volPfOld`)
+    const pf = !st.auto && !globalThis.__perfectOld && (!volley || !globalThis.__volPfOld) && (kind === 'drive' || kind === 'flat' || kind === 'loop' || kind === 'slice' || kind === 'volley' || kind === 'smash') ? (st.pressE != null ? 1 - clamp(((st.pressE < 0 ? -st.pressE - PF_EARLY : st.pressE - PF_LATE)) / 0.02, 0, 1) : (1 - clamp((Math.abs(timRaw) - win * 0.5) / Math.max(0.005, win * 0.5), 0, 1)) * pfLead) : 0;
     if (pf > 0 && kind !== 'slice') power = Math.min(1, power + 0.12 * pf);
     st.perfect = pf;
     const retPen = b.isServe ? clamp((vin - 17) / 12, 0, 1.4) * lerp(1.15, 0.80, prof.ret) * TUNE.retPen : 0;
@@ -929,8 +931,8 @@ export class Match {
       // after its bounce, an easy ball for anyone to run down.
       case 'drop':  mode = 'el'; el = lerp(0.5, 0.62, clamp((1.2 - h) / 1.2, 0, 1)) + (D < 6 ? -0.12 : 0); dropEl0 = el; el -= (globalThis.__dropElOld ? 0 : (globalThis.__dropDeep ?? 0.25) * clamp((D - 7) / 5, 0, 1)); top = -lerp(2200, 3400, prof.touch); minClear = 0.2; sig = 1.25 - prof.touch * 0.4; break;
       case 'lob':   mode = 'el'; el = lerp(0.66, 0.86, clamp(power, 0, 1)); top = weak > 0.5 ? -600 : wingRpm * 0.85; minClear = 2; sig = 1.15; break;
-      case 'volley':v = lerp(14, 27, power) + vin * 0.22; top = -lerp(600, 1500, 1 - power); minClear = 0.14; sig = lerp(1.25, 0.8, prof.volley); break;
-      case 'smash': v = lerp(36, 49, power) * lerp(0.9, 1.02, prof.volley); top = 700; minClear = 0.12; sig = 0.95; break;
+      case 'volley':v = (lerp(14, 27, power) + vin * 0.22) * (1 + 0.15 * pf); top = -lerp(600, 1500, 1 - power); minClear = 0.14; sig = lerp(1.25, 0.8, prof.volley); break;   // (a Perfect volley punched crisper)
+      case 'smash': v = lerp(36, 49, power) * lerp(0.9, 1.02, prof.volley) * (1 + 0.08 * pf); top = 700; minClear = 0.12; sig = 0.95; break;
       // a rally drive goes well over the net and comes down steep enough to kick up (tour forehands clear it by
       // about a metre); only a ball struck to finish the point is driven low and flat
       default:      kind = 'drive'; v = wingKmh / 3.6 * lerp(0.80, 1.20, power); top = wingRpm * lerp(1.06 + 0.16 * clamp((wingRpm - 2600) / 700, 0, 1), 0.92, power); /* a heavy-topspin player's rally ball carries more than his average, his drive less */ minClear = lerp(0.86, 0.32, clamp((power - 0.55) / 0.45, 0, 1)); sig = 1;

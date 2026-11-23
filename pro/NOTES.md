@@ -1487,3 +1487,9 @@ still in the air, both in a stroke's finish, for two or three frames.
     19 (were 1 of 11, 3 of 13: volleyed as drives, or let bounce).
   - The results, or the trophy, at 4.6 s; the walk and handshake go on behind them (`__shakeWaitOld`).
   - Arms up, the free hand open, palm to the crowd, fingers up (its fist came out a claw); `__upFistOld`.
+- **Volleys and overheads can be Perfect** (he said "the assist keeps mistiming net shots and volleys"). classicbot `netman=1` puts
+  him at the net each time the computer strikes: his presses were within ±0.06 s of the moment (p10/p50/p90 -0.06/+0.01/+0.06) and
+  only 1-2 volleys in 160-180 missed - but none was ever Perfect: the Perfect rule left out balls taken in the air, so every volley
+  read Good, Early or Late and played as an ordinary one. Now volleys and smashes are judged the same way (`__volPfOld`), and a
+  Perfect one goes toward the line with a fraction of the scatter, a volley punched 15% crisper, a smash 8% harder: 110 of 142
+  volleys Perfect in the same test.
