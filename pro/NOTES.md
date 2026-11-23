@@ -1235,3 +1235,11 @@ still in the air, both in a stroke's finish, for two or three frames.
   900 deg/s (`__flailOld`, `__calmLim`). Federer on the controls, same match: hand speed on the run median 1.05 → 0.90 m/s, p95
   3.22 → 3.05; standing p95 2.5 → 1.6; Nadal (computer) running over 3 m/s 2.1 → 0.8 % of frames; free hand on hip while running
   1.2 → 0.6 %; feet and the other arm counts unchanged.
+- **The sprint into a late backhand** (the case left half-fixed above): on the controls, the take-back began when the plan's contact was
+  0.85 s off, but the wind-up is timed by when the ball reaches him, which on that sprint was a quarter of a second sooner: it began with
+  0.6 s left and crammed into a third of a second. It now begins by the sooner of the two clocks (`__prepClockOld`, `js/human.js`), and
+  at a sprint the late take-back is let go of over 0.85-0.5 s before the ball, not 0.75-0.55 (`__prepRunOld`). Filmed every other frame
+  (Federer at 5.5-6.3 m/s to a slice): the racket comes to the front and across from 0.6 s out instead of staying on the forehand side
+  and whipping over in four frames. Audited on the controls (Federer–Nadal, Alcaraz–Sinner, all of today's arm changes against none):
+  hand speed on the run median 0.99/1.05 → 0.81/0.89 m/s, Alcaraz's frames over 3 m/s 4.3 → 1.8 %, Federer standing p95 2.5 → 1.2;
+  feet and the other arm counts the same within a frame or two. Points won on Tour unchanged (49 %).

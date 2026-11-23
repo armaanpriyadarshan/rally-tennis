@@ -175,9 +175,11 @@ export class Human {
         if (!globalThis.__aimLatchOld && mine && this.buf > m.t && this.aimFor === m.incoming) { if (latT) this.aimL = latT; if (fkT) this.aimF = fkT; if (!lat) lat = this.aimL || 0; if (!fk) fk = this.aimF || 0; }
         // He reads the ball and turns for it on his own, as early as a player does (about 0.85 s out, as the computer does):
         // the shoulders turn and the racket goes back on the side the ball is coming to, whether or not Space has been
-        // pressed yet. Space says when he swings. (Waiting for the press, the take-back used to start a tenth of a second
+        // pressed yet. Space says when he swings. (By the sooner of the plan's clock and the ball's own, which times the wind-up: by the
+        // plan's alone, on a sprint the ball reached him a quarter of a second before the plan said, the take-back began with 0.6 s left
+        // and crammed into a third of a second, the racket whipped across him - "the arms flail". Waiting for the press, the take-back used to start a tenth of a second
         // before contact, and he swung from the ready position with no wind-up at all.)
-        if (mine && !swinging && plan && !plan.leave && plan.tc != null && plan.cp && plan.tc - m.t < 0.85 && plan.tc - m.t > 0.1 && (!p.stroke || p.stroke.done) && (m.incoming == null || this.prepGone !== m.incoming) && !globalThis.__noPrep) {
+        if (mine && !swinging && plan && !plan.leave && plan.tc != null && plan.cp && (globalThis.__prepClockOld ? plan.tc - m.t : Math.min(plan.tc - m.t, this.tau != null ? this.tau + TIMING.swing : 9)) < 0.85 && plan.tc - m.t > 0.1 && (!p.stroke || p.stroke.done) && (m.incoming == null || this.prepGone !== m.incoming) && !globalThis.__noPrep) {
           if (!this.choice || this.choiceFor !== m.incoming) { this.choiceFor = m.incoming; this.choice = this.coach.decide(m, i, plan); }
           if (m.prep(i, this.choice ? this.choice.kind : 'drive') && p.stroke && !p.stroke.done && p.stroke.tc == null && plan.wing) p.stroke.wing = plan.wing;
         }
