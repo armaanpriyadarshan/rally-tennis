@@ -194,7 +194,10 @@ export class AI {
       const pre = !inc.bounced && ts < landT;
       if (pre && callOut) continue;
       if (pre) {
-        const lobbed = by > 2.0 && by < REACH.jump - 0.15 && D < 10.5 && myD < 11.5;
+        // (a person's legs set him up for the overhead on a lob as deep as his baseline, and prefer it: he said "it doesnt setup
+        // overheads on the lobs" - a lob landing past 10.5 m was always let bounce and played as a ball off the bounce, or volleyed
+        // as a drive)
+        const lobAir = this.eagerPre && !globalThis.__lobAirOld, lobbed = by > 2.0 && by < REACH.jump - 0.15 && D < (lobAir ? 12.6 : 10.5) && myD < (lobAir ? 13.5 : 11.5);
         if (!allowPre && !lobbed) continue;
         if (by < 0.45 || by > REACH.jump - 0.15) continue;
       } else {
@@ -218,7 +221,7 @@ export class AI {
       // rising or falling?
       const vy = k + 9 < path.length ? (path[k + 9] - by) * 15 : -1;
       let hc;
-      if (pre) hc = by > 1.95 ? Math.abs(by - 2.45) * 0.5 : eager ? Math.abs(by - 1.3) * 0.4 - 0.25 + (D > 9.8 ? 0.5 : 0) : Math.abs(by - 1.15) * 0.7 + (D > 6.5 ? 0.6 : 0);
+      if (pre) hc = by > 1.95 ? Math.abs(by - 2.45) * 0.5 - (this.eagerPre && !globalThis.__lobAirOld && (inc.apex || 0) > 4 ? 0.6 : 0) : eager ? Math.abs(by - 1.3) * 0.4 - 0.25 + (D > 9.8 ? 0.5 : 0) : Math.abs(by - 1.15) * 0.7 + (D > 6.5 ? 0.6 : 0);
       // a person's legs set him to take the ball near the top of its bounce, where he can hit through it;
       // the computer lets it drop to the waist as its plan prefers
       // Anywhere from the knee to the shoulder a pro hits through the ball; he does not back off a high one and wait for it

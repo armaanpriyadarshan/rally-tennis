@@ -164,7 +164,10 @@ export class Game {
         if (S.shakeT != null) { const u = S.t - S.shakeT, k = sm((u - 0.0) / 0.45) * (1 - sm((u - 1.8) / 0.35)), pump = 0.03 * Math.sin(Math.PI * 2 * 2.0 * Math.max(0, u - 0.5)) * sm((u - 0.5) / 0.15) * (1 - sm((u - 1.45) / 0.2));
           for (const f of this.fig) f.shake = { k: Math.max(0, k), pump }; }
       }
-      const tEnd = globalThis.__shakeOld || fo ? 4.4 : cutOld ? SHAKE_CUT + 2.35 : S.shakeT != null ? S.shakeT + 2.25 : 1e9;
+      // (the results, or the trophy, at 4.6 s, not after the handshake: he said "you shouldnt have to wait all the way till the
+      // handshake" - walked from the baselines it came at about 13 s. The walk and the handshake go on behind the results.
+      // `__shakeWaitOld` to wait for it)
+      const tEnd = globalThis.__shakeOld || fo ? 4.4 : cutOld ? SHAKE_CUT + 2.35 : !globalThis.__shakeWaitOld ? 4.6 : S.shakeT != null ? S.shakeT + 2.25 : 1e9;
       // close on the winner after a moment on the wide picture
       if (globalThis.__celebCloseOld && S.t > 1.1 && !S.closeUp) {   /* (no close-up: he said "i dont like the closeup on them"; the picture stays on the camera he plays with) */ S.closeUp = true; this.cine = { kind: 'react', t: 0, who: S.who, side: Math.random() < 0.5 ? -1 : 1, seed: Math.random(), hold: true }; this.fig[0].setFirstPerson(false); this.cam.snap = true; if (this.ui && this.ui.cine) this.ui.cine(true); }
       if (S.trophy) {

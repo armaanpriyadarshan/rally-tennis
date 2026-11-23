@@ -671,7 +671,7 @@ export class Figure {
     // A point that meant something gets a reaction, chosen from the ones this player shows (Nadal's crouched
     // "vamos", Connors' fist, Borg next to nothing), by how big the point was and how it ended, never the same
     // twice running, and not after every point: most are played and forgotten.
-    this.reactK = 0;
+    this.reactK = 0; this.upOpen = 0;
     if (p.moodT !== this.reactFor) { this.reactFor = p.moodT; this.react = pickReaction(this, p, m); }
     if (this.react && m.phase === 'over' && t - p.moodT < 2.2 && m.phaseT > 0.3 && !(st && sw > 0.2)) {
       const R0 = REACT[this.react], AN = !globalThis.__reactAnimOld && REACT_ANIM[this.react], R = AN ? AN.at(m.phaseT - 0.3, this) : R0, dur = (AN ? R0.adur : 0) || R0.dur || 1.5, k = sm((m.phaseT - 0.3) / (R0.in || 0.25)) * (1 - sm((t - p.moodT - dur) / 0.5));
@@ -702,7 +702,7 @@ export class Figure {
       const dA = d0.map((v, q) => v + (dM[q] - v) * k1), dir = dA.map((v, q) => v + (dT[q] - v) * k2), dl = Math.hypot(...dir) || 1;
       const bl = (a, b) => a.map((v, q) => v + (b[q] - v) * k);
       pose = { ...pose, L: bl(pose.L, Lp), R: bl(pose.R, Rp), dir: dir.map(v => v / dl), nrm: globalThis.__upNrm || [1, 0, 0], lgrip: (pose.lgrip || 0) * (1 - k), elbows: (pose.elbows || 0) * (1 - k) };
-      this.reactK = Math.max(this.reactK, k); this.reactFist = globalThis.__upFist ?? 1; this.reactShout = 0; this.reactPoint = 0; this.reactPole = null; }
+      this.reactK = Math.max(this.reactK, k); this.reactFist = globalThis.__upFist ?? (globalThis.__upFistOld ? 1 : 0); this.reactShout = 0; this.reactPoint = 0; this.reactPole = null; this.upOpen = globalThis.__upFistOld ? 0 : k; }
     else if (this.celebArm && this.celebArm.k > 0.001) { const C = CELEB_MOTION.celeb_fists, k = clamp(this.celebArm.k, 0, 1);
       if (C && C.J) { const n = C.J.pelvis.length / 3, x = clamp(this.celebArm.u * 60, 0, n - 1.001), f0 = Math.floor(x), w = x - f0;
         const g = (nm, c) => C.J[nm][f0 * 3 + c] * (1 - w) + C.J[nm][(f0 + 1) * 3 + c] * w;
@@ -2714,6 +2714,16 @@ export class Figure {
         Fh.copy(Ff).slerp(_qc, shK);
       }
       else if (swapHold) { swing(Ff, person.dir['grip' + S], this.swapDir(shF, shR), _qc); Fh.copy(_qc); }
+      else if (i === off && (this.upOpen || 0) > 0.001 && person.dir['palmN' + S] && !this.trophyHold) {
+        // (arms up: the free hand open, its palm to the crowd in front of him, the fingers up - his clenched fist came out a claw,
+        // he said "the fingers look weird on the celebration")
+        const fw = (this._upF || (this._upF = V())).set(0, 0, -1).applyQuaternion(this.frame.quaternion);
+        swing(Ff, person.dir['palmN' + S], fw, _qc);
+        const ax = _v9.copy(fw), fd = _a.copy(person.dir['palm' + S]).applyQuaternion(_qc), want = _b.copy(UP);
+        fd.addScaledVector(ax, -fd.dot(ax)); want.addScaledVector(ax, -want.dot(ax));
+        if (fd.lengthSq() > 1e-6 && want.lengthSq() > 1e-6) { fd.normalize(); want.normalize(); const ang = Math.atan2(_v8.copy(fd).cross(want).dot(ax), fd.dot(want)); _qc.premultiply(_q6.setFromAxisAngle(ax, ang)); }
+        Fh.copy(Ff).slerp(_qc, Math.min(1, this.upOpen * 1.2));
+      }
       else if (i === hit) { swing(Ff, person.dir['grip' + S], this.rk.dir, _qc); Fh.copy(_qc); if (globalThis.__dbgGrip) this.dbgGrip = person.dir['grip' + S].clone().applyQuaternion(Ff); }            // the fist closes exactly along the handle
       else if (gripW > 0.001 && !(m.ball && m.ball.held === p.i)) {
         // the off hand closes round the handle from the other side: its palm faces the hitting hand's through the grip
@@ -2739,6 +2749,7 @@ export class Figure {
       person.drive(S + '_Hand', Fh);
       // a hand on the handle closes round it (about 60, 80 and 55 degrees at the three finger joints); a free hand hangs loose
       if (tH) person.setFingers(S, tH.curl ?? 0.8, 0); else
+      if (i === off && (this.upOpen || 0) > 0.001 && !this.shakeSwap) person.setFingers(S, lerp(0.3, 0.12, this.upOpen), 0); else
       if (shK > 0.001 || swapHold || (this.shakeSwap && i === hit)) person.setFingers(S, swapHold ? 1.02 : 0.3 + 0.32 * shK, 0); else
       person.setFingers(S, i === hit ? 1.02 : m.ball && m.ball.held === p.i ? 0.45 : Math.max(0.3 + 0.65 * gripW, globalThis.__reactAnimOld ? 0 : (this.reactK || 0) * (this.reactFist || 0) * 1.05), i !== hit && !globalThis.__pointOld ? (this.reactK || 0) * (this.reactPoint || 0) : 0);   /* (the free hand clenched for a fist pump, the vamos; its index finger out for Wawrinka's tap to the temple) */
       // legs: the ankle where the clip puts it over the ground, the knee bent the way the clip's is

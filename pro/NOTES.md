@@ -1471,3 +1471,19 @@ still in the air, both in a stroke's finish, for two or three frames.
   aimed. Now input.js `moveKeys` (W A S D and a pad's stick) moves him - held, the game's footwork stands aside until he lets go -
   and only the arrows aim (↑/↓ lob, deep, drop; kick or slice on the serve). Before the serve A and D walk him along the line, the
   arrows place it. The controls screen says so. `__wasdOld`.
+- **Six from one message** (he said "the fingers look weird on the celebration. also the speed boost is lowk too much. also nadals
+  balls dont feel the same, especially on clay, not enough bounce or topspin feel. and also you shouldnt have to wait all the way till
+  the handshake", then "also it doesnt setup overheads on the lobs", and "bro the highest his topspin can get to irl is 5000"):
+  - Pace: a Perfect is 1.27 times his own average, not 1.36 (`__strikeTop`).
+  - Each man's shape (sim.js strike, `__shapeOld`): a heavy topspin hitter (sH from his rpm above 2900, Nadal's forehand most, on clay
+    above all) gives up a little pace for much more spin, a higher arc (+0.9 m clearance at full) and lands a little shorter, so the
+    ball dives and kicks. Spin at most 4500 rpm as struck and 5000 with what is added to keep a hard ball in (his figure). Measured,
+    forehands, classicbot (now with the surface's own profiles; `kick=1 fhOnly=1` predicts each drive's peak after its bounce):
+    Nadal on clay 118 km/h, ~4840 rpm, 1.19 m over the net, 1.86 m inside the baseline, up to 1.33 m after the bounce (p80 1.48;
+    struck as everyone's was: 146 km/h, 0.58 m, 1.02 m); on hard 133 km/h, 0.83 m, 0.95 m; Sinner on clay 130 km/h, 1.22 m.
+  - Overheads (ai.js track, human.js, sim.js; `__lobAirOld`): a person's legs take a lob out of the air as deep as his baseline
+    (it had to come down inside 10.5 m), preferring the overhead; with Assist footwork they run him back under it from the start;
+    a lob met in the air from 1.6 m up is a smash. The computer's lobs answered (800 points): Assist 13 smashes of 16, Auto 16 of
+    19 (were 1 of 11, 3 of 13: volleyed as drives, or let bounce).
+  - The results, or the trophy, at 4.6 s; the walk and handshake go on behind them (`__shakeWaitOld`).
+  - Arms up, the free hand open, palm to the crowd, fingers up (its fist came out a claw); `__upFistOld`.

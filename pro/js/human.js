@@ -106,7 +106,7 @@ export class Human {
       // With Assist a ball dropping short in front of him is the game's to run down from the start, as with Auto: by the time
       // a person has seen a drop shot for what it is and pressed a key, three or four tenths of a second, the run up from the
       // baseline is lost, and in the last five metres the legs that take over can no longer make it up.
-      const shortRun = A === 1 && coming && !globalThis.__shortRunOld && (p.z - plan.S.z) * s > 3.0;
+      const shortRun = A === 1 && coming && ((!globalThis.__shortRunOld && (p.z - plan.S.z) * s > 3.0) || (!globalThis.__lobAirOld && m.incoming && (m.incoming.apex || 0) > 4 && plan.pre));   /* (and back under a lob for the overhead, from the start) */
       const helped = coming && (shortRun || Math.hypot(plan.S.x - p.x, plan.S.z - p.z) < near); this.helpedNow = !!helped;
       const any = (wasd ? !(p.stroke && !p.stroke.done && p.stroke.tc != null) : !committed && !helped) && Math.abs(mv.x) + Math.abs(mv.y) > 0.01;   /* (W A S D held, he moves himself, the game's legs standing aside until he lets go; not through the swing itself) */
       if (any) {

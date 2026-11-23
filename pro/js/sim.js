@@ -807,7 +807,7 @@ export class Match {
     const pSpeed = Math.hypot(p.vx, p.vz);
     let kind = it.kind || 'drive';
     const D = b.z * p.sgn;                                    // depth of contact on my side
-    if (volley && h > 1.95 && kind !== 'lob' && kind !== 'drop') kind = 'smash';
+    if (volley && (h > 1.95 || (!st.auto && !globalThis.__lobAirOld && h > 1.6 && this.incoming && (this.incoming.apex || 0) > 4)) && kind !== 'lob' && kind !== 'drop') kind = 'smash';   /* (a person's lob taken out of the air from the height of his head is put away as an overhead) */
     // a slow, floating ball taken out of the air between the waist and the head from back in the court is not punched,
     // it is swung at: the swinging volley (a person always may; the computer if he is the attacking kind)
     else if (volley && kind !== 'lob' && kind !== 'drop' && kind !== 'smash') kind = h > 1.05 && h < 1.95 && vin < 24 && D > 6.0 && (!st.auto || prof.agg > 0.55) ? 'drive' : 'volley';
@@ -949,10 +949,17 @@ export class Match {
     if (kind === 'drive' || kind === 'flat') { const low = clamp((0.5 - h) / 0.5, 0, 1); v *= 1 - 0.22 * low; top *= 1 + 0.12 * low; }
     let topMax = top;
     if (strike) { const loopy = kind === 'loop' || !!st.loop;
-      v = wingKmh / 3.6 * lerp(0.92, globalThis.__strikeTop ?? 1.36, Q) * (kind === 'flat' ? 1.06 : 1) * (loopy ? 0.82 : 1) * (1 - 0.18 * clamp((0.5 - h) / 0.5, 0, 1));
-      top = kind === 'flat' ? wingRpm * lerp(0.45, 0.6, Q) : wingRpm * lerp(0.95, 1.2, Q) * (loopy ? 1.15 : 1);
-      minClear = (loopy ? lerp(1.4, 1.0, Q) : lerp(1.0, globalThis.__strikeClr ?? 0.3, Q)) * (prof.arcS || 1);
-      topMax = kind === 'flat' ? top * 1.25 : top * 1.45; }   // (to keep a hard ball in, more spin before less pace)
+      { const sH0 = kind === 'flat' || globalThis.__shapeOld ? 0 : clamp((wingRpm - 2900) / 700, 0, 1), dz0 = Math.abs(tz); if (sH0 > 0 && dz0 > 8.5) tz = Math.sign(tz) * (dz0 - (globalThis.__shDepth ?? 0.8) * sH0); }
+      // (each man's own shape: a heavy topspin hitter - Nadal, the more so on clay, where he spins it most - gives up a little pace for
+      // much more spin and a higher arc, so the ball dives and kicks up off the court; he said "nadals balls dont feel the same,
+      // especially on clay, not enough bounce or topspin feel": struck alike, everyone's went fast and low. And the top pace a little
+      // lower: "the speed boost is lowk too much", 1.36 times his average at Perfect, now 1.27)
+      const sH = kind === 'flat' || globalThis.__shapeOld ? 0 : clamp((wingRpm - 2900) / 700, 0, 1);
+      v = wingKmh / 3.6 * lerp(0.92, globalThis.__strikeTop ?? 1.27, Q) * (kind === 'flat' ? 1.06 : 1) * (loopy ? 0.82 : 1) * (1 - 0.18 * clamp((0.5 - h) / 0.5, 0, 1)) * (1 - (globalThis.__shV ?? 0.12) * sH);
+      top = kind === 'flat' ? wingRpm * lerp(0.45, 0.6, Q) : Math.min(globalThis.__topCap ?? 4500, wingRpm * lerp(1.0, 1.22, Q) * (1 + (globalThis.__shTop ?? 0.32) * sH) * (loopy ? 1.15 : 1));
+      minClear = (loopy ? lerp(1.4, 1.0, Q) : lerp(1.0, globalThis.__strikeClr ?? 0.3, Q) + (globalThis.__shClr ?? 0.9) * sH * lerp(1, 0.8, Q)) * (prof.arcS || 1);
+      topMax = kind === 'flat' ? top * 1.25 : Math.max(top, Math.min(5000, top * 1.45)); }   /* (5000 rpm at most: as hard as Nadal ever spun one, he said) */   // (to keep a hard ball in, more spin before less pace)
+    if (globalThis.__dbgStrike && strike && (globalThis.__dbgN = (globalThis.__dbgN || 0) + 1) < 12) globalThis.__dbgL = (globalThis.__dbgL || []).concat([{ wing, kind, Q: +Q.toFixed(2), wingRpm: Math.round(wingRpm), v: +(v * 3.6).toFixed(0), top: Math.round(top), minClear: +minClear.toFixed(2), tz: +tz.toFixed(2) }]);
     const p0 = { x: b.x, y: b.y, z: b.z };
     let sol = null;
     if (mode === 'el') {
@@ -969,6 +976,7 @@ export class Match {
       }
     }
     if (!sol || !sol.ok) sol = { el: 0.25, az: Math.atan2(tx - p0.x, tz - p0.z), speed: v || 18, top, side, clear: 0, land: null };
+    if (globalThis.__dbgStrike && strike && globalThis.__dbgL && globalThis.__dbgL.length && !globalThis.__dbgL[globalThis.__dbgL.length - 1].out) globalThis.__dbgL[globalThis.__dbgL.length - 1].out = { v: +(sol.speed * 3.6).toFixed(0), top: Math.round(sol.top), clear: +(sol.clear || 0).toFixed(2), ok: sol.ok };
     // ---- execution: the swing is never exactly the one intended ----
     // A person's timing is his own: the random spread of a swing stands for the misjudgements a computer
     // player is not otherwise charged for, so a ball he times cleanly gets only part of it (the level sets
