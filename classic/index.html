@@ -4271,7 +4271,7 @@ function pollConn() {
 //  footsteps stay synthesised: they vary with surface and pace in ways a
 //  single sample cannot, and they are impacts, which synthesise well.
 // ============================================================
-const SFX_FILES = { hit:'audio/hit.mp3', grunt:'audio/grunt.mp3', crowd:'audio/crowd.ogg' };
+const SFX_FILES = { hit:'../audio/hit.mp3', grunt:'../audio/grunt.mp3', crowd:'../audio/crowd.ogg' };   // (the sounds stay at the site's root, shared with Rally Pro)
 // Where the useful audio actually sits in each file, measured off the waveforms:
 // the hit file is 1.5 s of silence around a 60 ms transient at 0.28 s.
 const HIT_AT = 0.26, HIT_LEN = 0.5, GRUNT_AT = 0.12, GRUNT_LEN = 0.55;

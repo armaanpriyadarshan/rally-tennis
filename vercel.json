@@ -1,0 +1,10 @@
+{
+  "redirects": [
+    { "source": "/classic", "destination": "/classic/", "permanent": false },
+    { "source": "/pro", "destination": "/pro/", "permanent": false }
+  ],
+  "rewrites": [
+    { "source": "/", "destination": "/pro/index.html" },
+    { "source": "/:path((?!classic/|pro/|audio/).*)", "destination": "/pro/:path" }
+  ]
+}
