@@ -1278,3 +1278,13 @@ still in the air, both in a stroke's finish, for two or three frames.
   head, brought down again; confetti coming down; the camera going slowly round him from in front, the stands soft behind; the score
   bug off. The results come up at 5.2 s (no trophy) or 12.5 s (trophy), and Space or Enter moves it on. `game.endSequence`,
   `tools/steps_endmatch.mjs` (films it, a quick match's points given to one man). `__endSeqOld` for the old 5 s wait.
+- **No take-back for a ball he won't get; the miss on the right side** (he said "i dont like how the player takebacks for balls theyre
+  not going to get and if theyre close to a ball but miss sometimes its the wrong animation"): on the controls (`js/human.js`
+  `reachOf`), where the ball's path crosses the line he meets balls on (or, wide of him or already by, its nearest approach), how far
+  that is from him less what he can run in the time left; a ball clearly beyond him (more than his reach plus 1.4 m) gets no
+  wind-up from his reading of it, none from a press of Space, and no swing; a press stays good if he gets there. And the swing goes
+  on the side the ball will be. Audited (Federer on the controls, 150 s): strokes that never met the ball 11 → 4, take-backs shown for
+  them 11 → 3 (the three left 1.5-4.6 m from the ball), misses 7 → 1, on the wrong side 1 → 0; points won on Tour, returns and rally
+  length unchanged (classicbot 46 %, 36 %, 7.0). `__reachOld`. The audit lists these as `MISS` lines.
+- **The face left alone in the celebrations** ("dont do anything with the face"): no mouth opening at the end of a match or with the
+  trophy.

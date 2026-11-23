@@ -674,7 +674,7 @@ export class Figure {
     // At the end of a match (game.js, endSequence): the winner's celebration, the loser's walk off in his head, or the trophy held up.
     // The game sets this.celeb = { kind, u, k } each frame; kind picks a track below, u is its clock, k how far it holds the body.
     if (this.celeb && CELEB[this.celeb.kind]) { const C = this.celeb, T = CELEB[C.kind], k = clamp(C.k, 0, 1);
-      if (k > 0.001) { const R = T.at(C.u, this); pose = blendPose(pose, R, k); this.reactK = Math.max(this.reactK, k); this.reactShout = (T.shout || 0); this.reactFist = T.fist || 0; this.reactPoint = 0; this.reactPole = null;
+      if (k > 0.001) { const R = T.at(C.u, this); pose = blendPose(pose, R, k); this.reactK = Math.max(this.reactK, k); this.reactShout = 0;   /* (the face is left as it is: he said "dont do anything with the face") */ this.reactFist = T.fist || 0; this.reactPoint = 0; this.reactPole = null;
         const bow = Math.sin(Math.PI * k) * 0.26; if (bow > 0.001 && k < 0.999) for (const hk of ['R', 'L']) if (R[hk][1] > 1.3) pose[hk] = [pose[hk][0], pose[hk][1], pose[hk][2] + bow]; } }
     // The small things players do between points. After a point that is nothing to shout about, now and then: a wipe of the
     // forehead with the wristband, a look down at the strings, a twirl of the racket in the hand as he turns away. Waiting
@@ -3391,7 +3391,7 @@ const CELEB = {
     { u: 2.90, R: [0.40, 1.94, 0.15], L: [-0.40, 1.94, 0.15], dir: [0.25, 0.95, 0.15], nrm: [1, 0, 0], twist: 0, lean: -0.04, crouch: 0.03, stance: 0.29, lgrip: 0, head: 0.30 },
     { u: 3.80, R: [0.30, 1.05, 0.18], L: [-0.26, 1.02, 0.14], dir: [0.1, -0.5, 0.85], nrm: [1, 0, 0], twist: 0, lean: 0.04, crouch: 0.03, stance: 0.27, lgrip: 0, head: 0.10 },
     { u: 4.80, ...HANG, L: [-0.22, 0.95, 0.12], twist: 0, lean: 0.06, crouch: 0.03, stance: 0.25, lgrip: 0, head: 0.05 },
-  ]), { shout: 0.32, fist: 0.6 }),
+  ]), { shout: 0, fist: 0.6 }),
   fists: Object.assign(track([
     { u: 0.00, ...HANG, L: [-0.22, 0.95, 0.12], twist: 0, lean: 0.06, crouch: 0.04, stance: 0.27, lgrip: 0, head: 0.0 },
     { u: 0.30, R: [0.30, 1.22, 0.30], L: [-0.30, 1.24, 0.30], dir: [0.3, 0.6, 0.75], nrm: [1, 0, 0], twist: 0, lean: 0.30, crouch: 0.20, stance: 0.38, lgrip: 0, head: 0.25 },
@@ -3402,7 +3402,7 @@ const CELEB = {
     { u: 2.90, R: [0.42, 2.02, 0.16], L: [-0.42, 2.02, 0.16], dir: [0.25, 0.95, 0.15], nrm: [1, 0, 0], twist: 0.06, lean: -0.08, crouch: 0.03, stance: 0.30, lgrip: 0, head: 0.36 },
     { u: 3.80, R: [0.30, 1.05, 0.18], L: [-0.26, 1.02, 0.14], dir: [0.1, -0.5, 0.85], nrm: [1, 0, 0], twist: 0, lean: 0.04, crouch: 0.03, stance: 0.27, lgrip: 0, head: 0.10 },
     { u: 4.80, ...HANG, L: [-0.22, 0.95, 0.12], twist: 0, lean: 0.06, crouch: 0.03, stance: 0.25, lgrip: 0, head: 0.05 },
-  ]), { shout: 0.45, fist: 1 }),
+  ]), { shout: 0, fist: 1 }),
   crowd: Object.assign(track([
     { u: 0.00, ...HANG, L: [-0.22, 0.95, 0.12], twist: 0, lean: 0.06, crouch: 0.04, stance: 0.26, lgrip: 0, head: 0.0 },
     { u: 0.45, R: [0.72, 1.48, 0.10], L: [-0.72, 1.48, 0.10], dir: [0.85, 0.45, 0.2], nrm: [0, 0, 1], twist: 0.25, lean: -0.04, crouch: 0.02, stance: 0.30, lgrip: 0, head: 0.25 },
@@ -3411,7 +3411,7 @@ const CELEB = {
     { u: 2.90, R: [0.32, 1.00, 0.16], L: [-0.04, 1.34, 0.17], dir: [0.1, -0.5, 0.85], nrm: [1, 0, 0], twist: 0, lean: 0.04, crouch: 0.02, stance: 0.27, lgrip: 0, head: 0.12 },
     { u: 3.90, R: [0.30, 1.00, 0.16], L: [-0.04, 1.34, 0.17], dir: [0.1, -0.5, 0.85], nrm: [1, 0, 0], twist: 0, lean: 0.06, crouch: 0.02, stance: 0.27, lgrip: 0, head: 0.08 },
     { u: 4.80, ...HANG, L: [-0.22, 0.95, 0.12], twist: 0, lean: 0.06, crouch: 0.03, stance: 0.25, lgrip: 0, head: 0.05 },
-  ]), { shout: 0.2, fist: 0 }),
+  ]), { shout: 0, fist: 0 }),
   lost: Object.assign(track([
     { u: 0.00, ...HANG, L: [-0.22, 0.95, 0.12], twist: 0, lean: 0.06, crouch: 0.04, stance: 0.24, lgrip: 0, head: 0.0 },
     { u: 0.80, R: [0.26, 0.76, 0.04], L: [-0.24, 0.82, 0.04], dir: [0.05, -0.8, 0.6], nrm: [1, 0, 0], twist: 0, lean: 0.20, crouch: 0.02, stance: 0.18, lgrip: 0, head: -0.50 },
@@ -3428,7 +3428,7 @@ const CELEB = {
     { u: 5.75, R: [0.155, 1.74, 0.52], L: [-0.155, 1.74, 0.52], dir: [0, 0.6, 0.8], nrm: [1, 0, 0], twist: 0, lean: -0.02, crouch: 0.03, stance: 0.28, lgrip: 0, head: 0.22 },
     { u: 6.30, R: [0.15, 1.30, 0.32], L: [-0.15, 1.30, 0.32], dir: [0, -0.3, 0.95], nrm: [1, 0, 0], twist: 0, lean: 0.02, crouch: 0.02, stance: 0.27, lgrip: 0, head: 0.12 },
     { u: 20.0, R: [0.15, 1.30, 0.32], L: [-0.15, 1.30, 0.32], dir: [0, -0.3, 0.95], nrm: [1, 0, 0], twist: 0, lean: 0.02, crouch: 0.02, stance: 0.27, lgrip: 0, head: 0.12 },
-  ]), { shout: 0.15, fist: 0 }),
+  ]), { shout: 0, fist: 0 }),
 };
 // which celebration each man is known for (Djokovic's arms to the crowd, Nadal's fists, Federer's arms up); anyone else by chance
 const CELEB_STYLE = { Nadal: 'fists', Alcaraz: 'fists', Djokovic: 'crowd', Sinner: 'arms', Federer: 'arms', Sampras: 'arms', Agassi: 'crowd', Lendl: 'arms', Borg: 'arms',

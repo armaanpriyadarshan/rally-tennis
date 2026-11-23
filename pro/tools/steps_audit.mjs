@@ -15,6 +15,7 @@ export default async function ({ ev }) {
     A.mode = 'match'; A.input.enabled = true; A.input.locked = true;
     const g = A.game, m = g.match; if (${+(E.MANUAL || 0)}) g.opts.assist = ${+(E.MANUAL || 0)} === 2 ? 0 : 1; g.running = false; g.__R = g.gfx.render.bind(g.gfx); g.gfx.render = () => {};
     const TIMING = (await import('./js/sim.js')).TIMING;
+    { const em = m.emit.bind(m); m.emit = (t, d) => { if (t === 'whiff' && window.__miss) { const a = window.__miss[d.who]; if (a && a.cur) { a.cur.whiff = true; a.cur.lat = +d.lat.toFixed(2); a.cur.side = a.cur.ballLat >= 0 ? 'fh' : 'bh'; } } return em(t, d); }; }
     let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647, gauss = () => Math.sqrt(-2 * Math.log(1 - rnd())) * Math.cos(2 * Math.PI * rnd());
     Object.assign(globalThis, ${JSON.stringify(Object.fromEntries((E.FLAGS || '').split(',').filter(Boolean).map(x => { const [k, v] = x.split('='); return ['__' + k, v === undefined ? true : +v]; })))});
     if (${+(E.RSEED || 0)}) g.audio = null; if (${+(E.RSEED || 0)}) g.fig.forEach((fg, k) => { fg.breath = 0.5 + k * 1.9; if (fg.loco) { fg.loco.phF = (0.13 + k * 0.37) % 1; fg.loco.phS = (0.71 + k * 0.61) % 1; } fg.blinkAt = null; });   // (the figures' own starting phases, drawn while the page loaded)   // (footsteps read the figures' feet and draw on Math.random for their pitch: with sound, a change to the animation changed the replays and so the match)
@@ -83,6 +84,11 @@ export default async function ({ ev }) {
         const up = v().subVectors(J.Neck, J.Pelvis), tLen = up.length(); up.normalize(); const rt = v().subVectors(J.R_UpperArm, J.L_UpperArm); rt.addScaledVector(up, -rt.dot(up)).normalize(); const fw = v().crossVectors(up, rt), shW = J.L_UpperArm.distanceTo(J.R_UpperArm);
         const loc = q => [q.dot(rt), q.dot(up), q.dot(fw)];
         const jump = prev[i] && (J.Pelvis.distanceTo(prev[i].pel) > 0.3 || (ph0 === 'over' && m.phase === 'ready') || prev[i].placedT !== g.fig[i].placedT || m.t < 0.1);   /* (and the match's first frames, under the opening cut) */   // a cut between points (or a replay starting or ending: the figures are re-placed, under a camera cut): skip
+        // strokes that never meet the ball: how far the take-back went, and which side; misses: the side swung against the side it passed
+        { const MS = window.__miss || (window.__miss = [{ cur: null, list: [] }, { cur: null, list: [] }]), a = MS[i], pst = p.stroke, fg = g.fig[i];
+          if (a.cur && a.cur.st !== pst) { const c = a.cur; if (!c.st.hit && c.st.kind !== 'serve') a.list.push({ t: c.t0, end: info.t, kind: c.st.kind, wing: c.st.wing, maxSw: +c.maxSw.toFixed(2), whiff: !!c.whiff, passSide: c.side, lat: c.lat, ball: c.ballLat }); a.cur = null; }
+          if (pst && !a.cur) a.cur = { st: pst, t0: info.t, maxSw: 0 };
+          if (a.cur) { a.cur.maxSw = Math.max(a.cur.maxSw, fg.swNow || 0); const bl = m.ball, rx = (bl.x - p.x) * p.sgn * p.hs; a.cur.ballLat = +rx.toFixed(2); } }
         // hand speed against the chest (m/s), the arms' own motion with running and turning taken out: free on a run, in a stroke away
         // from the hit; and the worst quarter-seconds, for filming ("the arms still flail a lot on running and strokes")
         { const AS = window.__armSp || (window.__armSp = [{ prev: null, cats: {}, win: [], worst: [] }, { prev: null, cats: {}, win: [], worst: [] }])[i] && window.__armSp, a = AS[i], o = v().addVectors(J.L_UpperArm, J.R_UpperArm).multiplyScalar(0.5);
@@ -255,6 +261,7 @@ export default async function ({ ev }) {
       out.push('  trunk hits by phase/arm: ' + Object.entries(trunkBy[i]).sort((x, y) => y[1] - x[1]).slice(0, 10).map(([k, n]) => k + ' ' + n).join(' | '));
       const byW = {}; for (const w of worst[i]) (byW[w.what] || (byW[w.what] = [])).push(w);
       for (const [k, a] of Object.entries(byW)) { a.sort((x, y) => Math.abs(y.val) - Math.abs(x.val)); out.push('  worst ' + k + ': ' + a.slice(0, 4).map(w => w.val + ' @' + w.t + 's ' + w.tag + (w.u != null ? ' u ' + w.u : '') + ' spd ' + w.spd + (w.clipFeet != null ? ' clipFeet ' + w.clipFeet + ' cw ' + w.cw + ' ' + w.lk : '')).join(' | ')); } }
+    for (let i = 0; i < 2; i++) { const a = (window.__miss || [])[i]; if (a) out.push('MISS P' + i + ' ' + JSON.stringify(a.list)); }
     for (let i = 0; i < 2; i++) { const a = (window.__armSp || [])[i]; if (!a) continue; const pc = (x, q) => { x = x.slice().sort((p1, p2) => p1 - p2); return +x[Math.floor(x.length * q)].toFixed(2); };
       const w = a.worst.sort((x, y) => y.mv - x.mv), top = []; for (const x of w) { if (top.some(y => Math.abs(y.t - x.t) < 0.6)) continue; top.push(x); if (top.length >= 6) break; }
       out.push('ARMSP P' + i + ' ' + JSON.stringify({ speeds: Object.fromEntries(Object.entries(a.cats).map(([k, x]) => [k, { n: x.length, p50: pc(x, 0.5), p95: pc(x, 0.95), over3: +(x.filter(y => y > 3).length / x.length * 100).toFixed(1) }])), worst: top })); }
