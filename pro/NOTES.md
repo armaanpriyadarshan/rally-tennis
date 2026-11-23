@@ -1454,3 +1454,10 @@ still in the air, both in a stroke's finish, for two or three frames.
   - A Perfect full angle across court goes to the deep corner by the sideline (aimed short, at 8 m, it could only go 95-115 km/h).
   - Measured (classicbot, Nadal v Djokovic at Tour, pressed on the moment): Perfect drives p10 112 / p50 159 / p90 178 km/h,
     ~0.37 m inside the line, 0-2% missed; points won 78-84%, rallies 4.4 shots.
+- **The timing ring** (he said "the timing circle in the middle is like innaccurate. i time it perfectly and its always early and
+  sometimes good"): it still closed at the swing's start, 0.15 s before contact, after the rework judged a press against 0.08 s
+  before (sim.js): timed to the ring a press was 0.07 s early. It closes at the Perfect moment now (app.js, classic controls) and
+  shows lime within ±0.06 s. Checked in the browser, pressing as the real ring element closed: every shot Perfect, |e| ≤ 0.009 s.
+- **No auto-slice in a rally** (the same check: some "Perfect" shots came off at 87-99 km/h - backhand slices the game had chosen
+  for him): `coach.noSlice` - a person's rally and approach backhands are drives; defending at full stretch, and returning a big
+  serve, the game may still slice for him. `__autoSliceOld`.

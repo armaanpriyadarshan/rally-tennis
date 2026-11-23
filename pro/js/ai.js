@@ -316,7 +316,7 @@ export class AI {
       if (!goNet && cD < 10.2 && r.u() < prof.net * (cpu ? 3.2 : 2.0) + (cD < 7.5 ? 0.45 : 0) + (cpu && short ? 0.2 : 0)) goNet = true;
       this.goNet = goNet; p.approach = goNet;
       const mX = lerp(AIT.atkX0, AIT.atkX1, agg) * (cpu ? 0.82 : 1) + r.range(-0.1, 0.2), mD = short ? r.range(2.4, 4.6) : lerp(AIT.atkD0, AIT.atkD1, agg) + r.range(-0.2, 0.4);
-      const kind = goNet && pl.wing === 'bh' && r.u() < prof.slice * 2 ? 'slice' : r.u() < prof.flat * (cpu ? 1.4 : 1) ? 'flat' : 'drive';
+      const kind = goNet && pl.wing === 'bh' && !this.noSlice && r.u() < prof.slice * 2 ? 'slice' : r.u() < prof.flat * (cpu ? 1.4 : 1) ? 'flat' : 'drive';
       return T(dir * (HW - mX), -(HL - mD), kind, Math.min(1, lerp(AIT.atkP0, AIT.atkP1, agg) + (cpu ? 0.06 : 0)));
     }
     // ---- neutral: build the point ----
@@ -328,7 +328,9 @@ export class AI {
     else if (u < 0.80) X = r.u() < 0.6 ? oppBh * r.range(0.3, 1.6) : r.range(-1.2, 1.2);
     else X = -cross * (HW - (lerp(AIT.neuX0, AIT.neuX1, agg) + r.range(0, 0.4)));
     const D = -(HL - (lerp(AIT.neuD0, AIT.neuD1, agg) + r.range(-0.4, 0.7)));
-    if (pl.wing === 'bh' && r.u() < prof.slice) return T(X * 0.9, D, 'slice', 0.55);
+    // (not for a person in a rally or an approach: his backhand is a drive, struck as hard as he times it - sliced for him at the
+    // game's choice it came off at 87 km/h, "Perfect"; defending at full stretch and returning a big serve it still may be)
+    if (pl.wing === 'bh' && !this.noSlice && r.u() < prof.slice) return T(X * 0.9, D, 'slice', 0.55);
     // a ball sitting up at the shoulders: an aggressive player, set in time, takes it on and drives it; others loop it back
     if (h > 1.5) { if (h < 1.85 && pl.slack > 0.08 && r.u() < agg * 0.9) return T(X * 1.05, D, 'drive', lerp(0.72, 0.9, agg)); return T(X, D, 'loop', 0.6); }
     return T(X, D, 'drive', lerp(AIT.neuP0, AIT.neuP1, agg) + r.range(-0.05, 0.08));

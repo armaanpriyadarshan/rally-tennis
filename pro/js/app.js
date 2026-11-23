@@ -500,9 +500,13 @@ class App {
     // timing ring: closes on the inner circle at the moment to let go
     const out = $('#ringOut');
     let tau = null;
-    if (m.phase === 'live' && h.tau != null && h.tau < 0.75 && h.tau > -0.2) tau = h.tau;
+    // (with the first game's controls it closes at the moment that is Perfect, just before the ball reaches the racket - sim.js judges
+    // a press against that, 0.08 s before contact - not at the swing's start, 0.15 s before: timed to the old ring a press was 0.07 s
+    // early, and he said "i time it perfectly and its always early and sometimes good")
+    const pressT = (this.set.controls || 'classic') === 'classic' && !globalThis.__pressTimeOld, ringT = h.tau != null && pressT ? h.tau + TIMING.swing - 0.08 : h.tau;
+    if (m.phase === 'live' && ringT != null && ringT < 0.75 && ringT > -0.2) tau = ringT;
     else if (m.phase === 'toss' && m.score.server === 0 && m.ball.held < 0 && !(m.players[0].stroke && m.players[0].stroke.tc != null)) tau = m.tossIdeal - TIMING.serveSwing - m.t;
-    if (tau != null && tau > -0.15) { const r = 15 + Math.max(0, tau) * 120, good = Math.abs(tau) < (m.windowFor ? m.windowFor(0) : 0.03); out.setAttribute('r', r.toFixed(1)); out.setAttribute('opacity', (tau > 0.6 ? (0.75 - tau) / 0.15 : 0.9).toFixed(2)); out.setAttribute('stroke', good ? '#e2f03a' : tau < 0 ? '#ff6a4d' : '#fff'); }
+    if (tau != null && tau > -0.15) { const r = 15 + Math.max(0, tau) * 120, good = m.phase === 'live' && pressT ? Math.abs(tau) < 0.06 : Math.abs(tau) < (m.windowFor ? m.windowFor(0) : 0.03); out.setAttribute('r', r.toFixed(1)); out.setAttribute('opacity', (tau > 0.6 ? (0.75 - tau) / 0.15 : 0.9).toFixed(2)); out.setAttribute('stroke', good ? '#e2f03a' : tau < 0 ? '#ff6a4d' : '#fff'); }
     else out.setAttribute('opacity', 0);
     // power, and the shot it will be
     const mt = $('#meter'); mt.classList.toggle('on', h.power > 0);
