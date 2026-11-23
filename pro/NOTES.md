@@ -1506,3 +1506,8 @@ still in the air, both in a stroke's finish, for two or three frames.
   the loser's share of games and in the sets he took (none from 3-0; one of a best of five from 3-1; as many as he can from 3-2).
   Shown on the result card and recorded in the draw; the games played are kept on the result (`classic`). Examples: Roland Garros
   3-0 → 6-1 6-0 6-3, 3-1 → 6-2 6-1 6-7(5) 6-0, 3-2(5) → 6-1 4-6 6-7(4) 6-3 6-2; Rome 3-2(5) → 6-1 4-6 6-4. `__classicScoreOld`.
+- **Every short format reads as the full match** (he said "should be the same for all the other non-full formats too"): `fullScore`
+  now takes any format shorter than the event's own - Classic, One set, the match tiebreak (by its points), three sets at a Slam -
+  and matches the loser's share of games (or points) and the sets he took (from a multi-set match, half from the sets he won in it).
+  Examples: Roland Garros one set 6-2 → 6-1 6-3 6-3, 7-6(4) → five sets; US Open match tiebreak 10-8 → five sets; Rome 10-3 → 6-1 6-3;
+  Wimbledon three sets 6-4 3-6 7-5 → 7-5 6-3 3-6 5-7 6-4, 6-2 6-3 → 6-3 6-2 6-3. The match as played is kept on it (`played`).

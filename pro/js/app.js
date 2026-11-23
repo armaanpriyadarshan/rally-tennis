@@ -10,7 +10,7 @@ import { renderPortraits } from './portraits.js';
 import { PORTRAIT_FILES } from './portraitfiles.js';
 import { rollWeather } from './skies.js';
 import { Season, Draw, simMatch, scoreLine, rng } from './season.js';
-import { TIMING } from './sim.js';
+import { TIMING, FORMATS } from './sim.js';
 import { Net } from './net.js';
 
 const $ = s => document.querySelector(s);
@@ -559,7 +559,10 @@ class App {
     const g = this.game, s = g.match.score, me = g.cfg.p0, opp = g.cfg.p1, won = s.winner === 0;
     this.input.unlock(); this.input.enabled = false;
     let res = { a: me, b: opp, winner: won ? me : opp, loser: won ? opp : me, sets: s.sets.map(x => ({ g: [x.g[0], x.g[1]], tb: x.tb })) };
-    if (g.cfg.format === 'classic' && !globalThis.__classicScoreOld && g.cfg.T) res = this.fullScore(res, g.cfg.T);
+    // (any format shorter than the event's own - Classic, One set, the match tiebreak, three sets at a Slam - put as the full match:
+    // he said "should be the same for all the other non-full formats too")
+    { const F = FORMATS[g.cfg.format], T = g.cfg.T, fullBo = T ? (T.bestOf === 5 ? 5 : 3) : 3;
+      if (F && T && !globalThis.__classicScoreOld && (F.bestOf < fullBo || F.games < 6) && !(globalThis.__fullScoreClassicOnly && F.key !== 'classic')) res = this.fullScore(res, T, F); }
     this.tab(null); $('#bug').classList.add('off');
     this.lower(`${full(res.winner)}<small>${esc(PLAYERS[res.winner].facts.country || '')}</small>`, `Defeated <b>${esc(pname(res.loser))}</b> ${scoreLine(res, res.winner)}`);
     // then the numbers, which carry the names and the score themselves: the result card makes way for them
@@ -572,17 +575,22 @@ class App {
   // simulated matches between the two at this event in its own format (best of three, of five at a Slam) that the same man won,
   // the one whose share of games to the loser is nearest his share in the game played - 3-0 comes out one-sided, 3-2 tight.
   // The games actually played are kept on it (`classic`).
-  fullScore(res, T) {
+  fullScore(res, T, F = FORMATS.classic) {
     const won = res.winner === res.a, gs = r => { let w = 0, l = 0; for (const x of r.sets) { const a = x.g[0], b = x.g[1]; if (won) { w += a; l += b; } else { w += b; l += a; } } return [w, l]; };
-    const [w0, l0] = gs(res), share = l0 / Math.max(1, w0 + l0), R = rng((Date.now() ^ (Math.random() * 0xfffff)) & 0xfffff);
-    // (and the sets the loser took as near the games he took: none from 3-0, one of a best of five from 3-1, as many as he can from
-    // 3-2 - five sets at a Slam, three elsewhere)
-    const need = ((T.bestOf || 3) + 1) / 2, lostSets = r => r.sets.filter(x => (x.g[0] > x.g[1]) !== won).length;
-    const wantSets = l0 >= 2 ? need - 1 : l0 === 1 ? (need >= 3 ? 1 : 0) : 0;
+    const R = rng((Date.now() ^ (Math.random() * 0xfffff)) & 0xfffff), lostSets = r => r.sets.filter(x => (x.g[0] > x.g[1]) !== won).length;
+    let [w0, l0] = gs(res);
+    // (a match tiebreak: its points)
+    if (F.games === 0 && res.sets[0] && res.sets[0].tb) { const t = res.sets[0].tb; [w0, l0] = won ? [t[0], t[1]] : [t[1], t[0]]; }
+    const share = l0 / Math.max(1, w0 + l0), need = ((T.bestOf || 3) + 1) / 2, needP = ((F.bestOf || 1) + 1) / 2;
+    // (and the sets the loser took as near as can be to how close it was: from Classic, none from 3-0, one of a best of five from
+    // 3-1, as many as he can from 3-2 - five sets at a Slam, three elsewhere; otherwise by his share of the games, or points, and
+    // the sets he took in the match played)
+    const sc = Math.min(1, Math.max(0, (share - 0.25) / 0.2)), cs = needP > 1 ? 0.5 * lostSets(res) / (needP - 1) + 0.5 * sc : sc;
+    const wantSets = F.key === 'classic' ? (l0 >= 2 ? need - 1 : l0 === 1 ? (need >= 3 ? 1 : 0) : 0) : Math.round(cs * (need - 1));
     let best = null, bd = 1e9;
     for (let k = 0; k < 600 && !(best && bd < 0.06 && k > 120); k++) { const r = simMatch(res.a, res.b, T, R); if (r.winner !== res.winner) continue;
       const [w, l] = gs(r), d = Math.abs(l / Math.max(1, w + l) - share) + 0.3 * Math.abs(lostSets(r) - wantSets) + R() * 0.04; if (d < bd) { bd = d; best = r; } }
-    return best ? { ...res, sets: best.sets.map(x => ({ g: [x.g[0], x.g[1]], tb: x.tb })), classic: res.sets } : res;
+    return best ? { ...res, sets: best.sets.map(x => ({ g: [x.g[0], x.g[1]], tb: x.tb })), played: res.sets, classic: res.sets } : res;
   }
   leave(sim) {
     const g = this.game, c = this.ctx;
