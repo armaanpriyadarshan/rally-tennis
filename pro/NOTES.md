@@ -1422,3 +1422,16 @@ still in the air, both in a stroke's finish, for two or three frames.
   - After: groundstrokes p50 139 / p90 161 / max 192 km/h; Perfect ones 144 km/h, a median 0.35 m inside the line, 4% missed;
     Perfect first serves 96-97% in, 0.3 m from the line, Nadal 200 km/h median (217 max), Sinner 214. Points 45% → ~68%, rallies
     7.8 → 5 shots. He asked for it ("just make hitting better"): Tour is now easier than the ~40% it was set to.
+- **The broadcast camera looking near straight down** (he said "dont like how the broadcast is near vertical sometimes"):
+  tools/steps_campitch.mjs (every frame's angle below the horizontal, the steepest with what was going on). Under lights (night
+  sessions, indoor events) the camera sat at the top of its crane, 15.6 m, all match, 25-32° down; by day at Wimbledon 15-25°. Its
+  sight lines to the court were stopped by the lamp banks' beams: four translucent cones, merged into one mesh, that the crane's
+  check counted as a wall. Light is not a thing: the beams' material is marked `userData.noSight` (survives the merge) and the
+  sight grid, its live list and the old raycast all skip it (`__beamSightOld`). Now 9.6 m and 15-18° there too (AO, Paris at night).
+- **Moving along the baseline to serve** (he said "the walk to move side to side preserve should be normal speed not slow"): his
+  input was halved and the server held to 1.6 m/s, so he went at 0.8 m/s; now full input and up to 4 m/s (measured), and above
+  2.2 m/s the walking arms give way to his run's. `__srvMoveOld`.
+- **Perfect serves faulting** (he said "i keep faulting perfect serves"): classicbot `sig=0 srvk=mix ven=<key>` (serves timed
+  exactly, flat/kick/slice, the event's own wind): 95-100% went in, the faults long. Aimed a little safer (0.3 m inside the T or
+  wide line, 0.5 m inside the service line) with a tenth of the scatter: 100% in at the US Open, Wimbledon and Acapulco (400 points
+  each), still a median 0.32-0.35 m from the line.

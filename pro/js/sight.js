@@ -17,7 +17,7 @@ export class SightGrid {
     const P = [], ref = [], cull = [], pad = [];
     const isLive = o => { for (let p = o; p && p !== root; p = p.parent) if (p.userData.live) return true; return false; };
     root.traverse(o => {
-      if (o.isPoints) return;                                   // (the crane never counted a hit on points)
+      if (o.isPoints || o.userData.noSight || (o.material && o.material.userData && o.material.userData.noSight)) return;             // (the crane never counted a hit on points; nor on light, the lamps' beams)
       if (!o.isMesh && !o.isLine && !o.isSprite) return;
       if (o.isSkinnedMesh || o.isLine || o.isSprite || isLive(o) || o.matrixAutoUpdate || o.morphTargetInfluences) { this.live.push(o); return; }
       const ge = o.geometry, pos = ge && ge.attributes.position; if (!pos) return;
@@ -101,7 +101,7 @@ export class SightGrid {
     }
     // what moves, as before (looked for again now and then: a ball kid's spare ball is added to the stadium after it is filed)
     const now = performance.now();
-    if (!(now - this.liveT < 250)) { this.liveT = now; const inGrid = this.inGrid || (this.inGrid = new Set(this.objs)); this.live = []; this.root.traverse(x => { if ((x.isMesh || x.isLine || x.isSprite) && !inGrid.has(x)) this.live.push(x); }); }
+    if (!(now - this.liveT < 250)) { this.liveT = now; const inGrid = this.inGrid || (this.inGrid = new Set(this.objs)); this.live = []; this.root.traverse(x => { if ((x.isMesh || x.isLine || x.isSprite) && !inGrid.has(x) && !x.userData.noSight && !(x.material && x.material.userData && x.material.userData.noSight)) this.live.push(x); }); }
     if (this.live.length) { const rc = this._rc; rc.set(o, d); rc.near = 0; rc.far = far; if (rc.intersectObjects(this.live, false).find(x => x.object.visible && !x.object.isPoints)) return true; }
     return false;
   }

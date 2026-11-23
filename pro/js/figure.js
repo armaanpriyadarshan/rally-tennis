@@ -597,7 +597,7 @@ export class Figure {
     // (a server moving along the baseline to choose his spot walks there, turned the way he is going, and settles into his
     // stance only once he stops: held in the side-on serving stance and slid sideways, the legs ran a sideways gait under it,
     // lunging, scissoring and splaying into the splits as he changed direction)
-    const srvWalkK = this.srvWalkK = serverWait && !globalThis.__srvWalkOld ? damp(this.srvWalkK || 0, globalThis.__srvWalk2Old ? sm((Math.hypot(p.vx, p.vz) - 0.25) / 0.5) : sm((Math.hypot(p.vx, p.vz) - 0.08) / 0.3), globalThis.__srvWalk2Old ? 8 : 10, dt) : 0;
+    const srvWalkK = this.srvWalkK = serverWait && !globalThis.__srvWalkOld ? damp(this.srvWalkK || 0, globalThis.__srvWalk2Old ? sm((Math.hypot(p.vx, p.vz) - 0.25) / 0.5) : sm((Math.hypot(p.vx, p.vz) - 0.08) / 0.3) * (globalThis.__srvMoveOld ? 1 : 1 - sm((Math.hypot(p.vx, p.vz) - 2.2) / 0.6)), globalThis.__srvWalk2Old ? 8 : 10, dt) : 0;   /* (and quicker than a walk, his legs and arms are his run's) */
     // (he turns and runs from two and a half metres a second, not three and a fifth, and pumps his arms from three, not nearly four:
     // a run to a ball well wide, behind or in front of him began as a quick sideways shuffle of three steps a second and went
     // on with the racket held out in front of him at chest height, as if already taking it back)

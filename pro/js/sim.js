@@ -501,7 +501,7 @@ export class Match {
       if (u > -0.16 && u < 0.2) top *= st.onRun ? 0.75 : 0.42;
     }
     if (st && st.kind === 'serve' && !(st.done && this.t > st.tEnd + 0.22)) top = 0;   // rooted until he lands from the serve
-    if (this.phase === 'ready' && p.i === this.score.server) top = Math.min(top, 1.6);
+    if (this.phase === 'ready' && p.i === this.score.server) top = Math.min(top, p.srvFree ? 4.0 : 1.6);   /* (a person moving to where he will serve from goes at his ordinary pace, human.js) */
     let mx = p.move.x, mz = p.move.z; const m = Math.hypot(mx, mz);
     if (m > 1) { mx /= m; mz /= m; }
     // players move best forward and sideways; backpedalling is slower
@@ -725,9 +725,9 @@ export class Match {
     const swin = this.timingWindow[p.i], pf = !st.auto && !globalThis.__perfectOld ? 1 - clamp((Math.abs(tim) - swin * 0.5) / Math.max(0.005, swin * 0.5), 0, 1) : 0;
     let stx = it.tx, stz = it.tz;
     if (pf > 0) { const ax = Math.abs(stx), dz = Math.abs(stz), sg = Math.sign(stx) || 1;
-      if (ax > COURT.halfW * 0.55) stx = sg * (ax + (COURT.halfW - (globalThis.__pfSrvX ?? 0.22) - ax) * pf);
-      else if (ax < COURT.halfW * 0.35) stx = sg * (ax + ((globalThis.__pfSrvX ?? 0.22) - ax) * pf);
-      stz = Math.sign(stz) * (dz + (COURT.svc - (globalThis.__pfSrvZ ?? 0.35) - dz) * pf); }
+      if (ax > COURT.halfW * 0.55) stx = sg * (ax + (COURT.halfW - (globalThis.__pfSrvX ?? 0.3) - ax) * pf);
+      else if (ax < COURT.halfW * 0.35) stx = sg * (ax + ((globalThis.__pfSrvX ?? 0.3) - ax) * pf);
+      stz = Math.sign(stz) * (dz + (COURT.svc - (globalThis.__pfSrvZ ?? 0.5) - dz) * pf); }
     let speed = spec.kmh / 3.6 * lerp(0.80, 1, q) * (1 + (globalThis.__pfSrvV ?? 0.06) * pf);
     const p0 = { x: b.x, y: clamp(b.y, contactH - 0.3, contactH + 0.15), z: p.z - p.sgn * 0.45 };
     const top = spec.top * lerp(0.8, 1, q), side = spec.side * p.hs;
@@ -740,7 +740,7 @@ export class Match {
     }
     if (!sol || !sol.ok) sol = { el: -0.07, az: Math.atan2(stx - p0.x, stz - p0.z), speed, top, side };
     const cal = this.calib[p.i];
-    const kq = (first ? cal.k1 : cal.k2) * lerp(2.4, 1, q) * (st.auto ? 1 : (it.sigma || 1)) * this.diffScale[p.i] * (spec.sig || 1) * (1 - (globalThis.__pfSrvAcc ?? 0.8) * pf);
+    const kq = (first ? cal.k1 : cal.k2) * lerp(2.4, 1, q) * (st.auto ? 1 : (it.sigma || 1)) * this.diffScale[p.i] * (spec.sig || 1) * (1 - (globalThis.__pfSrvAcc ?? 0.9) * pf);
     const el = sol.el + rng.g() * SERVE_SIG.el * kq - (dy < -0.12 ? (-dy - 0.12) * 0.12 : 0);
     const az = sol.az + rng.g() * SERVE_SIG.az * kq;
     const v = sol.speed * (1 + rng.g() * SERVE_SIG.v * kq);

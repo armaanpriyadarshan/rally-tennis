@@ -820,7 +820,7 @@ export class Game {
             for (const q of pts) { const d = q.clone().sub(o), L = d.length(); d.normalize();
               // (asked of the stadium filed by the ground it stands on: the raycaster tested every triangle of the stands and every
               // card of the crowd for each line, 30 to 60 ms in Firefox ten times a second)
-              const hit = globalThis.__craneRayOld ? (rc.set(o, d), rc.far = L - 0.35, rc.intersectObject(this.arena.root, true).find(x => x.object.visible && !x.object.isPoints)) : this.sightGrid().blocked(o, d, L - 0.35);
+              const hit = globalThis.__craneRayOld ? (rc.set(o, d), rc.far = L - 0.35, rc.intersectObject(this.arena.root, true).find(x => x.object.visible && !x.object.isPoints && !x.object.userData.noSight && !(x.object.material && x.object.material.userData && x.object.material.userData.noSight))) : this.sightGrid().blocked(o, d, L - 0.35);
               if (hit) { ok = false; break; } }
             want = h; wantZ = cz; if (ok) break; }
           this._craneW = want; this._craneZ = wantZ; } }

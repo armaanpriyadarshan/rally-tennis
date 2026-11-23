@@ -19,7 +19,8 @@ const input = { takeMouse: () => ({ x: 0, y: 0 }), move: () => ({ x: 0, y: 0 }),
 const game = { input, opts: { controls: 'classic', assist: +(a.assist ?? 2), markers: true }, audio: null };
 const H = new Human(game); H.safe = D.safe; H.srvSafe = D.srvSafe;
 const P0 = playerByName(a.p0 || 'Federer'), P1 = playerByName(a.p1 || 'Nadal');
-const m = new Match({ env: { surface: a.surface || 'hard' }, format: 'slam5', p0: profileFor(P0.id, 'hard'), p1: profileFor(P1.id, 'hard', D), seed: 5, firstServer: 0, pace: 0.05, quick: true, logShots: !!(a.fh || a.easy || a.pf) });
+const { envFor, TOURNAMENTS } = await import('../js/data.js'); const VT = a.ven ? TOURNAMENTS.find(t => t.key === a.ven) : null;
+const m = new Match({ env: VT ? envFor(VT, 'day', makeRng(+(a.wseed || 3)).u) : { surface: a.surface || 'hard' }, format: 'slam5', p0: profileFor(P0.id, 'hard'), p1: profileFor(P1.id, 'hard', D), seed: 5, firstServer: 0, pace: 0.05, quick: true, logShots: !!(a.fh || a.easy || a.pf) });
 m.diffScale[1] = D.err; m.diffScale[0] = D.aid; m.cleanK[0] = D.clean == null ? 1 : D.clean; m.mercy[0] = D.mercy == null ? 1 : D.mercy; m.timingWindow[0] = D.window; m.aimSafe[0] = D.aimSafe;
 let plan = null, srvAt = null, lastInc = null; const kinds = {}, hts = [], hsp = []; let netYs = []; let whiffs = 0, ownSide = 0, lastHitEv = null, firstB = false;
 process.on('exit', () => { netYs.sort((a, b) => a - b); if (netYs.length) console.log('rally balls into the net:', netYs.length, 'hit the net at height m: p10', netYs[Math.floor(netYs.length * 0.1)].toFixed(2), 'median', netYs[netYs.length >> 1].toFixed(2), 'p90', netYs[Math.floor(netYs.length * 0.9)].toFixed(2)); });
@@ -30,7 +31,7 @@ const bot = { update(mm, i, dt) {
   const ph = mm.phase, serving = mm.score.server === i;
   if (ph === 'ready' && serving) { if (mm.phaseT > 0.7) pressed.add('Space'); srvAt = null; }
   else if (ph === 'toss' && serving) {
-    if (srvAt == null && mm.ball.held < 0) { srvAt = mm.tossIdeal - TIMING.serveSwing + gauss() * sig * 0.8; keys.clear(); const r = rng(); if (r < 0.33) keys.add('ArrowLeft'); else if (r < 0.66) keys.add('ArrowRight'); }
+    if (srvAt == null && mm.ball.held < 0) { srvAt = mm.tossIdeal - TIMING.serveSwing + gauss() * sig * 0.8; keys.clear(); const r = rng(); if (r < 0.33) keys.add('ArrowLeft'); else if (r < 0.66) keys.add('ArrowRight'); const r2 = rng(); if (a.srvk === 'kick' || (a.srvk === 'mix' && r2 < 0.33)) keys.add('ArrowUp'); else if (a.srvk === 'slice' || (a.srvk === 'mix' && r2 < 0.66)) keys.add('ArrowDown'); }
     if (srvAt != null && mm.t >= srvAt) { pressed.add('Space'); srvAt = 1e9; }
   } else if (ph === 'live') {
     const inc = mm.incoming;
@@ -65,6 +66,9 @@ if (a.pf) { const G = m.shotLog.filter(s => s.who === 0 && (s.kind === 'drive' |
   const sp = L => L.map(s => s.kmh).sort((x, y) => x - y), inside = s => s.land ? Math.min(4.115 - Math.abs(s.land.x), 11.885 - Math.abs(s.land.z)) : -9, out = L => L.filter(s => !s.land || inside(s) < 0 || Math.sign(s.land.z) === Math.sign(s.tgt ? -s.tgt[1] : 0)).length;
   for (const [nm, L] of [['all', G], ['perfect', P]]) { const v = sp(L), ins = L.filter(s => s.land).map(inside).sort((x, y) => x - y); console.log(`pf ${nm.padEnd(8)} n ${String(L.length).padStart(4)}  km/h p50 ${q(v, .5).toFixed(0)} p90 ${q(v, .9).toFixed(0)} max ${v[v.length - 1].toFixed(0)}  inside line p50 ${q(ins, .5).toFixed(2)} p20 ${q(ins, .2).toFixed(2)}  out/net ${(100 * out(L) / Math.max(1, L.length)).toFixed(0)}%`); }
   const SV = m.shotLog.filter(s => s.who === 0 && s.kind === 'serve' && s.first);
+  const SA = m.shotLog.filter(s => s.who === 0 && s.kind === 'serve'), SP = SA.filter(s => (s.pf || 0) > 0.99);
+  for (const ty of ['flat', 'kick', 'slice']) for (const f of [true, false]) { const L = SP.filter(s => s.type === ty && s.first === f); if (!L.length) continue; const bad = L.filter(s => !s.willIn), why = {}; for (const s of bad) { const k = !s.land ? 'net?' : Math.abs(s.land.z) > 6.4 ? 'long' : 'wide/side'; why[k] = (why[k] || 0) + 1; }
+    console.log(`pf perfect ${ty} ${f ? '1st' : '2nd'} n ${L.length} in ${(100 * (L.length - bad.length) / L.length).toFixed(0)}% faults ${JSON.stringify(why)} clear p10 ${(L.map(s => s.clear).sort((x, y) => x - y)[Math.floor(L.length * 0.1)] || 0).toFixed(2)}`); }
   for (const [nm, L] of [['serve1', SV], ['serve1 pf', SV.filter(s => (s.pf || 0) > 0.99)]]) { const v = L.map(s => s.kmh).sort((x, y) => x - y), inn = L.filter(s => s.willIn); const ln = inn.map(s => Math.min(Math.abs(Math.abs(s.land.x) - 4.115), Math.abs(s.land.x))).sort((x, y) => x - y); console.log(`pf ${nm.padEnd(9)} n ${String(L.length).padStart(4)}  in ${(100 * inn.length / Math.max(1, L.length)).toFixed(0)}%  km/h p50 ${q(v, .5).toFixed(0)} max ${v[v.length - 1].toFixed(0)}  from the T/wide line p50 ${q(ln, .5).toFixed(2)} m`); } }
 if (a.easy) { const L = m.shotLog.filter(s => s.who === 0 && (s.kind === 'drive' || s.kind === 'flat' || s.kind === 'loop') && !s.ret && !s.volley && s.vin < 90 && (s.weak || 0) < 0.1 && (s.pSpeed || 0) < 2.0);
   const tgt = L.filter(s => s.land && s.tgt && s.tgt[0] != null), miss = tgt.map(s => Math.hypot(s.land.x - s.tgt[0], s.land.z - s.tgt[1])).sort((x, y) => x - y), bad = L.filter(s => !s.land || Math.abs(s.land.x) > 4.115 || Math.abs(s.land.z) > 11.885 || Math.sign(s.land.z) === Math.sign(s.tgt ? -s.tgt[1] : 0)).length;
