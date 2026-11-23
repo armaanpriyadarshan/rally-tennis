@@ -674,6 +674,30 @@ export class Figure {
     }
     // At the end of a match (game.js, endSequence): the winner's celebration, the loser's walk off in his head, or the trophy held up.
     // The game sets this.celeb = { kind, u, k } each frame; kind picks a track below, u is its clock, k how far it holds the body.
+    // (with a tracked celebration playing, the body and both arms are the footage's; the racket alone is set here, held up in front
+    // of him along his forearm as players hold it pumping a fist - he showed Alcaraz doing it - and the other hand let off the throat.
+    // Pointed straight up by the keys over an arm thrown up, it stood out of his hand like a flagpole)
+    // The fist pump, from the footage: the arm only. The free hand goes where Nadal's free fist went, measured against his chest,
+    // frame by frame, at Barcelona (celebmotion.js celeb_fists); the racket is held upright and low in front, as in the picture he
+    // showed of Alcaraz; the body and legs are his own walk to the net. (The whole tracked body was tried: the tracker swapped his
+    // hands and he turned a third of a circle walking to his chair, and played on the figure he twisted side-on with his arms crossed.)
+    if (this.celebArm && this.celebArm.k > 0.001) { const C = CELEB_MOTION.celeb_fists, k = clamp(this.celebArm.k, 0, 1);
+      if (C && C.J) { const n = C.J.pelvis.length / 3, x = clamp(this.celebArm.u * 60, 0, n - 1.001), f0 = Math.floor(x), w = x - f0;
+        const g = (nm, c) => C.J[nm][f0 * 3 + c] * (1 - w) + C.J[nm][(f0 + 1) * 3 + c] * w;
+        const mx = (g('lsho', 0) + g('rsho', 0)) / 2, mz = (g('lsho', 2) + g('rsho', 2)) / 2; let ax = g('rsho', 0) - g('lsho', 0), az = g('rsho', 2) - g('lsho', 2); const al = Math.hypot(ax, az) || 1; ax /= al; az /= al;
+        const fx = -az, fz = ax, hx = g('rhand', 0) - mx, hz = g('rhand', 2) - mz;
+        const side = hx * ax + hz * az, fwd = hx * fx + hz * fz, h = g('rhand', 1);
+        const Lp = [-clamp(Math.abs(side), 0.04, 0.26), clamp(h + 0.12, 0.95, 1.5), clamp(fwd + 0.12, 0.14, 0.42)], Rp = [0.2, 0.98, 0.22], dR = [0.12, 0.92, 0.35];
+        const bl = (a, b) => a.map((v, q) => v + (b[q] - v) * k);
+        pose = { ...pose, L: bl(pose.L, Lp), R: bl(pose.R, Rp), dir: bl(pose.dir, dR), nrm: pose.nrm || [1, 0, 0], lgrip: (pose.lgrip || 0) * (1 - k) };
+        this.reactK = Math.max(this.reactK, k); this.reactFist = 1; this.reactShout = 0; } }
+    if (this.celebClip && this.celebClip.k > 0.001 && !globalThis.__celebMocapOld) { const cc = strokeClip({ celeb: CELEB_MOTION }, 'celeb', 'celeb_' + this.celebClip.kind, this.lefty);
+      if (cc) { const S = sampleAt(cc, clamp(this.celebClip.u, cc.span[0], cc.span[1]), this._celS || (this._celS = new Float32Array(N3))), sd = this.lefty ? 'l' : 'r', e = J[sd + 'elb'], w = J[sd + 'wri'];
+        const fx = (S[w * 3] - S[e * 3]) * this.hs, fy = S[w * 3 + 1] - S[e * 3 + 1], fz = S[w * 3 + 2] - S[e * 3 + 2], hi = S[w * 3 + 1] > 1.6;
+        let dx = fx * (hi ? 0.8 : 0.35) + 0.14, dy = fy * (hi ? 0.8 : 0.35) + (hi ? 0.25 : 1.0), dz = fz * (hi ? 0.8 : 0.35) + 0.1; const l = Math.hypot(dx, dy, dz) || 1;
+        const k = clamp(this.celebClip.k, 0, 1), d0 = pose.dir || [0, -0.6, 0.8];
+        pose = { ...pose, dir: [d0[0] + (dx / l - d0[0]) * k, d0[1] + (dy / l - d0[1]) * k, d0[2] + (dz / l - d0[2]) * k], nrm: pose.nrm || [1, 0, 0], lgrip: (pose.lgrip || 0) * (1 - k) };
+        this.reactK = Math.max(this.reactK, k); this.reactShout = 0; } }
     if (this.celeb && CELEB[this.celeb.kind]) { const C = this.celeb, T = CELEB[C.kind], k = clamp(C.k, 0, 1);
       if (k > 0.001) { const R = T.at(C.u, this); pose = blendPose(pose, R, k); this.reactK = Math.max(this.reactK, k); this.reactShout = 0;   /* (the face is left as it is: he said "dont do anything with the face") */ this.reactFist = T.fist || 0; this.reactPoint = 0; this.reactPole = null;
         const bow = Math.sin(Math.PI * k) * 0.26; if (bow > 0.001 && k < 0.999) for (const hk of ['R', 'L']) if (R[hk][1] > 1.3) pose[hk] = [pose[hk][0], pose[hk][1], pose[hk][2] + bow]; } }

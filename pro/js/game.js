@@ -11,6 +11,7 @@ import { insideCourt } from './staff.js';
 import { venueSpec } from './venues.js';
 import { WEATHER, loadSkyTexture } from './skies.js';
 import { Figure, celebFor } from './figure.js';
+import { CELEB_MOTION } from './celebmotion.js';
 import { loadPerson, loadAvatar } from './people.js';
 import { loadCrowdAtlas } from './crowd.js';
 import { loadSurface } from './textures.js';
@@ -117,34 +118,46 @@ export class Game {
   // Space or Enter moves it on. onDone is called when it is over (the results come up over it, and it plays on behind them).
   endSequence(o = {}) {
     const m = this.match, w = m.score.winner; if (w == null || w < 0) { if (o.onDone) o.onDone(); return; }
-    const ck = celebFor(this.fig[w]); this.endSeq = { t: 0, who: w, trophy: !!o.trophy, onDone: o.onDone || null, stage: 'cel', kind: ck === 'fists' ? 'fists' : 'arms', done: false };   // (the two there is footage of: celebmotion.js)
+    const ck = globalThis.__celebArmsOld ? celebFor(this.fig[w]) : 'fists'; this.endSeq = { t: 0, who: w, trophy: !!o.trophy, onDone: o.onDone || null, stage: 'cel', kind: ck === 'fists' ? 'fists' : 'arms', done: false };   // (the fist pumped at the chest and the racket up in front, as he showed: Nadal's, tracked, for every man; the arms thrown up came out a flagpole)
     // (out of whatever the point had them doing: a match that ended as he waited to serve kept his off hand on the ball and his body
     // in the serve's stance, and the trophy was held in one hand)
     m.phase = 'done'; m.phaseT = 0; m.ball.held = -1; for (const p of m.players) { p.vx = 0; p.vz = 0; p.stroke = null; p.lastStroke = null; }
     if (this.arena && this.arena.crowd && this.arena.crowd.cheer) this.arena.crowd.cheer(1, 6);
     if (this.audio && this.audio.applause) this.audio.applause(1, 5);
   }
-  endSkip() { const S = this.endSeq; if (!S) return; if (S.stage === 'cel' && S.trophy) { S.t = Math.max(S.t, 4.95); } else if (!S.done) { S.done = true; if (S.onDone) S.onDone(); } }
+  endSkip() { const S = this.endSeq; if (!S) return; if (S.stage === 'cel' && S.trophy) { S.t = Math.max(S.t, 4.2); } else if (!S.done) { S.done = true; if (S.onDone) S.onDone(); } }
   endFrame(dt) {
     const S = this.endSeq, m = this.match; S.t += dt;
     const I = this.input; if (I && (I.pressed.has('Space') || I.pressed.has('Enter'))) { I.takePressed(); I.takeEdges(); if (!S.skipT || this.time - S.skipT > 0.4) { S.skipT = this.time; this.endSkip(); } }
     if (S.stage === 'cel') {
       const wf = this.fig[S.who], lf = this.fig[1 - S.who];
-      const kc = sm((S.t - 0.35) / 0.4) * (1 - sm((S.t - 4.6) / 0.5));
-      wf.celeb = { kind: S.kind, u: S.t - 0.35, k: kc }; wf.celebClip = { kind: S.kind, u: S.t - 0.35, k: kc };   // (the body and arms from the footage; the keys only point the racket)
+      const kc = sm((S.t - 0.35) / 0.4) * (1 - sm((S.t - 2.6) / 0.5));   // (let go of as the footage ends, not held frozen on its last frame)
+      wf.celeb = null; if (globalThis.__celebBodyOld) wf.celebClip = { kind: S.kind, u: S.t - 0.35, k: kc }; else { wf.celebClip = null; wf.celebArm = { u: 0.3 + (S.t - 0.35), k: kc }; }   // (the fist from the footage, the walk his own)
+      // and both walk to the net, as players do once it is over (he said "as soon as the animation ends the player just stays still
+      // instead of walking toward the net"): the winner at the pace of the footage's own walk while it plays (its feet then cover the
+      // ground they seem to), then on at a walk; the loser after a moment, slower; each stops a metre short of the net, a little apart
+      if (!globalThis.__netWalkOld) { const C = CELEB_MOTION['celeb_' + S.kind], u = S.t - 0.35;
+        let vw = 1.15; if (C && C.root && u > 0) { const n = C.root.length / 2, f = Math.min(n - 2, Math.floor(u * 60)); if (u * 60 < n - 1) vw = Math.hypot(C.root[f * 2 + 2] - C.root[f * 2], C.root[f * 2 + 3] - C.root[f * 2 + 1]) * 60 * kc + 1.15 * (1 - kc); }
+        this.netWalk(S.who, S.t > 0.35 ? vw : 0, dt, 0.55); this.netWalk(1 - S.who, S.t > 1.0 ? 0.95 * sm((S.t - 1.0) / 0.6) : 0, dt, -0.55); }
       lf.celeb = { kind: 'lost', u: S.t - 0.6, k: sm((S.t - 0.6) / 0.7) };
       // close on the winner after a moment on the wide picture
-      if (S.t > 1.1 && !S.closeUp) { S.closeUp = true; this.cine = { kind: 'react', t: 0, who: S.who, side: Math.random() < 0.5 ? -1 : 1, seed: Math.random(), hold: true }; this.fig[0].setFirstPerson(false); this.cam.snap = true; if (this.ui && this.ui.cine) this.ui.cine(true); }
+      if (globalThis.__celebCloseOld && S.t > 1.1 && !S.closeUp) {   /* (no close-up: he said "i dont like the closeup on them"; the picture stays on the camera he plays with) */ S.closeUp = true; this.cine = { kind: 'react', t: 0, who: S.who, side: Math.random() < 0.5 ? -1 : 1, seed: Math.random(), hold: true }; this.fig[0].setFirstPerson(false); this.cam.snap = true; if (this.ui && this.ui.cine) this.ui.cine(true); }
       if (S.trophy) {
-        if (S.t >= 4.95 && !S.sting) { S.sting = true; if (this.ui && this.ui.sting) this.ui.sting(); }
-        if (S.t >= 5.15) this.beginTrophy();
-      } else if (S.t >= 5.2 && !S.done) { S.done = true; if (S.onDone) S.onDone(); }
+        if (S.t >= 4.2 && !S.sting) { S.sting = true; if (this.ui && this.ui.sting) this.ui.sting(); }
+        if (S.t >= 4.4) this.beginTrophy();
+      } else if (S.t >= 4.4 && !S.done) { S.done = true; if (S.onDone) S.onDone(); }
     } else {
       S.t2 += dt; const wf = this.fig[S.who];
-      wf.celeb = { kind: 'trophy', u: S.t2, k: 1 }; wf.celebClip = null;
+      wf.celeb = { kind: 'trophy', u: S.t2, k: 1 }; wf.celebClip = null; wf.celebArm = null;
       this.confettiStep(dt);
       if (S.t2 >= 7.4 && !S.done) { S.done = true; if (S.onDone) S.onDone(); }
     }
+  }
+  // one man's walk to the net: straight to a metre short of it, a little to one side, at speed v (m/s), stopping smoothly
+  netWalk(i, v, dt, side) {
+    const p = this.match.players[i], tx = side * (p.sgn > 0 ? 1 : -1), tz = p.sgn * 1.1, dx = tx - p.x, dz = tz - p.z, d = Math.hypot(dx, dz);
+    const sp = v * Math.min(1, d / 0.8); if (d < 0.05 || sp < 0.01) { p.vx = 0; p.vz = 0; return; }
+    p.vx = dx / d * sp; p.vz = dz / d * sp; p.x += p.vx * dt; p.z += p.vz * dt;
   }
   beginTrophy() {
     const S = this.endSeq, m = this.match, w = S.who, p = m.players[w], f = this.fig[w];
@@ -194,7 +207,7 @@ export class Game {
     this.endSeq = null;
     if (this.trophyObj) this.trophyObj.visible = false;
     if (this.confetti) this.confetti.mesh.visible = false;
-    for (const f of this.fig || []) { f.celeb = null; f.celebClip = null; if (f.group) f.group.visible = true; if (f.racket) f.racket.visible = true; }
+    for (const f of this.fig || []) { f.celeb = null; f.celebClip = null; f.celebArm = null; if (f.group) f.group.visible = true; if (f.racket) f.racket.visible = true; }
   }
 
   setCamera(mode) {

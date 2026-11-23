@@ -1301,3 +1301,18 @@ still in the air, both in a stroke's finish, for two or three frames.
   hand): the winner's clip is the fists for the fist-pumpers (`CELEB_STYLE`), the arms up for everyone else; the keyed poses only
   point the racket now. The loser's head-down and the trophy are still keyed. The face is not touched (no mouth opening). Filmed in a
   match: Federer's arms go up in the V and hold, Nadal's fists pump. `__celebMocapOld`.
+- **Celebrations, second go** (he said "the celebrations are still completely fucked up, also i dont like the closeup on them. and
+  when the racket is held directly in the air its pointing weirdly straight up", "keep it in pov", sent a photo of Alcaraz pumping his
+  free fist at his chest with the racket upright and low in the other hand, and "as soon as the animation ends the player just stays
+  still instead of walking toward the net"):
+  - no close-up: the picture stays on the camera he plays with (`__celebCloseOld`);
+  - filmed, the full-body clips were wrong: the keyed arms (racket straight up out of a raised arm) were still laid over the tracked
+    body, Nadal's US Open clip spun a third of a circle in its last second, and Murray's was one second held frozen. A cleaner fist
+    pump was found and tracked (Nadal at Barcelona, Tennis TV tFMzC-TjBic, 45.15-48.05 s: walking, the free fist at his chest), but
+    whole-body it too came out wrong (the tracker swapped his hands for a while, and he turned 120° walking to his chair). What tracked
+    well is the free arm: so the free hand now goes where his free fist went, measured against his chest frame by frame (the pump
+    between 0.9 and 1.3 m, in front of him), the racket is held upright and low in front (as in the photo), and the body and legs are
+    the game's own walk (`celebArm` in figure.js; `__celebBodyOld` for the whole-body clip);
+  - and both walk to the net once it is won: the winner at once, the loser after a moment, slower, each stopping a metre short of it
+    a little apart (`game.netWalk`, `__netWalkOld`). Filmed: Nadal walking in with the fist pumping at his chest and the racket up in
+    front, then on to the net with his arms loose; Federer the same from behind. The face is not touched.
