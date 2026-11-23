@@ -1,6 +1,6 @@
 // Rally Pro — tournaments and the season. Draws, simulated matches built from each
 // player's real hold and break percentages, ranking points by round, and the save file.
-import { PLAYERS, TOURNAMENTS, ROUND_NAME, eventRate, isElite, ELITE_SIM } from './data.js';
+import { PLAYERS, TOURNAMENTS, ROUND_NAME, eventRate, isElite, ELITE_SIM, pickField } from './data.js';
 
 export function rng(seed) { let s = (seed >>> 0) || 1; return () => { s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
@@ -128,6 +128,7 @@ export class Season {
     const rank = this.ranking();
     if (T.level === 'finals') return rank.slice(0, 8);
     if (T.draw >= rank.length) return rank;
+    if (!globalThis.__fieldOld) return pickField(rank, T, this.r, this.human);   // (data.js: everyone gets to play; the five at the big ones)
     // smaller events: the top players pick and choose; the human always enters
     const e = []; for (const id of rank) { if (id === this.human) { e.push(id); continue; } if (e.length < T.draw && this.r() < 0.74) e.push(id); }
     for (const id of rank) if (e.length < T.draw && !e.includes(id)) e.push(id);

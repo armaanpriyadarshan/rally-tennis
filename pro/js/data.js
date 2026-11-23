@@ -213,6 +213,22 @@ const ELITE_K = { Alcaraz: 1, Sinner: 1.6, Djokovic: 1.3, Nadal: 2.2, Federer: 2
 // and in simulated matches and seeding (season.js gameProb, eventSeeding): percentage points more service games held and broken
 export const isElite = id => !globalThis.__eliteOld && PLAYERS[id] && ELITE_K[PLAYERS[id].facts.name] != null;
 export const ELITE_SIM = 4;
+// Who plays an event (he said "rn for some reason some players never enter tournaments": the field was the twelve strongest at each
+// event, and Wawrinka, Ivanisevic, Monfils and Kyrgios were in 2-4% of the fields, Thiem 6%, Kuerten 10%). `order`: everyone, best
+// first (strength at the event, or the season's ranking). The human always plays; at a Slam or a Masters 1000 the five do too (they
+// are compulsory for the top men, as on the tour), at a 500 each about half the time; the other places are drawn, the stronger more
+// likely, every man with a real chance. The Finals are the top eight. `__fieldOld`: the strongest twelve.
+export function pickField(order, T, rnd, me) {
+  const n = T.draw;
+  if (T.level === 'finals' || globalThis.__fieldOld) { const f = order.slice(0, n); if (me != null && !f.includes(me)) f[n - 1] = me; return order.filter(id => f.includes(id)); }
+  const f = new Set(me != null ? [me] : []), big = T.level === 'slam' || T.level === 'm1000';
+  for (const id of order) if (f.size < n && isElite(id) && (big || rnd() < 0.5)) f.add(id);
+  // (drawn by weight without putting back: each man's key is u^(1/w), the highest keys play; w falls from 1 for the strongest left
+  // to about a fifth for the weakest at a big event, a third at a 500)
+  const rest = order.filter(id => !f.has(id)).map((id, i) => ({ id, k: Math.pow(Math.max(1e-9, rnd()), 1 + i / (big ? 5.5 : 9)) }));
+  rest.sort((a, b) => b.k - a.k); for (const r of rest) { if (f.size >= n) break; f.add(r.id); }
+  return order.filter(id => f.has(id));
+}
 // Strength for simulated matches: career win rate on the surface, as odds.
 export function strength(id, surface, key) { const w = clamp(eventRate(id, key, surface).rate / 100, 0.3, 0.93); return w / (1 - w); }
 // Seeding for an event: how strong each man is here (his record at this event, or on this surface where he has none),

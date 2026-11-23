@@ -1389,3 +1389,10 @@ still in the air, both in a stroke's finish, for two or three frames.
     reach there (computed from the span and how far in front; set out of reach, the hands were left wide of a narrow trophy), a little
     in front of his head. game.js placeTrophy puts it where the palms are (Figure.palmAt): its grip points between them, scaled to
     their span within ±10% (measured after the fix: 0.93-1.00 at five events).
+- **Everyone plays** (he said "rn for some reason some players never enter tournaments"). Measured (40 openings of every event, and 6
+  simulated seasons): an event's field was its twelve strongest, so Wawrinka was in 2% of single-event fields (1% of a season's),
+  Ivanisevic and Monfils 3%, Kyrgios 4%, Thiem 6%, Kuerten 10% (1% of a season's). data.js `pickField` (used by app.js fieldFor and
+  season.js entrants; `__fieldOld`): the human always plays; at a Slam or a Masters 1000 the five play, at a 500 each about half
+  the time; the other places drawn by weight without putting back (key u^(1+i/5.5) at a big event, u^(1+i/9) at a 500, i his place
+  in the order), the Finals still the top eight. Now the rest are in 22-47% of fields (Wawrinka 22%, season 30%; Kuerten 27/23%;
+  Ivanisevic 25/20%), the five 84-100%. A field shown is the field played (the draw's seed kept with the seedings).

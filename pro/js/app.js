@@ -4,7 +4,7 @@ import { Gfx, QUALITY } from './render.js';
 import { Game } from './game.js';
 import { Input } from './input.js';
 import { Audio } from './audio.js';
-import { PLAYERS, TOURNAMENTS, DIFFICULTY, ROUND_NAME, playerByName, lookAt, surfaceEdge, eventEdge, SURFACE_PLAY, kitEvent, eventSeeding } from './data.js';
+import { PLAYERS, TOURNAMENTS, DIFFICULTY, ROUND_NAME, playerByName, lookAt, surfaceEdge, eventEdge, SURFACE_PLAY, kitEvent, eventSeeding, pickField } from './data.js';
 import { loadPerson } from './people.js';
 import { renderPortraits } from './portraits.js';
 import { PORTRAIT_FILES } from './portraitfiles.js';
@@ -243,10 +243,9 @@ class App {
   // the field and its seeds for this event, drawn afresh each time an event is opened (its strength there, and form), and
   // kept until the draw is made from it, so the seeds shown are the seeds played
   fieldFor(T, me) {
-    if (!this.seedings || this.seedings.key !== T.key) this.seedings = { key: T.key, order: eventSeeding(PLAYERS.map(p => p.id), T, rng((Date.now() ^ (Math.random() * 0xfffff)) & 0xfffff)) };
-    const order = this.seedings.order;
-    const field = order.slice(0, T.draw); if (!field.includes(me)) field[field.length - 1] = me;
-    return order.filter(id => field.includes(id));
+    if (!this.seedings || this.seedings.key !== T.key) this.seedings = { key: T.key, order: eventSeeding(PLAYERS.map(p => p.id), T, rng((Date.now() ^ (Math.random() * 0xfffff)) & 0xfffff)), fs: (Date.now() ^ (Math.random() * 0xfffff)) & 0xfffff };
+    // (who plays is drawn too, data.js pickField, the same draw each time it is shown until the draw is made)
+    return pickField(this.seedings.order, T, rng(this.seedings.fs), me);
   }
   // An event as the tour presents it: its court drawn in its own colours, what it is worth round by round,
   // how it plays, and who is in it.
