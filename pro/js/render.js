@@ -108,7 +108,7 @@ export class Gfx {
     this.lens = new ShaderPass(LensShader); if (Q.focus) { this.lens.material.defines.FOCUS = 1; this.lens.material.needsUpdate = true; } c.addPass(this.lens);
     this.hasFocus = !!Q.focus; this.frameNo = 0;
   }
-  setQuality(q) { this.q = q; this.scale = QUALITY[q].scale; this.ceil = null; this.probeT = null; this.slow = 0; this.calm = 0; this.build(); this.resize(); }
+  setQuality(q) { this.q = q; this.scale = QUALITY[q].scale; this.pendScale = null; this.ceil = null; this.probeT = null; this.slow = 0; this.calm = 0; this.build(); this.resize(); }
   resize() {
     const Q = QUALITY[this.q], w = this.canvas.clientWidth || innerWidth, h = this.canvas.clientHeight || innerHeight;
     const dpr = Math.min(window.devicePixelRatio || 1, Q.maxDpr) * this.scale;
@@ -146,6 +146,9 @@ export class Gfx {
     this.scene.environmentRotation.y = f < 0 ? Math.PI : 0;
   }
   render(dt) {
+    // a resolution change decided last frame is made now, before drawing: resizing the canvas clears it, and made after the
+    // frame was drawn the browser showed that cleared canvas, a black frame, at every change ("random black screen flashes")
+    if (this.pendScale != null) { this.scale = this.pendScale; this.pendScale = null; this.resize(); }
     this.time += dt;
     this.lens.uniforms.uTime.value = this.time;
     if (this.hasFocus) {
@@ -160,7 +163,7 @@ export class Gfx {
     this.composer.render(dt);
     // keep the frame rate: trade resolution for time when the GPU falls behind
     // Down when frames come late for most of a second, as far as two thirds of the setting's resolution; back up a step only
-    // after ten seconds without a late frame, and never again (for a minute) to a resolution that was tried and came late: each
+    // after twenty seconds without a late frame, and never again (for two minutes) to a resolution that was tried and came late: each
     // change rebuilds the buffers, and a picture that sharpens and softens by turns, with a hitch each time, is worse than one a
     // little soft. (expect is the screen's refresh, app.js: it was the average gap between frames, which grew with the late frames
     // themselves, and the resolution never came down.)
@@ -171,10 +174,10 @@ export class Gfx {
       const floor = base * (old ? 0.8 : 0.67);
       if (this.slow > (old ? 90 : 40) && this.scale > floor + 1e-3) {
         if (this.probeT != null && now - this.probeT < 6) this.ceil = { s: this.scale, t: now };       // the step up came late: not again for a while
-        this.scale = Math.max(floor, +(this.scale - 0.1).toFixed(2)); this.slow = 0; this.calm = 0; this.probeT = null; this.frameMs = want; this.resize();
-      } else if (!old && this.calm > 10 && this.scale < base - 1e-3) {
+        const ns = Math.max(floor, +(this.scale - 0.1).toFixed(2)); if (globalThis.__flashOld) { this.scale = ns; this.resize(); } else this.pendScale = ns; this.slow = 0; this.calm = 0; this.probeT = null; this.frameMs = want;
+      } else if (!old && this.calm > 20 && this.scale < base - 1e-3) {
         const up = Math.min(base, +(this.scale + 0.1).toFixed(2));
-        if (!(this.ceil && up >= this.ceil.s - 1e-3 && now - this.ceil.t < 60)) { this.scale = up; this.calm = 0; this.probeT = now; this.frameMs = want; this.resize(); }
+        if (!(this.ceil && up >= this.ceil.s - 1e-3 && now - this.ceil.t < 120)) { if (globalThis.__flashOld) { this.scale = up; this.resize(); } else this.pendScale = up; this.calm = 0; this.probeT = now; this.frameMs = want; }
         else this.calm = 0;
       }
     }

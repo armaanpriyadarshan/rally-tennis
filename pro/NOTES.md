@@ -1204,3 +1204,34 @@ still in the air, both in a stroke's finish, for two or three frames.
   then a step through. The check measures the knee against the foot's own forward direction, which a raised foot reverses: it now
   only asks of a foot within 20 cm of the court (`__kneeAirOld` for the old). Alcaraz–Sinner, same seed: Alcaraz 0.86 → 0.00 %, Sinner
   0.33 → 0.17 % (his step through after the serve, at a crossover; nothing wrong to see).
+
+## 2026-11-23: Rally Pro the default site; black flashes; old aiming back; arms on the run
+- **Rally Pro at `/`, the original at `/classic/`** (he asked "make the original rally on /classic and make this the default
+  one"): `vercel.json` rewrites everything outside `/classic/`, `/pro/`, `/audio/` to `pro/`; `/pro/` still works. Checked with
+  `vercel dev` and then live (every route, md5 against the files).
+- **"Random black screen flashes"**: the resolution that now follows the frame rate (2026-11-22) resized the canvas after the frame
+  was drawn, and a resized canvas is cleared: the browser showed that cleared canvas, one black frame at every change. The change is
+  now made at the start of the next frame, before drawing (`render.js`, `pendScale`; `__flashOld`); read back right after the
+  frame, the centre pixel was 0 at the change before and is the picture now. Steps back up wait 20 s of clean frames (was 10) and a
+  step that failed is not tried again for two minutes (was one).
+- **Old aiming back** (he said "bring back the old controls without the aiming changes. keep the timing changes. but also keep the
+  lime circle only after my player has hit the ball"): the timed aim is gone, an arrow held at the swing sends the ball to the fixed
+  angle again (`COURT.halfW - safe - 0.75`); no circle where he is aiming before he hits, in a rally or waiting to serve; the lime
+  circle shows where his ball (serve too) will land once it is struck. Kept: the pressure timing, and the arrows pressed with Space
+  or after it counting until the swing. Tour left as it is (opponent errors 0.62, his spread 1.12): classicbot with timing like his
+  (sig 0.02, Auto, 600 points) now wins 49 % on Tour with the old aim (57 % with the timed aim at the old Tour, which he found too
+  easy; 55 % with the old aim at the old Tour).
+- **"The arms still flail a lot on running and strokes, for example Federer's when running"**: measured as each hand's speed against
+  his own chest (`steps_armspeed.mjs` for computer matches; `ARMSP` lines in `steps_audit.mjs` with the human side on the controls):
+  the worst quarter-seconds were sprints into a take-back and out of a recovery, 4-5 m/s. Found, filmed frame by frame (Federer on
+  the controls sprinting at 5.4 m/s to a backhand slice): the run's carry was cut off in the frame the stroke's weight passed 0.3,
+  the arms jumped from the carry to the take-back and swung the racket across him and over the far shoulder in a seventh of a
+  second; and the body, held turned to run, came round into the shot in 0.15 s. Changes: the carry lets go over the stroke's first
+  third (`__pumpCutOld`); the turn into the shot over the last 0.6-0.3 s (`__turnWinOld`); at a sprint the stroke comes in over up
+  to a third of a second when there is time (`__xinRunOld`); with a backhand coming the run carries the racket across toward that
+  side (`__runBhOld`); the run's own swing toned down from 2026-11-21: the pump from 2.6 m/s, full by 4 (was 2 / 3.4), the racket
+  hand riding 0.4 of the stride's swing and the free hand 0.8, the free hand back only to the hip line, the jog sway 0.07
+  (`__flail2Old`); and outside the swing itself (carry, first of a take-back, recovery) no arm segment turns faster than about
+  900 deg/s (`__flailOld`, `__calmLim`). Federer on the controls, same match: hand speed on the run median 1.05 → 0.90 m/s, p95
+  3.22 → 3.05; standing p95 2.5 → 1.6; Nadal (computer) running over 3 m/s 2.1 → 0.8 % of frames; free hand on hip while running
+  1.2 → 0.6 %; feet and the other arm counts unchanged.

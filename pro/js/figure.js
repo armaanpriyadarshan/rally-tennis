@@ -307,13 +307,21 @@ export class Figure {
     // out the wrong way)
     return { R, L, dir: globalThis.__strollClipOld ? [0.05, -0.55, 0.83] : globalThis.__strollRkOld ? [0.08, -0.86, 0.5] : [0.08, -0.6, 0.8], nrm: [1, 0, 0], twist: 0, lean: 0.06, crouch: 0.02, stance: 0.14, lgrip: 0, head: this.lookUp ? 0.02 : -0.25 };
   }
-  runPose(t, speed) {
+  runPose(t, speed, bhK = 0) {
     const ph = this.gait * Math.PI * 2, sw = Math.sin(ph) * (globalThis.__pump2Old ? 0.07 : 0.15) * Math.min(1, speed / 4), up = Math.cos(ph * 2) * 0.012;   /* (a runner's hands swing a quarter of a metre and more each way; at seven centimetres the arms looked locked) */
     // (the free hand carried in front of the stomach, as a tennis player runs with it, not beside the hip: the running arm's
     // swing is blended toward this, and held beside the hip, with the elbow swung back behind him, it read as a hand on the hip)
     // (the racket carried low and pointing ahead, the hand by the waist, as a player runs with it: held at the chest pointing
     // up, swung by the running arm, it rode up behind his head at a sprint, as if he were already taking it back)
-    if (!globalThis.__runCarryOld) return { R: [0.22, 0.98 + up, 0.30 + sw], L: [-0.14, 1.10, 0.30 - sw], dir: [-0.22, 0.42, 0.88], nrm: [0.7, 0.1, 0.7], twist: 0, lean: 0.22, crouch: 0.15, stance: 0.22, lgrip: 0, head: 0, elbows: 0.15 };
+    // (the racket hand rides less than half of it, the free hand most: both swinging fifteen centimetres each way, the racket head on
+    // its long lever went through half a metre each stride, and he said "the arms still flail a lot on running")
+    const kR = globalThis.__flail2Old ? 1 : 0.4, kL = globalThis.__flail2Old ? 1 : 0.8;
+    // (and with a backhand to come, carried across in front of him toward that side, the free hand nearer the throat, as a player
+    // sprinting to his backhand runs: carried on the forehand side to the last, the take-back swung the racket across the body and
+    // over the far shoulder in a seventh of a second, the arms seen to flail)
+    if (!globalThis.__runCarryOld && bhK > 0.001) { const b = bhK, d = [-0.22 + (-0.62 + 0.22) * b, 0.42 + (0.50 - 0.42) * b, 0.88 + (0.60 - 0.88) * b], dl = Math.hypot(d[0], d[1], d[2]);
+      return { R: [0.22 - 0.24 * b, 0.98 + up, 0.30 + sw * kR * (1 - 0.5 * b) + 0.04 * b], L: [-0.14 + 0.02 * b, 1.10 - 0.04 * b, 0.30 - sw * kL * (1 - 0.6 * b) + 0.04 * b], dir: d.map(v => v / dl), nrm: [0.7, 0.1, 0.7], twist: 0, lean: 0.22, crouch: 0.15, stance: 0.22, lgrip: 0, head: 0, elbows: 0.15 }; }
+    if (!globalThis.__runCarryOld) return { R: [0.22, 0.98 + up, 0.30 + sw * kR], L: [-0.14, 1.10, 0.30 - sw * kL], dir: [-0.22, 0.42, 0.88], nrm: [0.7, 0.1, 0.7], twist: 0, lean: 0.22, crouch: 0.15, stance: 0.22, lgrip: 0, head: 0, elbows: 0.15 };
     return { R: [0.22, 1.06 + up, 0.40 + sw], L: [-0.14, 1.10, 0.30 - sw], dir: [-0.30, 0.78, 0.55], nrm: [0.7, 0.1, 0.7], twist: 0, lean: 0.22, crouch: 0.15, stance: 0.22, lgrip: 0, head: 0, elbows: 0.15 };
   }
 
@@ -548,7 +556,7 @@ export class Figure {
       const end = st.done ? (st.tEnd - (st.tc || st.tEnd)) + TIMING.follow + TIMING.recover : 99;
       // (how fast it comes in is fixed by its first frame, from the contact time then known or planned: worked out again when
       // a person let go, a late press's fade-in was cut short and the body turned half its wind-up in one frame)
-      if (this.xinSt !== st) { this.xinSt = st; const tcK = st.tc != null ? st.tc : st.tcPlan; this.xin = tcK != null ? clamp((tcK - st.t0) * 0.8, 0.2, 0.22) : 0.22;   /* (never under a sixth of a second: a swing begun at the last moment turned the body round in four frames, and at an eighth, sprinting to a ball, the arm still swung seventy degrees in a frame as the trunk came round under it; a late ball is met with the body still turning, as it is) */ }
+      if (this.xinSt !== st) { this.xinSt = st; const tcK = st.tc != null ? st.tc : st.tcPlan; this.xin = tcK != null ? clamp((tcK - st.t0) * 0.8, 0.2, 0.22 + (globalThis.__xinRunOld ? 0 : 0.12 * sm((speed - 2.5) / 2.0))) : 0.22;   /* (2026-11-23: at a sprint, given time, in over up to a third of a second: in a fifth, a backhand's take-back begun at six metres a second swung the racket across him in seven frames) */   /* (never under a sixth of a second: a swing begun at the last moment turned the body round in four frames, and at an eighth, sprinting to a ball, the arm still swung seventy degrees in a frame as the trunk came round under it; a late ball is met with the body still turning, as it is) */ }
       if (u < span[1] + 0.05) { const X = 0.3 + 0.22 * sm(speed / 3.5), Xin = this.xin; sw = sm((t - st.t0) / Xin) * (1 - sm5((u - (span[1] - X)) / X)) * cancelK * deferIn;   /* (in on a gentler curve: on the steeper one a swing begun at a sprint, a quarter of a second before the ball, turned the body and both arms sixty degrees in its steepest frame) */ void end; }   /* (in over at most a fifth of a second, and always well before contact on a late swing) */   /* (on the run the finish is cut shorter and let go of more slowly, as a player recovering does) */
       // Running hard to a ball still well over half a second away, he runs: arms pumping, free to turn and run, the racket taken
       // back only in the last steps. Booked nine-tenths of a second ahead, the stroke's take-back came in at once and held him
@@ -583,7 +591,7 @@ export class Figure {
     // (he turns and runs from two and a half metres a second, not three and a fifth, and pumps his arms from three, not nearly four:
     // a run to a ball well wide, behind or in front of him began as a quick sideways shuffle of three steps a second and went
     // on with the racket held out in front of him at chest height, as if already taking it back)
-    const gT0 = globalThis.__turnOld ? GAIT.turn0 : (globalThis.__turn0 ?? 2.5), gT1 = globalThis.__turnOld ? GAIT.turn1 : (globalThis.__turn1 ?? 4.0), gP0 = globalThis.__pumpOld ? GAIT.pump0 : (globalThis.__pump0 ?? (globalThis.__pump2Old ? 3.0 : 2.0)), gP1 = globalThis.__pumpOld ? GAIT.pump1 : (globalThis.__pump1 ?? (globalThis.__pump2Old ? 4.4 : 3.4));   /* (from two metres a second, full by three and a half: below three every run was run with the racket held out in front in both hands, the arms locked, like a man carrying a tray) */
+    const gT0 = globalThis.__turnOld ? GAIT.turn0 : (globalThis.__turn0 ?? 2.5), gT1 = globalThis.__turnOld ? GAIT.turn1 : (globalThis.__turn1 ?? 4.0), gP0 = globalThis.__pumpOld ? GAIT.pump0 : (globalThis.__pump0 ?? (globalThis.__pump2Old ? 3.0 : globalThis.__flail2Old ? 2.0 : 2.6)), gP1 = globalThis.__pumpOld ? GAIT.pump1 : (globalThis.__pump1 ?? (globalThis.__pump2Old ? 4.4 : globalThis.__flail2Old ? 3.4 : 4.0));   /* (2026-11-23: from two and a half, full by four: from two, every run to a ball pumped, 'the arms flail') */   /* (from two metres a second, full by three and a half: below three every run was run with the racket held out in front in both hands, the arms locked, like a man carrying a tray) */
     this.fastT = speed > gP0 ? (this.fastT || 0) + dt : 0;
     // (running in to the net, inside the service line or moving toward it in front of the baseline, a volleyer carries the
     // racket up in front and does not pump; pumping and then taking it up again was a racket that went up, down and up)
@@ -604,12 +612,18 @@ export class Figure {
       // the racket stays in front in both hands until he is flat out; only then do the arms pump
       basePose = this.ready(t, { live: m.phase === 'live', wait: m.phase !== 'live' });
       if (rcvWalkK > 0.001) basePose = blendPose(basePose, this.stroll(t, speed), rcvWalkK);
-      const pump = sm((speed - gP0) / (gP1 - gP0)) * this.pumpSus * (st && sw > 0.3 ? 0 : 1);
-      if (pump > 0.001) basePose = blendPose(basePose, this.runPose(t, speed), pump);
+      // (let go of as the stroke comes in, over its first third: cut off in the frame its weight passed 0.3, the arms jumped from
+      // the run's carry to the take-back's, and swung across in the next frames as fast as an arm may turn - at every stroke
+      // played at a run, "the arms flail a lot on running and strokes")
+      const swCut = globalThis.__pumpCutOld ? (st && sw > 0.3 ? 0 : 1) : (st ? 1 - sm(sw / 0.35) : 1);
+      const pump = sm((speed - gP0) / (gP1 - gP0)) * this.pumpSus * swCut;
+      { const want = !globalThis.__runBhOld && st && st.wing === 'bh' && st.kind !== 'serve' && st.kind !== 'smash' && !(st.tc != null && t > st.tc) ? 1 : 0;
+        this.runBhK = this.inited && dt > 0 ? (this.runBhK || 0) + (want - (this.runBhK || 0)) * (1 - Math.exp(-dt * 5)) : want; }
+      this.pumpNow = pump; if (pump > 0.001) basePose = blendPose(basePose, this.runPose(t, speed, this.runBhK || 0), pump);
       // (and moving at all, the shoulders turn against the hips with each stride and the hands ride with them, as a runner's do even
       // with the racket held in front: held dead still over legs running, the upper body glided along like a statue on a cart)
-      if (!globalThis.__pump2Old && !(st && sw > 0.3)) { const k = sm((speed - 0.9) / 1.5) * (1 - pump * 0.6), ph = this.gait * Math.PI * 2;
-        if (k > 0.001) { basePose = { ...basePose, twist: (basePose.twist || 0) + Math.sin(ph) * 0.10 * k, R: [basePose.R[0], basePose.R[1] + Math.cos(ph * 2) * 0.02 * k, basePose.R[2] + Math.sin(ph) * 0.05 * k], L: [basePose.L[0], basePose.L[1] + Math.cos(ph * 2) * 0.02 * k, basePose.L[2] - Math.sin(ph) * 0.05 * k] }; } }
+      if (!globalThis.__pump2Old && (globalThis.__pumpCutOld ? !(st && sw > 0.3) : swCut > 0.001)) { const k = sm((speed - 0.9) / 1.5) * (1 - pump * 0.6) * (globalThis.__pumpCutOld ? 1 : swCut), ph = this.gait * Math.PI * 2;
+        if (k > 0.001) { basePose = { ...basePose, twist: (basePose.twist || 0) + Math.sin(ph) * (globalThis.__flail2Old ? 0.10 : 0.07) * k, R: [basePose.R[0], basePose.R[1] + Math.cos(ph * 2) * 0.02 * k, basePose.R[2] + Math.sin(ph) * 0.05 * k], L: [basePose.L[0], basePose.L[1] + Math.cos(ph * 2) * 0.02 * k, basePose.L[2] - Math.sin(ph) * 0.05 * k] }; } }
     }
     // (from one kind of standing to another, the walk between points into the stance to serve or to receive, over a quarter of a
     // second: switched in a frame, a foot still on its way down from a step was sent to its new place in the stance at once,
@@ -694,7 +708,7 @@ export class Figure {
     if (!globalThis.__runHoldOld && st && st.kind !== 'serve' && st.kind !== 'smash' && live && speed > 2.6) {
       const tcR = st.tc != null ? st.tc : st.tcPlan, ur = tcR != null ? t - tcR : null, lx = p.vx * s;
       const own = !st.wing || Math.abs(lx) < 0.4 * speed || Math.sign(lx) === (st.wing === 'fh' ? 1 : -1) * Math.sign(hs || 1);
-      const timeK = ur == null ? 1 : ur < 0 ? (own ? sm((-0.3 - ur) / 0.15) : 0) : sm((ur - 0.15) / 0.1);
+      const timeK = ur == null ? 1 : ur < 0 ? (own ? sm((-0.3 - ur) / (globalThis.__turnWinOld ? 0.15 : 0.3)) : 0) : sm((ur - 0.15) / 0.1);   /* (into the shot over the last 0.6 to 0.3 s: over 0.45 to 0.3, at a sprint the body whipped round in a seventh of a second and the racket with it, 'the arms flail') */
       swTurn *= 1 - sm((speed - 2.8) / 0.8) * timeK; if (this.dbgOn) this.dbgTurn = { ur: ur == null ? null : +ur.toFixed(2), own, timeK: +timeK.toFixed(2), swTurn: +swTurn.toFixed(2), lx: +lx.toFixed(1) }; }
     this.turnT = live && speed > gT0 * 0.85 && !(swTurn > 0.3) ? (this.turnT || 0) + dt : 0;
     // (and going far, he turns as he sets off, a drop step and away: the game knows how far its legs are taking him, and a run of
@@ -1623,7 +1637,7 @@ export class Figure {
           // (and swinging back, it stays out at the width of his shoulder, beside the hip, not drawn in toward his middle, where the
           // trunk is and it was sent forward again; its elbow goes straight back, not out. The trunk's margin for it is 3 cm, not 5: at
           // 1.2 the upper arm grazed his side at a sprint as the shoulders turned against the hips)
-          const rK = globalThis.__armSwingOld ? 0 : sm((speed - 2.6) / 2.0) * (1 - sm(sw / 0.3)), zMin = 0.22 - 0.30 * rK, xMax = -0.06 + 0.07 * rK; this.runSwingK = rK * band / Math.max(1e-6, zw);
+          const rK = globalThis.__armSwingOld ? 0 : sm((speed - 2.6) / 2.0) * (1 - sm(sw / 0.3)), zMin = 0.22 - (globalThis.__flail2Old ? 0.30 : 0.22) * rK, xMax = -0.06 + 0.07 * rK; this.runSwingK = rK * band / Math.max(1e-6, zw);
           tgt[off].addScaledVector(cF, soft(zMin - z) * band).addScaledVector(oU, -soft(x - xMax) * band); }
         if (this.dbgOn && this.dbg) { this.dbg.zw = zw; this.dbg.band = band; }
         // (and the racket hand, carried on a run, in front of the stomach toward the middle, as the racket is carried: left level
@@ -2576,7 +2590,12 @@ export class Figure {
         // (a free arm, holding nothing, to thirty degrees: it has no racket to keep up with, and at the full limit single frames of
         // its swing back for balance read as a flick; and one half on the handle, letting go of it or taking it, to twenty: held on
         // the throat by the grip and then let go, the hand left it in one frame at the full thirty as a slice's take-back began)
-        if (ok && !hitWin) { const mx = (i === off && !((this.gripOn || 0) > (globalThis.__freeLimG ?? 0.8)) && !globalThis.__freeLimOld ? ((this.gripOn || 0) > 0.01 && !globalThis.__relLimOld ? (globalThis.__relLim ?? 0.35) : 0.52) : 0.63) * Math.min(2, dt * 60), lim = (cur, pv) => { const ang = Math.acos(clamp(cur.dot(pv), -1, 1)); if (ang > mx) { const ax = _sgC.copy(pv).cross(cur); if (ax.lengthSq() < 1e-10) return false; cur.copy(pv).applyAxisAngle(ax.normalize(), mx); return true; } return false; };
+        // (and away from the swing itself, carrying the racket on a run, the first of a take-back, the recovery after the finish, to
+        // about fifteen degrees a frame, nine hundred a second: at the full limit a take-back begun late at a sprint swung the racket
+        // across the body and over the far shoulder in a tenth of a second, and the arms looked to flail - he said "the arms still
+        // flail a lot on running and strokes". Not a rushed stroke's, nor a serve's or a smash's, which are fast.)
+        const calm = !globalThis.__flailOld && !srvS && (!st || (st.tc == null ? true : ((ucS < -0.3 && st.tc - (st.t0 ?? -9) > 0.45) || ucS > 0.4)));
+        if (ok && !hitWin) { const mx = Math.min(calm ? (globalThis.__calmLim ?? 0.26) : 9, (i === off && !((this.gripOn || 0) > (globalThis.__freeLimG ?? 0.8)) && !globalThis.__freeLimOld ? ((this.gripOn || 0) > 0.01 && !globalThis.__relLimOld ? (globalThis.__relLim ?? 0.35) : 0.52) : 0.63)) * Math.min(2, dt * 60), lim = (cur, pv) => { const ang = Math.acos(clamp(cur.dot(pv), -1, 1)); if (ang > mx) { const ax = _sgC.copy(pv).cross(cur); if (ax.lengthSq() < 1e-10) return false; cur.copy(pv).applyAxisAngle(ax.normalize(), mx); return true; } return false; };
           const c1 = lim(ua, prev.ua), c2 = lim(fa, prev.fa);
           if (c1 || c2) { const e2 = wld(ua, _sgC).multiplyScalar(D.upper).add(sh[i]); const w2 = wld(fa, _sgA).multiplyScalar(D.fore).add(e2); const dW = _sgB.copy(w2).sub(wrist[i]);
             el.copy(e2); wrist[i].copy(w2); this.hand[i].add(dW); } }
@@ -2790,7 +2809,8 @@ export class Figure {
         // (and turned no faster than an arm turns, as above: this pass comes after that limit)
         { const sl = this.segL && this.segL[off], ucG = st && st.tc != null ? t - st.tc : 9, srvG = st && (st.kind === 'serve' || st.kind === 'smash'), winG = srvG ? (ucG > -0.22 && ucG < 0.17) : (ucG > -0.11 && ucG < (this.twoHW > 0.5 && !globalThis.__rgOld ? 0.3 : 0.09));   /* (a two-hander's top hand stays on the handle through the whipped finish: held to an arm's turn per frame there, it trailed the racket by a hand's breadth) */
           if (sl && sl.pt === this.placedT && dt > 0 && !globalThis.__noSegLim && !winG) {
-            const cU = _sgU, cR = _sgR, cF = _sgF, mx = ((this.gripOn || 0) <= (globalThis.__freeLimG ?? 0.8) && !globalThis.__freeLimOld ? ((this.gripOn || 0) > 0.01 && !globalThis.__relLimOld ? (globalThis.__relLim ?? 0.35) : 0.52) : 0.63) * Math.min(2, dt * 60); if (globalThis.__segChest) { cR.copy(cRight); cU.set(0, 1, 0).applyQuaternion(qChest); cF.copy(cU).cross(cR).normalize(); } else bodyFrame(person, pelvis, cR, cU, cF);
+            const calmG = !globalThis.__flailOld && !srvG && (!st || (st.tc == null ? true : ((ucG < -0.3 && st.tc - (st.t0 ?? -9) > 0.45) || ucG > 0.4)));   /* (as the arms above: no flailing away from the swing) */
+            const cU = _sgU, cR = _sgR, cF = _sgF, mx = Math.min(calmG ? (globalThis.__calmLim ?? 0.26) : 9, ((this.gripOn || 0) <= (globalThis.__freeLimG ?? 0.8) && !globalThis.__freeLimOld ? ((this.gripOn || 0) > 0.01 && !globalThis.__relLimOld ? (globalThis.__relLim ?? 0.35) : 0.52) : 0.63)) * Math.min(2, dt * 60); if (globalThis.__segChest) { cR.copy(cRight); cU.set(0, 1, 0).applyQuaternion(qChest); cF.copy(cU).cross(cR).normalize(); } else bodyFrame(person, pelvis, cR, cU, cF);
             const loc = (v, o) => o.set(v.dot(cR), v.dot(cU), v.dot(cF)), wld = (l, o) => o.set(0, 0, 0).addScaledVector(cR, l.x).addScaledVector(cU, l.y).addScaledVector(cF, l.z);
             const ua = loc(_sgA.copy(el2).sub(sO).normalize(), _sgA2), fa = loc(_sgB.copy(nw).sub(el2).normalize(), _sgB2);
             const lim = (cur, pv) => { const ang = Math.acos(clamp(cur.dot(pv), -1, 1)); if (ang > mx) { const ax = _sgC.copy(pv).cross(cur); if (ax.lengthSq() > 1e-10) cur.copy(pv).applyAxisAngle(ax.normalize(), mx); } };

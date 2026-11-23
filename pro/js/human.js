@@ -143,9 +143,6 @@ export class Human {
       if (go && this.log) this.log.push(['press', +m.t.toFixed(2), ph, this.tau == null ? null : +this.tau.toFixed(3), m.ball.lastHit, m.ball.live ? 1 : 0, +Math.hypot(m.ball.x - p.x, m.ball.z - p.z).toFixed(1), lat, fk, serving ? 1 : 0]);
       this.power = 0; this.kindNow = null; this.hold = null;
       if (ph !== 'live') this.aimPreview = null;
-      // (and the circle shows where the serve will go: the box's T, body or wide by the arrow held, as the swing will place it)
-      if ((ph === 'ready' || ph === 'toss') && serving) { const side = m.deuceSide ? -1 : 1, smg = this.srvSafe + 0.3, a = smg, b = COURT.halfW - smg, lS = lat || (this.srvWant ? this.srvL || 0 : 0) || latT, u = 0.5 + 0.5 * lS * side;
-        this.aimPreview = { X: side * (a + (b - a) * u), D: -(COURT.svc - this.srvSafe - 0.55), srv: true }; }
       if (ph === 'ready' && serving) { this.srvWant = false; if (go && m.phaseT > 0.4) { m.toss(i); g.audio && g.audio.event('toss'); } }
       else if (ph === 'toss' && serving) {
         // pressed again any time after the toss has started: the swing goes no sooner than a moment before the
@@ -175,12 +172,6 @@ export class Human {
         // (and the arrows pressed with Space, or any time after it until the swing goes, are the aim: read only as it went, a sixth of a
         // second before the ball, an arrow pressed with an early Space and let go of in between was not the aim, and the ball went where
         // the game chose; he said "sometimes the aiming on the stroke doesnt listen to keypresses". One held as it goes still wins.)
-        // Timed aim (as Tennis Elbow 4's): how long ← or → has been held for this ball sets the angle - a tap goes a little off the middle,
-        // held four tenths of a second or more it goes for the line, closer to it than the old fixed angle and so more often out. Kept after
-        // the key is let go, until the swing goes. (He chose it: "Timed aim".)
-        if (this.aimHFor !== m.incoming) { this.aimHFor = m.incoming; this.aimHDir = 0; this.aimHT = null; this.aimHDur = 0; }
-        if (mine) { if (lat) { if (this.aimHDir !== lat || this.aimHT == null) { this.aimHDir = lat; this.aimHT = m.t; } this.aimHDur = m.t - this.aimHT; }
-          else { this.aimHT = null; if (latT && this.aimHDir !== latT) { this.aimHDir = latT; this.aimHDur = 1 / 60; } } }
         if (!globalThis.__aimLatchOld && mine && this.buf > m.t && this.aimFor === m.incoming) { if (latT) this.aimL = latT; if (fkT) this.aimF = fkT; if (!lat) lat = this.aimL || 0; if (!fk) fk = this.aimF || 0; }
         // He reads the ball and turns for it on his own, as early as a player does (about 0.85 s out, as the computer does):
         // the shoulders turn and the racket goes back on the side the ball is coming to, whether or not Space has been
@@ -229,15 +220,8 @@ export class Human {
         { const sp = p.stroke, bl = m.ball; if (sp && !sp.done && sp.tc == null && !sp.auto && sp.kind !== 'serve' && !globalThis.__keepPrep) {
             const past = mine && (bl.z - p.z) * p.sgn > 0.6 && !(this.buf > m.t && this.tau != null);
             if (!mine || past) { p.stroke = null; this.prepGone = m.incoming; } } }
-        // (where he is aiming, for the marker on the far court, worked out each frame as the swing will work it out when it goes: the
-        // timed angle of the arrow held, ↑ deep, ↓ short, otherwise the game's own choice of where; he asked to "see where youre aiming,
-        // where the ball is going as its mid air and how your aiming controls it")
-        if (mine && !swinging && m.ball.live && plan && !plan.leave) {
-          const aF = clamp(((this.aimHDir === lat ? this.aimHDur : 0) - 0.05) / 0.35, 0, 1), latX = globalThis.__timedAimOld ? COURT.halfW - this.safe[0] - 0.75 : 1.3 + (COURT.halfW - this.safe[0] - 0.3 - 1.3) * aF, ch = this.choiceFor === m.incoming ? this.choice : null;
-          let X = lat ? lat * latX : ch ? clamp(ch.tx * s, -(COURT.halfW - this.safe[0]), COURT.halfW - this.safe[0]) : 0, D = ch ? ch.tz * s : -(COURT.halfLen - Math.max(2.4, this.safe[1] + 1.6));
-          if (fk < 0) { D = -2.1; X = lat ? lat * (COURT.halfW - 1.5) : X * 0.4; } else if (fk > 0) D = -(COURT.halfLen - Math.max(1.3, this.safe[1] + 0.8));
-          this.aimPreview = { X, D };
-        } else this.aimPreview = null;
+        // (no circle where he is aiming before he hits: he asked for the old controls back, the lime circle only once his ball is away)
+        this.aimPreview = null;
         if (!mine) this.buf = -9;
         if (mine && !swinging && this.buf > m.t) {
           const opp = m.players[1 - i], oppUp = Math.abs(opp.z) < 4.2;
@@ -262,9 +246,7 @@ export class Human {
           if (fire) {
             // the angle is his if he holds one; otherwise the game's choice of where
             const chX = ch ? ch.tx * s : 0, chD = ch ? ch.tz * s : -(COURT.halfLen - Math.max(2.4, this.safe[1] + 1.6));
-            const aimF = globalThis.__timedAimOld ? 1 : clamp(((this.aimHDir === lat ? this.aimHDur : 0) - 0.05) / 0.35, 0, 1);
-            const latX = globalThis.__timedAimOld ? COURT.halfW - this.safe[0] - 0.75 : 1.3 + (COURT.halfW - this.safe[0] - 0.3 - 1.3) * aimF;
-            let X = lat ? lat * latX : clamp(chX, -(COURT.halfW - this.safe[0]), COURT.halfW - this.safe[0]), D = chD, power = ch ? ch.power : 0.74;
+            let X = lat ? lat * (COURT.halfW - this.safe[0] - 0.75) : clamp(chX, -(COURT.halfW - this.safe[0]), COURT.halfW - this.safe[0]), D = chD, power = ch ? ch.power : 0.74;
             // his own drop shot dies just over the net, his lob lands deep; with no angle held, both go away from the other man
             const away = -Math.sign(opp.x * s || 1);
             if (own === 'drop') { X = lat ? lat * (COURT.halfW - 1.5) : away * (COURT.halfW - 1.9); D = -2.1; power = 0.4; }
