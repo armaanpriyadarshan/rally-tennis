@@ -1288,3 +1288,16 @@ still in the air, both in a stroke's finish, for two or three frames.
   length unchanged (classicbot 46 %, 36 %, 7.0). `__reachOld`. The audit lists these as `MISS` lines.
 - **The face left alone in the celebrations** ("dont do anything with the face"): no mouth opening at the end of a match or with the
   trophy.
+- **Celebrations tracked from real ones** (he said "the celebration animations fucking suck bro get real ones and mocap them. also
+  dont do anything with the face"): footage found by yt-dlp search (`--ignore-config`, no cookies), each in its own folder under
+  `~/.cache/rally-motion-footage/cel_*` (local only): Murray's championship point at Wimbledon 2013 (Wimbledon channel,
+  2PYyEDl1bJk, 13.2-15.8 s, the camera behind the baseline: he turns and throws both arms up), Nadal's "Peak Nadal Celebration"
+  (US Open channel, Fds22yzwh5s, 27.1-31.6 s, side camera: the fist pumps), Federer's at the 2017 Australian Open (Hp9JzkMHbF8,
+  53.2-56.0 s; rejected: his legs are out of the picture and the reconstruction fell over) and Djokovic's in Rome 2022 (Tennis TV,
+  5CeA9NqCDms: close-ups only; kept for a trophy lift later). Tracked with `tools/track.py --big` (MediaPipe heavy), built by the
+  new `tools/celeb_motion.py` (player_motion.py's reconstruction without the stroke-only arm lifting, on its own clock) into
+  `js/celebmotion.js` (`celeb_arms` 0.95 s, then held; `celeb_fists` 3.9 s), checked against the frames from the side, front, behind
+  and above. Played through the stroke-clip path (`strokeClip` / `sampleAt`, the whole body and both arms, mirrored for the other
+  hand): the winner's clip is the fists for the fist-pumpers (`CELEB_STYLE`), the arms up for everyone else; the keyed poses only
+  point the racket now. The loser's head-down and the trophy are still keyed. The face is not touched (no mouth opening). Filmed in a
+  match: Federer's arms go up in the V and hold, Nadal's fists pump. `__celebMocapOld`.

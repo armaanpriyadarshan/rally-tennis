@@ -14,6 +14,7 @@ import { buildHair } from './hair.js';
 import { Loco, J, ANKLE_H, N3, mix, strokeClip, sampleAt } from './motion.js';
 import { PLAYER_MOTION } from './playermotion.js';
 import { PLAYER_MOTION_ALTS } from './playeralts.js';
+import { CELEB_MOTION } from './celebmotion.js';
 import { LOCO, LOCO_JOINTS } from './locodata.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
@@ -903,6 +904,10 @@ export class Figure {
     this.wasSrvWait = serverWait;
     if (!serverWait && !srvSt) this.addrW = 0;
     if (this.dbgOn) { if (sw - (this.swPrevD || 0) > 0.35 && dt > 0) (this.popLog || (this.popLog = [])).push({ t: +t.toFixed(3), from: +(this.swPrevD || 0).toFixed(2), to: +sw.toFixed(2), same: st === this.popSt, isP: st === p.stroke, isLast: st === p.lastStroke, isPrev: st === this.prevSt, kind: st && st.kind, wing: st && st.wing, t0: st && st.t0 != null ? +(t - st.t0).toFixed(3) : null, tc: st && st.tc != null ? +(t - st.tc).toFixed(3) : null, u: +u.toFixed(3), cancelK: +cancelK.toFixed(2), deferIn: +deferIn.toFixed(3), xin: this.xin, ph: m.phase, auto: st && st.auto, done: st && st.done, prev: this.popInfo, dtNow: +dt.toFixed(4), tPrev: this.popT }); this.swPrevD = sw; this.popSt = st; this.popT = +t.toFixed(3); this.popInfo = st ? { kind: st.kind, wing: st.wing, tc: st.tc != null ? +(t - st.tc).toFixed(3) : null, isP: st === p.stroke, isLast: st === p.lastStroke, sw: +sw.toFixed(2), ph: m.phase } : { none: true, ph: m.phase, pS: !!p.stroke, pSdone: p.stroke ? p.stroke.done : null, pStc: p.stroke && p.stroke.tc != null ? +(t - p.stroke.tc).toFixed(3) : null, pSkind: p.stroke ? p.stroke.kind : null }; }
+    // the end of a match: a celebration tracked from footage of a real one (celebmotion.js), played on its own clock through the same
+    // path as a stroke's clip, the whole body and both arms (game.js sets this.celebClip = { kind, u, k })
+    if (this.celebClip && this.celebClip.k > 0.001 && !globalThis.__celebMocapOld) { const cc = strokeClip({ celeb: CELEB_MOTION }, 'celeb', 'celeb_' + this.celebClip.kind, this.lefty);
+      if (cc) { OC = cc; cu = clamp(this.celebClip.u, cc.span[0], cc.span[1]); const k = clamp(this.celebClip.k, 0, 1); clipW = Math.max(clipW * (1 - k), k); clipWA = Math.max(clipWA * (1 - k), k); } }
     this.clipW = clipW; this.swNow = sw; if (this.dbgOn) { this.dbgClipS = OC && clipW > 0.001 ? Float32Array.from(sampleAt(OC, cu, this._dbgS || (this._dbgS = new Float32Array(N3)))) : null; this.dbgClipW = clipW; this.dbgClipWA = clipWA; } if (this.dbgOn) this.ocDbg = OC ? { id: OC.id, span: OC.span.map(x => +x.toFixed(2)), cu: +cu.toFixed(2), n: OC.n, pick: st && st.clipPick ? st.clipPick.i + ':' + st.clipPick.sit : '-' } : null;                         // (swNow: read by the transition checks in /tmp tools)
     // the arms: the clip's, except inside a partial clip's contact window
     let armW = clipWA; if (OC && OC.armZone && armW > 0) { const z = OC.armZone, zk = 1 - sm5((cu - (z[0] - 0.14)) / 0.14) * (1 - sm5((cu - z[1]) / 0.14));   /* (the arms go over to the keys and back over a seventh of a second each way, not an eighth of one: a snap at the speed of the swing) */
