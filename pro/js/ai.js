@@ -292,7 +292,8 @@ export class AI {
     if (oppAtNet) {
       pl.state = 'pass';
       const lobP = state === 'defend' ? 0.5 : (oD > -4.2 ? 0.22 : 0.10);
-      if (r.u() < lobP) return T(cross * r.range(1.0, 2.6), -(HL - r.range(1.2, 2.2)), 'lob', state === 'defend' ? 0.7 : 0.45);
+      // (not for a person: he lobs when he asks, ↑ held, and said "get rid of autolob"; the game's choice for him is a pass)
+      if (!this.noLob && r.u() < lobP) return T(cross * r.range(1.0, 2.6), -(HL - r.range(1.2, 2.2)), 'lob', state === 'defend' ? 0.7 : 0.45);
       const dir = r.u() < 0.56 ? open : -open;
       return T(dir * (HW - r.range(0.75, 1.2)), -(HL - r.range(2.6, 5.8)), 'drive', state === 'defend' ? 0.5 : 0.82);
     }

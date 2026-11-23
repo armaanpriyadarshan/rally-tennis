@@ -1353,3 +1353,7 @@ still in the air, both in a stroke's finish, for two or three frames.
   more holds and breaks, and seeding (eventSeeding) +0.8 on the log odds: titles in 1000 simulated draws, US Open 90% to the five
   (was Sampras 16, Djokovic 11, Nadal 11, Lendl 11, ... Sinner 3), Wimbledon 85%, Australian Open 85%, Roland Garros 85% (Borg 11
   still ahead of Federer 4 and Sinner 2 there). `__eliteOld`.
+- **No auto-lob** (he said "also get rid of autolob"): with classic controls the game chooses his shot (ai.js decide, the coach in
+  human.js), and against a man at the net it chose a lob 10-50% of the time. Not for a person now (`coach.noLob`): the choice is a
+  pass; he lobs when he holds ↑, as before. The computer still lobs. classicbot, 400 points at Tour: his lobs 24 → 5 (those 5 are the
+  bot holding ↑). `__autoLobOld`.
