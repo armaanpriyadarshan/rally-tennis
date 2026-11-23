@@ -61,6 +61,9 @@ export const FORMATS = {
   short: { key: 'short', name: 'Short sets (first to 4)', bestOf: 3, games: 4, tbAt: 4, tbTo: 7, finalTbTo: 7 },
   one:   { key: 'one',   name: 'One set',         bestOf: 1, games: 6, tbAt: 6, tbTo: 7, finalTbTo: 7 },
   tb10:  { key: 'tb10',  name: 'Match tiebreak (first to 10)', bestOf: 1, games: 0, tbAt: 0, tbTo: 10, finalTbTo: 10 },
+  // the original Rally's scoring (classic/index.html): one short set, first to three games by two, and at two all a tiebreak to seven
+  // that decides the match (he asked for "a scoring setting on the games called classic based on the old game's scoring")
+  classic: { key: 'classic', name: 'Classic (first to 3 games, tiebreak at 2-2)', bestOf: 1, games: 3, tbAt: 2, tbTo: 7, finalTbTo: 7 },
 };
 
 // A neutral tour-average profile; data.js builds real ones from player statistics.

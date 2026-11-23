@@ -1253,3 +1253,7 @@ still in the air, both in a stroke's finish, for two or three frames.
   inside the same wipe. `__repTvOld` brings back the side camera and the reverse angle.
 - **"Make the default pov the broadcast"**: `DEFAULTS.cam` is `tv`; a saved setting from before is moved to it once (`camTv`), and V
   still changes it.
+- **Classic scoring** (he asked for "a scoring setting on the games called classic based on the old game's scoring"): `FORMATS.classic`,
+  the original Rally's rules (`classic/index.html`, `advanceAfterPoint`): one set, first to three games by two, at 2-2 a tiebreak to
+  seven by two that decides the match; games played to deuce and advantage. A "Classic" chip beside Tour / Short / One set / Tiebreak.
+  Checked by awarding points in the engine: 3-0 and 3-1 win, 2-2 goes to the tiebreak, 6-8 in it ends the match, a game through deuce.

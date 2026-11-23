@@ -216,7 +216,7 @@ class App {
     });
   }
   options() {
-    const s = this.set, fm = [['auto', 'Tour'], ['short', 'Short'], ['one', 'One set'], ['tb10', 'Tiebreak']];
+    const s = this.set, fm = [['auto', 'Tour'], ['short', 'Short'], ['one', 'One set'], ['tb10', 'Tiebreak'], ['classic', 'Classic']];
     return `<span class="chips">${fm.map(([k, n]) => `<span class="chip ${s.format === k ? 'on' : ''}" data-f="${k}">${n}</span>`).join('')}</span>
       <span class="chips">${DIFFICULTY.map((d, i) => `<span class="chip ${s.difficulty === i ? 'on' : ''}" data-d="${i}">${d.name}</span>`).join('')}</span>`;
   }
