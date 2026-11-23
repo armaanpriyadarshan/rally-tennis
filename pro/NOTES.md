@@ -1521,3 +1521,10 @@ still in the air, both in a stroke's finish, for two or three frames.
   - people.js setFingers `fist`: toward a clenched fist (knuckles 86°, the middle joints 97°, the thumb folded across) where the
     grip curl alone stopped at 57° at the knuckles - a fist made with it was a claw. Used for every free-hand fist (the arms-up
     celebration again, the fist pumps between points); `__fistOld`, `__upOpen` for the open hand.
+- **Great winners celebrated** (he said "for great winners there should be celebrations"): a winner struck at 160 km/h or more,
+  ending a rally of ten shots or more, on a break, set or match point, or a person's Perfect at 150 km/h or more is `great` on the
+  point's record (sim.js awardPoint; `__greatOld`). The man who hit it always reacts, and with a celebration - a fist, a vamos,
+  the free fist up, the racket raised, in his own style, never the shrug (figure.js pickReaction) - and with the quick cuts
+  between points the point holds 1.3 s longer for it to be seen. Measured, 400 points: about half of all winners (his and the
+  computer's) are great. Before, a winner got a reaction 45-85% of the time by the man's style, often the calm one, and the cut
+  came before it had played.

@@ -2724,7 +2724,7 @@ export class Figure {
         if (fd.lengthSq() > 1e-6 && want.lengthSq() > 1e-6) { fd.normalize(); want.normalize(); const ang = Math.atan2(_v8.copy(fd).cross(want).dot(ax), fd.dot(want)); _qc.premultiply(_q6.setFromAxisAngle(ax, ang)); }
         Fh.copy(Ff).slerp(_qc, Math.min(1, this.upOpen * 1.2));
       }
-      else if (i === hit) { swing(Ff, person.dir['grip' + S], this.rk.dir, _qc); Fh.copy(_qc); if (globalThis.__dbgGrip) this.dbgGrip = person.dir['grip' + S].clone().applyQuaternion(Ff); }            // the fist closes exactly along the handle
+      else if (i === hit) { swing(Ff, person.dir['grip' + S], this.rk.dir, _qc); Fh.copy(_qc); }            // the fist closes exactly along the handle
       else if (gripW > 0.001 && !(m.ball && m.ball.held === p.i)) {
         // the off hand closes round the handle from the other side: its palm faces the hitting hand's through the grip
         swing(Ff, person.dir['grip' + S], this.rk.dir, _qc);
@@ -3351,10 +3351,12 @@ const REACT_STYLE = {
 function pickReaction(fig, p, m) {
   if (Math.abs(p.mood) <= 0.6) return null;
   const st = REACT_STYLE[fig.look.name] || { win: { fist: 1, calm: 1 }, lose: { down: 1, strings: 1 }, often: 0.6 };
-  const lp = m.lastPoint || {}, big = (lp.val || 0) >= 1 || lp.bp, chance = Math.min(1, st.often * (big ? 1.6 : 1));
+  const lp = m.lastPoint || {}, great = !!lp.great && p.mood > 0, big = (lp.val || 0) >= 1 || lp.bp || great, chance = great ? 1 : Math.min(1, st.often * (big ? 1.6 : 1));
   if (Math.random() > chance) return null;
   let w = { ...(p.mood > 0 ? st.win : st.lose) };
   if (p.mood > 0 && !big) { delete w.raise; if (w.vamos) w.vamos *= 0.5; }          // the big ones are kept for big points
+  // (a great winner always, and celebrated: a fist, a vamos, the free fist up, the racket raised - his own, never the shrug)
+  if (great) { delete w.calm; if (!Object.keys(w).length) w = { fist: 1, free: 1 }; }
   if (p.mood < 0 && !big) delete w.hands;
   if (fig.lastReact && w[fig.lastReact] && Object.keys(w).length > 1) delete w[fig.lastReact];
   let sum = 0; for (const k in w) sum += w[k]; let r = Math.random() * sum;

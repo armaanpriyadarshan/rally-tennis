@@ -700,8 +700,12 @@ export class Match {
     const bp = this.isBreakPoint(); if (bp) this.players[1 - sv].stats.bpTot++;
     const val = this.pointValue(w);
     const rec = { winner: w, why, cls, rally: this.rally, server: sv, serveNum: s.serveNum, bp, val, t: this.t, dur: this.t - this.pointStart, x: d && d.x, z: d && d.z, miss: d && d.miss, lastHitter: b.lastHit, wing: ci && ci.wing, kind: ci && ci.kind, speed: b.lastSpeed };
+    // a great winner - struck at 160 km/h or more, ending a rally of ten or more, on a break, set or match point, or a person's Perfect
+    // at 150 or more - is
+    // celebrated (figure.js pickReaction; he said "for great winners there should be celebrations")
+    rec.great = !globalThis.__greatOld && why === 'winner' && !!ci && ci.who === w && ((b.lastSpeed || 0) * 3.6 >= 160 || this.rally >= 10 || val >= 2 || bp || ((ci.pf || 0) >= 0.99 && (b.lastSpeed || 0) * 3.6 >= 150));
     this.history.push(rec); this.lastPoint = rec;
-    W.mood = val >= 1 || this.rally >= 7 || why === 'winner' ? 1 : 0.4; W.moodT = this.t;
+    W.mood = rec.great ? 1.2 : val >= 1 || this.rally >= 7 || why === 'winner' ? 1 : 0.4; W.moodT = this.t;
     L.mood = cls === 'unforced' || why === 'doubleFault' ? -1 : -0.4; L.moodT = this.t;
     this.awardPoint(w);
     s.serveNum = 1;
@@ -710,7 +714,7 @@ export class Match {
     // a long rally earns a longer breather, as it does on tour
     this.timer = 2.4 + Math.min(1.6, this.rally * 0.12);
     this.nextGap = 4.5 + Math.min(4, this.rally * 0.3);
-    if (this.quick) { this.timer = 1.25 + Math.min(0.5, this.rally * 0.04); this.nextGap = 0; this.cutSent = false; }
+    if (this.quick) { this.timer = 1.25 + Math.min(0.5, this.rally * 0.04) + (rec.great ? 1.3 : 0); this.nextGap = 0; this.cutSent = false; }   /* (time for the celebration to be seen) */
     this.replayServe = false;
   }
 
@@ -975,7 +979,6 @@ export class Match {
       top = kind === 'flat' ? wingRpm * lerp(0.45, 0.6, Q) : Math.min(globalThis.__topCap ?? 4500, wingRpm * lerp(1.0, 1.22, Q) * (1 + (globalThis.__shTop ?? 0.32) * sH) * (loopy ? 1.15 : 1));
       minClear = (loopy ? lerp(1.4, 1.0, Q) : lerp(1.0, globalThis.__strikeClr ?? 0.3, Q) + (globalThis.__shClr ?? 0.9) * sH * lerp(1, 0.8, Q)) * (prof.arcS || 1);
       topMax = kind === 'flat' ? top * 1.25 : Math.max(top, Math.min(5000, top * 1.45)); }   /* (5000 rpm at most: as hard as Nadal ever spun one, he said) */   // (to keep a hard ball in, more spin before less pace)
-    if (globalThis.__dbgStrike && strike && (globalThis.__dbgN = (globalThis.__dbgN || 0) + 1) < 12) globalThis.__dbgL = (globalThis.__dbgL || []).concat([{ wing, kind, Q: +Q.toFixed(2), wingRpm: Math.round(wingRpm), v: +(v * 3.6).toFixed(0), top: Math.round(top), minClear: +minClear.toFixed(2), tz: +tz.toFixed(2) }]);
     const p0 = { x: b.x, y: b.y, z: b.z };
     let sol = null;
     if (mode === 'el') {
@@ -992,7 +995,6 @@ export class Match {
       }
     }
     if (!sol || !sol.ok) sol = { el: 0.25, az: Math.atan2(tx - p0.x, tz - p0.z), speed: v || 18, top, side, clear: 0, land: null };
-    if (globalThis.__dbgStrike && strike && globalThis.__dbgL && globalThis.__dbgL.length && !globalThis.__dbgL[globalThis.__dbgL.length - 1].out) globalThis.__dbgL[globalThis.__dbgL.length - 1].out = { v: +(sol.speed * 3.6).toFixed(0), top: Math.round(sol.top), clear: +(sol.clear || 0).toFixed(2), ok: sol.ok };
     // ---- execution: the swing is never exactly the one intended ----
     // A person's timing is his own: the random spread of a swing stands for the misjudgements a computer
     // player is not otherwise charged for, so a ball he times cleanly gets only part of it (the level sets
@@ -1043,7 +1045,7 @@ export class Match {
     this.rally++;
     p.stats.shots++;
     if (D < 6.2) p.wentNet = true;
-    this.contactInfo = { who: p.i, diff, wing, kind, weak, stretch, h, vin, timing: timRaw, power, shank };
+    this.contactInfo = { who: p.i, diff, wing, kind, weak, stretch, h, vin, timing: timRaw, power, shank, pf: st.perfect || 0 };
     this.incoming = this.makeIncoming();
     b.threat = shotThreat(outV, sol.top, this.incoming.land, diff, kind); if (strike && b.threat > 0) b.threat = clamp(b.threat + (globalThis.__strikeThr ?? 0.45) * Q * Q, 0, 1);   /* (a ball struck well is hard to send back: the other man's timing and footing suffer) */
     const q = st.auto ? 1 : clamp(1 - timAbs / 0.10, 0, 1);
