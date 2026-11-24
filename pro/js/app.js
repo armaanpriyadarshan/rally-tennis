@@ -72,9 +72,8 @@ class App {
     // one go held the loading screen up for seconds, longest on a Mac's Safari)
     // (and baked ahead of time where they can be, tools/steps_bakeportraits.mjs: the menus then only load pictures, and the figure
     // to draw any other is loaded behind the menu, not before it)
-    if (globalThis.__faceSyncOld) { try { this.model = await loadPerson('m04'); for (const [id, v] of Object.entries(renderPortraits(this.gfx.renderer, this.model, PLAYERS, id => lookAt(id, 'default')))) this.faces[id + '|default'] = v; } catch (e) { console.warn('portraits', e); } }
-    else { PLAYERS.forEach((P, id) => { const f = PORTRAIT_FILES[P.facts.name + '|default']; if (f) this.faces[id + '|default'] = f; else this.wantFace(id, 'default'); });
-      loadPerson('m04').then(m => { this.model = m; }).catch(e => console.warn('portraits', e)); }
+    PLAYERS.forEach((P, id) => { const f = PORTRAIT_FILES[P.facts.name + '|default']; if (f) this.faces[id + '|default'] = f; else this.wantFace(id, 'default'); });
+    loadPerson('m04').then(m => { this.model = m; }).catch(e => console.warn('portraits', e));
     this.home(); this.unwipe();
   }
   loop(now) {
@@ -93,7 +92,7 @@ class App {
     this.tick = (this.tick || 0) + 1;
     if (this.tick % every) return;
     if (inMenu && this.covered) { this.last = now; return; }
-    this.gfx.expect = globalThis.__expectOld ? every * (this.gapAvg || 16.7) : Math.max(15, every * (this.refresh || this.gapAvg || 16.7)); this.gfx.measure = !inMenu;   // (a match is held to about sixty, not to a fast screen's every refresh)
+    this.gfx.expect = Math.max(15, every * (this.refresh || this.gapAvg || 16.7)); this.gfx.measure = !inMenu;   // (a match is held to about sixty, not to a fast screen's every refresh)
     const dt = Math.min(0.05, (now - this.last) / 1000); this.last = now;
     if (this.game.running) this.game.frame(dt);
   }
@@ -134,7 +133,7 @@ class App {
   }
   how() {
     const classic = this.set.controls === 'classic';
-    const K = classic ? [[globalThis.__wasdOld ? '↑ ↓ ← →  /  W A S D' : 'W A S D', 'Move'], ['Space', 'Toss · Serve · Hit'], ['Hold ← or →', 'As you swing: angle'], ['Hold ↑ / ↓', 'As you swing: lob or deep · drop shot'], ['Hold ↑ / ↓', 'As you serve: kick · slice'], ['Space at the top', 'Of the toss: more pace'], ['V', 'Camera'], ['Tab', 'Statistics'], ['M', 'Sound'], ['Esc', 'Pause']]
+    const K = classic ? [['W A S D', 'Move'], ['Space', 'Toss · Serve · Hit'], ['Hold ← or →', 'As you swing: angle'], ['Hold ↑ / ↓', 'As you swing: lob or deep · drop shot'], ['Hold ↑ / ↓', 'As you serve: kick · slice'], ['Space at the top', 'Of the toss: more pace'], ['V', 'Camera'], ['Tab', 'Statistics'], ['M', 'Sound'], ['Esc', 'Pause']]
       : [['Mouse', 'Aim'], ['Tap', 'Rally ball'], ['Hold', 'Drive · longer is harder'], ['Release', 'As the ring closes'], ['Right button', 'Slice'], ['Shift', 'Flat'], ['Q', 'Lob'], ['E', 'Drop shot'],
         ['W A S D', 'Move'], ['Space', 'Split step'], ['Click · Click', 'Toss · Serve'], ['V', 'Camera'], ['Tab', 'Statistics'], ['Esc', 'Pause']];
     this.screen(this.bar('Controls', `<span class="chips">${[['classic', 'Classic'], ['mouse', 'Mouse']].map(([k, n]) => `<span class="chip ${this.set.controls === k ? 'on' : ''}" data-ctl="${k}">${n}</span>`).join('')}</span>`) + `<div class="keys">${K.map(([k, t]) => `<kbd>${k}</kbd><span>${t}</span>`).join('')}</div>`, '', true);
@@ -173,8 +172,10 @@ class App {
   // every card on the screen, the player list's first opening froze the game for seconds)
   face(id, T) {
     const ek = T ? kitEvent(T.key) : 'default', k = id + '|' + ek;
-    if (!this.faces[k] && !globalThis.__faceSyncOld && PORTRAIT_FILES[PLAYERS[id].facts.name + '|' + ek]) this.faces[k] = PORTRAIT_FILES[PLAYERS[id].facts.name + '|' + ek];
-    if (!this.faces[k] && this.model) { if (globalThis.__faceSyncOld) { try { this.faces[k] = renderPortraits(this.gfx.renderer, this.model, [PLAYERS[id]], i => lookAt(i, ek))[id]; } catch (e) { console.warn('portrait', e); } } else this.wantFace(id, ek); }
+    if (!this.faces[k] && PORTRAIT_FILES[PLAYERS[id].facts.name + '|' + ek]) this.faces[k] = PORTRAIT_FILES[PLAYERS[id].facts.name + '|' + ek];
+    if (!this.faces[k] && this.model) {
+      this.wantFace(id, ek);
+    }
     return this.faces[k] || this.faces[id + '|default'];
   }
   wantFace(id, ek) { const k = id + '|' + ek; this.faceWant = this.faceWant || new Set(); this.faceQ = this.faceQ || []; if (this.faces[k] || this.faceWant.has(k)) return; this.faceWant.add(k); this.faceQ.push({ id, ek, k }); }
@@ -481,7 +482,7 @@ class App {
         // a celebration after every match, and the trophy if it is his title: a quick match, or the final of an event (he asked for
         // "celebrations after matches and a trophy scene if you win"); the results come up when it is over or he moves it on
         const c = this.ctx || {}, won = m.score.winner === 0 && c.kind !== 'online', title = won && (c.kind === 'quick' || this.round === 'F');
-        if (g.endSequence && !globalThis.__endSeqOld) g.endSequence({ trophy: title, onDone: () => this.finish() }); else setTimeout(() => this.finish(), 5200);
+        if (g.endSequence) g.endSequence({ trophy: title, onDone: () => this.finish() }); else setTimeout(() => this.finish(), 5200);
         break; }
     }
   }
@@ -503,7 +504,7 @@ class App {
     // (with the first game's controls it closes at the moment that is Perfect, just before the ball reaches the racket - sim.js judges
     // a press against that, 0.08 s before contact - not at the swing's start, 0.15 s before: timed to the old ring a press was 0.07 s
     // early, and he said "i time it perfectly and its always early and sometimes good")
-    const pressT = (this.set.controls || 'classic') === 'classic' && !globalThis.__pressTimeOld, ringT = h.tau != null && pressT ? h.tau + TIMING.swing - 0.08 : h.tau;
+    const pressT = (this.set.controls || 'classic') === 'classic', ringT = h.tau != null && pressT ? h.tau + TIMING.swing - 0.08 : h.tau;
     if (m.phase === 'live' && ringT != null && ringT < 0.75 && ringT > -0.2) tau = ringT;
     else if (m.phase === 'toss' && m.score.server === 0 && m.ball.held < 0 && !(m.players[0].stroke && m.players[0].stroke.tc != null)) tau = m.tossIdeal - TIMING.serveSwing - m.t;
     if (tau != null && tau > -0.15) { const r = 15 + Math.max(0, tau) * 120, good = m.phase === 'live' && pressT ? (tau < 0.07 && tau > -0.10) : Math.abs(tau) < (m.windowFor ? m.windowFor(0) : 0.03); out.setAttribute('r', r.toFixed(1)); out.setAttribute('opacity', (tau > 0.6 ? (0.75 - tau) / 0.15 : 0.9).toFixed(2)); out.setAttribute('stroke', good ? '#e2f03a' : tau < 0 ? '#ff6a4d' : '#fff'); }
@@ -562,7 +563,7 @@ class App {
     // (any format shorter than the event's own - Classic, One set, the match tiebreak, three sets at a Slam - put as the full match:
     // he said "should be the same for all the other non-full formats too")
     { const F = FORMATS[g.cfg.format], T = g.cfg.T, fullBo = T ? (T.bestOf === 5 ? 5 : 3) : 3;
-      if (F && T && !globalThis.__classicScoreOld && (F.bestOf < fullBo || F.games < 6) && !(globalThis.__fullScoreClassicOnly && F.key !== 'classic')) res = this.fullScore(res, T, F); }
+      if (F && T && (F.bestOf < fullBo || F.games < 6)) res = this.fullScore(res, T, F); }
     this.tab(null); $('#bug').classList.add('off');
     this.lower(`${full(res.winner)}<small>${esc(PLAYERS[res.winner].facts.country || '')}</small>`, `Defeated <b>${esc(pname(res.loser))}</b> ${scoreLine(res, res.winner)}`);
     // then the numbers, which carry the names and the score themselves: the result card makes way for them

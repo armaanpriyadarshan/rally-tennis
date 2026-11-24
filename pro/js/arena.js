@@ -1069,7 +1069,7 @@ function buildLighting(A, spec, q, skyTex) {
       fragmentShader: 'uniform vec3 uCol; varying float vT; varying vec3 vN; varying vec3 vV; void main(){ float edge = pow(abs(dot(normalize(vN), normalize(vV))), 1.6); float a = edge * smoothstep(0.0, 0.25, vT) * (1.0 - vT) * 0.085; gl_FragColor = vec4(uCol * a, a); }' });
     for (const [sx, sz] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) {
       const from = new THREE.Vector3(sx * px, ly, sz * pz), to = new THREE.Vector3(sx * 2.5, 0, sz * 5), len = from.distanceTo(to);
-      const cone = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 11, len, 20, 1, true), bm); cone.position.copy(from).lerp(to, 0.5); cone.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), from.clone().sub(to).normalize()); cone.renderOrder = 5; cone.frustumCulled = false; bm.userData.noSight = !globalThis.__beamSightOld; root.add(cone);   /* (light, not a thing - marked on the material, which the meshes merged later keep: the broadcast camera's sight lines go through it - counted solid, at night it craned the camera to the top and looked down near vertically) */
+      const cone = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 11, len, 20, 1, true), bm); cone.position.copy(from).lerp(to, 0.5); cone.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), from.clone().sub(to).normalize()); cone.renderOrder = 5; cone.frustumCulled = false; bm.userData.noSight = true; root.add(cone);   /* (light, not a thing - marked on the material, which the meshes merged later keep: the broadcast camera's sight lines go through it - counted solid, at night it craned the camera to the top and looked down near vertically) */
     }
   }
   if (A.flash) A.flash.visible = lit || dark;

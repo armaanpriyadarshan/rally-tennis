@@ -341,7 +341,7 @@ function studio(renderer) {
   return ENV;
 }
 export function buildTrophy(key, renderer) {
-  const m = mats(), g = new THREE.Group(), grip = (B[key] || plain)(g, m), env = globalThis.__trophyEnvOld ? null : studio(renderer);
+  const m = mats(), g = new THREE.Group(), grip = (B[key] || plain)(g, m), env = studio(renderer);
   g.traverse(o => { if (o.isMesh) { o.castShadow = true; if (env && o.material && !o.material.envMap) { o.material.envMap = env; o.material.needsUpdate = true; } } });
   g.userData.grip = grip; g.userData.key = key;
   return g;

@@ -63,7 +63,7 @@ export class Game {
     const A = this.arena = buildArena(spec, { quality: this.gfx.q, skyTex, crowdAtlas: this.gfx.q > 0 ? await loadCrowdAtlas() : null, model, staff, photo: { court: pc, concrete: pk } });
     this.gfx.setArena(A);
     // the stadium filed for the broadcast camera's sight lines while the match is still loading (sight.js)
-    this._sg = null; if (!globalThis.__craneRayOld) this.sightGrid();
+    this._sg = null; this.sightGrid();
     // conditions
     let env;
     if (cfg.envOverride) env = { ...cfg.envOverride };                // online: the host's conditions, seen from this end
@@ -95,7 +95,7 @@ export class Game {
     // (the bodies settled into where the match finds them before its first picture, as at every cut between points: not settled, both men
     // set off from the ready crouch, feet wide and arms hanging out, and lurched up into the walk in the first half second, "the first
     // frames of walking in the match are fucked")
-    if (!globalThis.__openSettleOld) this.settle = true;
+    this.settle = true;
     this.cine = cfg.intro ? { kind: 'intro', t: 0, dur: 3.9 } : null; this.cineAt = null;
     if (this.cine) this.fig[0].setFirstPerson(false);
     if (this.ui) this.ui.matchStart(this);
@@ -111,7 +111,7 @@ export class Game {
   // Space or Enter moves it on. onDone is called when it is over (the results come up over it, and it plays on behind them).
   endSequence(o = {}) {
     const m = this.match, w = m.score.winner; if (w == null || w < 0) { if (o.onDone) o.onDone(); return; }
-    const ck = globalThis.__celebArmsOld ? celebFor(this.fig[w]) : 'fists'; this.endSeq = { t: 0, who: w, trophy: !!o.trophy, onDone: o.onDone || null, stage: 'cel', kind: ck === 'fists' ? 'fists' : 'arms', done: false };   // (the fist pumped at the chest and the racket up in front, as he showed: Nadal's, tracked, for every man; the arms thrown up came out a flagpole)
+    const ck = 'fists'; this.endSeq = { t: 0, who: w, trophy: !!o.trophy, onDone: o.onDone || null, stage: 'cel', kind: ck === 'fists' ? 'fists' : 'arms', done: false };   // (the fist pumped at the chest and the racket up in front, as he showed: Nadal's, tracked, for every man; the arms thrown up came out a flagpole)
     // (out of whatever the point had them doing: a match that ended as he waited to serve kept his off hand on the ball and his body
     // in the serve's stance, and the trophy was held in one hand)
     m.phase = 'done'; m.phaseT = 0; m.ball.held = -1; for (const p of m.players) { p.vx = 0; p.vz = 0; p.stroke = null; p.lastStroke = null; }
@@ -126,36 +126,14 @@ export class Game {
       const wf = this.fig[S.who], lf = this.fig[1 - S.who];
       // both arms up with the racket in his hand, held, and brought down as he walks on (he said "the celebration should literally
       // just be holding hands up with racket in hands"); `__celebFistOld` for Nadal's tracked fist pump
-      const fo = !!globalThis.__celebFistOld, kc = fo ? sm((S.t - 0.35) / 0.4) * (1 - sm((S.t - 2.6) / 0.5)) : sm((S.t - 0.15) / 0.5) * (1 - sm((S.t - 2.7) / 0.6));
-      wf.celeb = null; if (globalThis.__celebBodyOld) wf.celebClip = { kind: S.kind, u: S.t - 0.35, k: kc }; else { wf.celebClip = null; wf.celebArm = fo ? { u: 0.3 + (S.t - 0.35), k: kc } : { kind: 'up', u: S.t, k: kc }; }
-      // and both walk to the net, as players do once it is over (he said "as soon as the animation ends the player just stays still
-      // instead of walking toward the net"): the winner at the pace of the footage's own walk while it plays (its feet then cover the
-      // ground they seem to), then on at a walk; the loser after a moment, slower; each stops a metre short of the net, a little apart
-      // (the winner sets off with his arms still up; the loser, who stood there, after him and at the same walk: he said "the
-      // opponent player should walk to the net too". His head is down a little and his arms hang, nothing set on his legs or his
-      // body - the whole-body 'lost' pose held him in a standing stance as he was moved, and he slid to the net)
-      if (fo && !globalThis.__netWalkOld) { const C = CELEB_MOTION['celeb_' + S.kind], u = S.t - 0.35;
-        let vw = 1.15; if (C && C.root && u > 0) { const n = C.root.length / 2, f = Math.min(n - 2, Math.floor(u * 60)); if (u * 60 < n - 1) vw = Math.hypot(C.root[f * 2 + 2] - C.root[f * 2], C.root[f * 2 + 3] - C.root[f * 2 + 1]) * 60 * kc + 1.15 * (1 - kc); }
-        this.netWalk(S.who, S.t > 0.35 ? vw : 0, dt, 0.55); this.netWalk(1 - S.who, S.t > 1.0 ? 0.95 * sm((S.t - 1.0) / 0.6) : 0, dt, -0.55); }
-      else if (!globalThis.__netWalkOld && (globalThis.__shakeOld || (globalThis.__shakeCutOld && S.t < SHAKE_CUT))) { this.netWalk(S.who, 1.2 * sm((S.t - 1.1) / 0.7), dt, 0.55); this.netWalk(1 - S.who, 1.15 * sm((S.t - 1.5) / 0.7), dt, -0.55); }
-      if (fo || globalThis.__lostOld) lf.celeb = { kind: 'lost', u: S.t - 0.6, k: sm((S.t - 0.6) / 0.7) }; else { lf.celeb = null; lf.celebArm = null; }
-      // Then the handshake (he said "the players should shake after a match"): a straight cut, as a broadcast cuts, from the walk
-      // to the two of them at the net, each a step from it and a little to his left, right hands out over the tape; a few pumps of
-      // the hands, and let go. A right-hander has his racket in his left hand for it.
-      const cutOld = !!globalThis.__shakeCutOld;
-      if (!globalThis.__shakeOld && !fo && cutOld) {
-        if (S.t >= SHAKE_CUT && !S.shook) { S.shook = true;
-          for (const i of [0, 1]) { const p = m.players[i], f = this.fig[i]; p.x = -0.2 * p.sgn; p.z = p.sgn * 0.42; p.vx = 0; p.vz = 0; f.celebArm = null; f.celeb = null; f.shakeSwap = !f.lefty; f.inited = false; f.handInit = false; }
-          this.settle = true; if (this.cam) this.cam.snap = true; }
-        if (S.shook) { const u = S.t - SHAKE_CUT, k = sm((u - 0.1) / 0.45) * (1 - sm((u - 1.9) / 0.35)), pump = 0.03 * Math.sin(Math.PI * 2 * 2.0 * Math.max(0, u - 0.6)) * sm((u - 0.6) / 0.15) * (1 - sm((u - 1.55) / 0.2));
-          for (const f of this.fig) f.shake = { k, pump }; }
-      }
+      const kc = sm((S.t - 0.15) / 0.5) * (1 - sm((S.t - 2.7) / 0.6));
+      wf.celeb = null; wf.celebClip = null; wf.celebArm = { kind: 'up', u: S.t, k: kc }; lf.celeb = null; lf.celebArm = null;
       // ...not cut to: they walk all the way (he said "dont teleport the players to the shake they should walk for it"), each
       // straight to his place at the net, a step from it and a little to his left; a right-hander passes his racket to his left hand
       // on the way (the winner once his arms are down, the loser soon after he sets off: figure.js handover); when both are there,
       // right hands out over the tape, a few pumps, let go.
-      if (!globalThis.__shakeOld && !fo && !cutOld) {
-        const v = globalThis.__shakeWalk ?? 1.55;
+      {
+        const v = 1.55;
         const at = i => { const p = m.players[i]; return Math.hypot(p.x + 0.2 * p.sgn, p.z - p.sgn * 0.42); };
         this.walkTo(S.who, -0.2 * m.players[S.who].sgn, m.players[S.who].sgn * 0.42, v * sm((S.t - 1.1) / 0.7), dt);
         this.walkTo(1 - S.who, -0.2 * m.players[1 - S.who].sgn, m.players[1 - S.who].sgn * 0.42, v * sm((S.t - 1.5) / 0.7), dt);
@@ -163,7 +141,7 @@ export class Game {
         if (S.shakeT == null && ((at(0) < 0.06 && at(1) < 0.06) || S.t > 18)) S.shakeT = S.t + 0.25;   // (a breath once both are there)
         // and then off to their chairs, by the umpire's, each on his own side (he said "the opponent player doesnt walk but is just
         // frozen in whatever pose they were in": after the handshake both stood stock still at the net behind the results)
-        if (S.shakeT != null && S.t > S.shakeT + 2.3 && !globalThis.__chairWalkOld) { const ux = this.arena && this.arena.root && this.arena.root.rotation.y ? 1 : -1, k = sm((S.t - S.shakeT - 2.3) / 0.6);
+        if (S.shakeT != null && S.t > S.shakeT + 2.3) { const ux = this.arena && this.arena.root && this.arena.root.rotation.y ? 1 : -1, k = sm((S.t - S.shakeT - 2.3) / 0.6);
           for (const i of [0, 1]) { const p = m.players[i]; this.walkTo(i, ux * (6.2 + 0.3 * i), p.sgn * 2.2, 1.1 * k, dt); } }
         if (S.shakeT != null) { const u = S.t - S.shakeT, k = sm((u - 0.0) / 0.45) * (1 - sm((u - 1.8) / 0.35)), pump = 0.03 * Math.sin(Math.PI * 2 * 2.0 * Math.max(0, u - 0.5)) * sm((u - 0.5) / 0.15) * (1 - sm((u - 1.45) / 0.2));
           for (const f of this.fig) f.shake = { k: Math.max(0, k), pump }; }
@@ -171,16 +149,14 @@ export class Game {
       // (the results, or the trophy, at 4.6 s, not after the handshake: he said "you shouldnt have to wait all the way till the
       // handshake" - walked from the baselines it came at about 13 s. The walk and the handshake go on behind the results.
       // `__shakeWaitOld` to wait for it)
-      const tEnd = globalThis.__shakeOld || fo ? 4.4 : cutOld ? SHAKE_CUT + 2.35 : !globalThis.__shakeWaitOld ? 4.6 : S.shakeT != null ? S.shakeT + 2.25 : 1e9;
-      // close on the winner after a moment on the wide picture
-      if (globalThis.__celebCloseOld && S.t > 1.1 && !S.closeUp) {   /* (no close-up: he said "i dont like the closeup on them"; the picture stays on the camera he plays with) */ S.closeUp = true; this.cine = { kind: 'react', t: 0, who: S.who, side: Math.random() < 0.5 ? -1 : 1, seed: Math.random(), hold: true }; this.fig[0].setFirstPerson(false); this.cam.snap = true; if (this.ui && this.ui.cine) this.ui.cine(true); }
+      const tEnd = 4.6;
       if (S.trophy) {
         if (S.t >= tEnd - 0.2 && !S.sting) { S.sting = true; if (this.ui && this.ui.sting) this.ui.sting(); }
         if (S.t >= tEnd) this.beginTrophy();
       } else if (S.t >= tEnd && !S.done) { S.done = true; if (S.onDone) S.onDone(); }
     } else {
       S.t2 += dt; const wf = this.fig[S.who];
-      if (globalThis.__trophyOld) wf.celeb = { kind: 'trophy', u: S.t2, k: 1 }; else { wf.celeb = null; wf.trophyHold = { u: S.t2, ...(this.trophyObj ? this.trophyObj.userData.grip : { y: 0.27, w: 0.15, curl: 0.82 }) }; }
+      wf.celeb = null; wf.trophyHold = { u: S.t2, ...(this.trophyObj ? this.trophyObj.userData.grip : { y: 0.27, w: 0.15, curl: 0.82 }) };
       wf.celebClip = null; wf.celebArm = null; wf.shake = null; wf.shakeSwap = false; wf.handover = null;
       this.confettiStep(dt);
       if (S.t2 >= 7.4 && !S.done) { S.done = true; if (S.onDone) S.onDone(); }
@@ -219,7 +195,7 @@ export class Game {
   placeTrophy() {
     const S = this.endSeq; if (!S || S.stage !== 'trophy' || !this.trophyObj) return;
     const f = this.fig[S.who], O = this.trophyObj, G = O.userData.grip;
-    if (globalThis.__trophyOld || !G) { const P = f.person, a = _w.set(0, 0, 0), b = _v.set(0, 0, 0); P.jointPos('L_Hand', a); P.jointPos('R_Hand', b);
+    if (!G) { const P = f.person, a = _w.set(0, 0, 0), b = _v.set(0, 0, 0); P.jointPos('L_Hand', a); P.jointPos('R_Hand', b);
       const mid = a.add(b).multiplyScalar(0.5), hx = b.x - a.x, hz = b.z - a.z; O.position.set(mid.x, mid.y - 0.255, mid.z); O.rotation.set(0, -Math.atan2(hz, hx), 0); return; }
     // its two grip points where his palms are: between them, the line through them its own, upright, its front the way he faces;
     // scaled a little to the span his hands have (the arms cannot always reach a trophy's exact width) so they are in his hands
@@ -279,7 +255,7 @@ export class Game {
         for (let i = 0; i < n; i++) { o.getMatrixAt(i, M); M.decompose(P, Q, S); pos[i * 3] = P.x; pos[i * 3 + 1] = P.y + 0.55; pos[i * 3 + 2] = P.z; }
         this._cr.push({ o, pos }); } }); }
     const want = new Map();
-    if (pl && cp && !globalThis.__noClearCrowd) {
+    if (pl && cp) {
       const segs = [0.45, 0.95, 1.35, 1.75].map(y => [cp.x, cp.y, cp.z, pl.x, y, pl.z]);
       for (const c of this._cr) { const pos = c.pos, n = pos.length / 3, hid = [];
         for (let i = 0; i < n; i++) { const x = pos[i * 3], y = pos[i * 3 + 1], z = pos[i * 3 + 2];
@@ -338,7 +314,7 @@ export class Game {
       // (into a replay as a broadcast goes into one: the wipe closes over the live picture, the replay starts behind it, and it opens
       // on the slow motion; he asked for replays "the same style as actual atp tennis". Between points it is still a straight cut.)
       if (this.pendingReplay && m.phase === 'over' && m.phaseT > 0.85) { const e = this.pendingReplay; this.pendingReplay = null;
-        if (this.ui && this.ui.sting && !globalThis.__repStingOld) { this.ui.sting(); this.stingIn = { e, at: this.time + 0.2 }; } else this.startReplay(e); }
+        if (this.ui && this.ui.sting) { this.ui.sting(); this.stingIn = { e, at: this.time + 0.2 }; } else this.startReplay(e); }
       if (this.stingIn && this.time >= this.stingIn.at) { const e = this.stingIn.e; this.stingIn = null; this.startReplay(e); }
     }
     this.direct(dt);
@@ -466,7 +442,6 @@ export class Game {
     if (!h || this.opts.controls === 'classic' || this.opts.controls == null) {
       // the first game's controls aim with the arrows: no marker to steer, only where his ball will land
       const b0 = this.match.ball, inc0 = this.match.incoming, show0 = h && this.opts.markers && this.match.phase === 'live' && b0.live && b0.lastHit === 1 && inc0 && inc0.land && !inc0.bounced && b0.bounces === 0;
-      if (globalThis.__aimMarkOld) { fx.showLanding(show0 ? inc0.land : null, show0 ? 1 : 0); fx.showAim(0, 0, 1, '#fff', 0); return; }
       // where his own ball will land too, as it flies; and where he is aiming: the marker moves as he holds an arrow, and stays where he
       // aimed while the ball is in the air, so aim and landing can be compared (an early or late swing pulls the ball off it)
       const mine0 = h && this.opts.markers && this.match.phase === 'live' && b0.live && b0.lastHit === 0 && inc0 && inc0.land && !inc0.bounced && b0.bounces === 0;
@@ -542,29 +517,29 @@ export class Game {
   }
   startReplay(e) {
     const R = this.rec; if (!R || R.length < 40) return;
-    if (this.cine && !globalThis.__repTvOld) this.endCine();   // (a shot of the winner still running would take the broadcast camera's place)
+    if (this.cine) this.endCine();   // (a shot of the winner still running would take the broadcast camera's place)
     const k = this.strikeOf(e.winner); if (k < 0) return;
     // where the winning ball bounced: the replay ends a moment after it, before the camera has only the back wall to look at
     let bx = 0, bz = -Math.sign(R[k].p[e.winner].z) * 9, tb = R[k].t + 1.2;
     for (let j = k + 1; j < R.length; j++) { const b = R[j].ball; if (b.bounces > 0) { bx = b.x; bz = b.z; tb = R[j].t; break; } }
-    const tc = R[k].t, last = R[R.length - 1].t, repOne = globalThis.__repCamOld || !globalThis.__repTvOld, from = Math.max(R[0].t, tc - (repOne ? 1.1 : 0.65)), end = Math.min(last, tb + (repOne ? 0.7 : 0.55));
+    const tc = R[k].t, last = R[R.length - 1].t, from = Math.max(R[0].t, tc - 1.1), end = Math.min(last, tb + 0.7);
     // (kept from half a second before it opens, for the figures' unseen run-in below: cut at the opening itself,
     // as it was, that run-in had nothing to run through, and every replay opened with the figures cold, the springs that keep an
     // arm out of the body starting from nothing in the middle of a swing)
-    const frames = R.filter(f => f.t >= (globalThis.__repPreOld ? from : from - REPLAY_PRE) && f.t <= end); if (frames.filter(f => f.t >= from).length < 30) return;
+    const frames = R.filter(f => f.t >= (from - REPLAY_PRE) && f.t <= end); if (frames.filter(f => f.t >= from).length < 30) return;
     const speed = 0.42, A = R[k].p[e.winner], Lp = R[k].p[1 - e.winner];
     this.replay = { frames, t: from, end, tc, speed, who: e.winner, bx, bz, lx: Lp.x, lz: Lp.z, k: 0, side: A.x >= 0 ? 1 : -1, cut: false, cx: null, cz: null };
     this.replays = (this.replays || 0) + 1; this.lastReplayPt = this.match.history.length;
     for (const f of this.fig) { f.inited = false; f.handInit = false; f.setFirstPerson(false); }
-    this.match.timer += repOne ? (end - from) / speed + 0.2 : Math.max(0, Math.min(end, tc + 0.42) - from) / 0.28 + Math.max(0, end - Math.max(from, tc + 0.42)) / 0.5 + 0.6;
+    this.match.timer += (end - from) / speed + 0.2;
     this.cam.snap = true;
     // (the ball's streak starts afresh: drawn through the last places it had in the live point, the replay opened on a yellow streak
     // from wherever the point ended to where the replay begins)
-    if (this.fx && !globalThis.__repStreakOld) this.fx.reset();
+    if (this.fx) this.fx.reset();
     if (this.ui && this.ui.replay) this.ui.replay(true);
   }
   endReplay() {
-    this.replay = null; if (this.fx && !globalThis.__repStreakOld) this.fx.reset();
+    this.replay = null; if (this.fx) this.fx.reset();
     // straight on to the next point: the cut that would have come after the replay comes now
     const m = this.match; if (m.phase === 'over' && !m.score.over) m.timer = Math.min(m.timer, 1e-3);
     for (const f of this.fig) { f.inited = false; f.handInit = false; } this.fig[0].setFirstPerson(this.camMode === 'fp'); this.cam.snap = true;
@@ -576,18 +551,13 @@ export class Game {
   replayStrokes(a, c, u) {
     for (let i = 0; i < 2; i++) { const qa = a.p[i], qc = c.p[i];
       for (const [k, f] of [['stroke', 'stF'], ['lastStroke', 'lsF']]) { const st = qa[k], F = qa[f]; if (!st || !F) continue; Object.assign(st, F);
-        const G = qc[k] === st ? qc[f] : null; if (G && F.tcPlan != null && G.tcPlan != null && !globalThis.__repOld) st.tcPlan = F.tcPlan + (G.tcPlan - F.tcPlan) * u; } }
+        const G = qc[k] === st ? qc[f] : null; if (G && F.tcPlan != null && G.tcPlan != null) st.tcPlan = F.tcPlan + (G.tcPlan - F.tcPlan) * u; } }
   }
   playReplay(dt) {
     const rp = this.replay, F = rp.frames, live = this.match;
-    // (super slow motion through the shot, from the side, as a broadcast's slow-motion camera has it; then the ball to its bounce at
-    // half speed from the other end)
-    // (and every replay is now the broadcast's own picture, he said "all replays should be broadcast replays": the main camera, as the
-    // point was seen, at one slow pace. __repTvOld for the side camera and the reverse angle)
-    if (!globalThis.__repCamOld && globalThis.__repTvOld) rp.speed = rp.t < rp.tc + 0.42 ? 0.28 : 0.5;
     if (rp.stingOut == null) rp.t += dt * rp.speed;
     // (and out as it came in: the wipe closes over the replay's last moment and the next point comes up behind it)
-    if (this.ui && this.ui.sting && !globalThis.__repStingOld) {
+    if (this.ui && this.ui.sting) {
       if (rp.stingOut == null && (rp.skip || rp.t >= rp.end - 0.2 * rp.speed)) { rp.stingOut = this.time; this.ui.sting(); }
       if (rp.stingOut != null && this.time - rp.stingOut >= 0.2) { this.endReplay(); return; }
     } else if (rp.t >= rp.end || rp.skip) { this.endReplay(); return; }
@@ -599,7 +569,7 @@ export class Game {
       if (!rp.pre) { rp.pre = true;
         // (at the replay's own pace: run at the real one, the hands' smoothing came out of it with their speed per frame set for a
         // frame two and a half times longer, and overshot through the replay's first frames, the arms jerking as it began)
-        const pdt = globalThis.__repOld ? 1 / 60 : rp.speed / 60;
+        const pdt = rp.speed / 60;
         for (let tt = Math.max(F[0].t, rp.t - REPLAY_PRE), k = 0; tt < rp.t - 1e-6; tt += pdt) {
           while (k < F.length - 2 && F[k + 1].t <= tt) k++;
           const a = F[k], c = F[k + 1] || a, u = c.t > a.t ? clamp((tt - a.t) / (c.t - a.t), 0, 1) : 0, L = (x, y) => x + (y - x) * u;
@@ -629,38 +599,14 @@ export class Game {
       rp.pb = { lastHit: b.lastHit, vx: b.vx, vy: b.vy, vz: b.vz };
       const cam = this.gfx.camera, A = this.arena, C = this.cam, s = rp.who === 0 ? 1 : -1;
       let fov;
-      if (!globalThis.__repTvOld && !globalThis.__repCamOld) {
+      {
         // the broadcast camera, as in play, following the replayed point (its crane, its framing of both men, its focus)
         const keepM = this.match, keepMode = this.camMode; this.match = m; this.camMode = 'tv';
         try { this.updateCamera(dt); } finally { this.match = keepM; this.camMode = keepMode; }
         fov = cam.fov;
-      } else if (!globalThis.__repCamOld && rp.t < rp.tc + 0.42) {
-        // the broadcast's slow-motion camera at the side of the court, at court level and on a long lens, tight on the man hitting it:
-        // a little in front of him, so he is seen three-quarters on, the swing across the picture
-        const W = P[rp.who], sx = rp.side, fx = clamp(W.x + sx * 6.2, -A.hx + 0.8, A.hx - 0.8), fz = W.z - s * 2.2;
-        rp.cx = rp.cx == null ? W.x : damp(rp.cx, W.x, 4, sdt * 2.4); rp.cz = rp.cz == null ? W.z : damp(rp.cz, W.z, 4, sdt * 2.4);
-        rp.sx = rp.sx == null ? fx : damp(rp.sx, fx, 3, sdt * 2.4); rp.sz = rp.sz == null ? fz : damp(rp.sz, fz, 3, sdt * 2.4);
-        cam.position.set(rp.sx, 1.2, rp.sz); cam.lookAt(rp.cx, 1.0, rp.cz);
-        const dist = Math.hypot(rp.sx - rp.cx, rp.sz - rp.cz); fov = clamp(2 * Math.atan(1.75 / Math.max(1, dist)) * 180 / Math.PI, 14, 40);
-      } else if (rp.t < rp.tc + 0.28) {
-        // low behind the striker and following him, a long lens over his shoulder: the run, the shot, where it goes
-        const W = P[rp.who];
-        rp.cx = rp.cx == null ? W.x : damp(rp.cx, W.x, 3.5, sdt * 2.4); rp.cz = rp.cz == null ? W.z : damp(rp.cz, W.z, 3.5, sdt * 2.4);
-        const back = Math.min(4.0, Math.max(2.0, A.hz - Math.abs(rp.cz) - 0.8));
-        cam.position.set(clamp(rp.cx + rp.side * 1.5, -A.hx + 1, A.hx - 1), 1.5, rp.cz + s * back);
-        cam.lookAt(rp.cx + (rp.bx - rp.cx) * 0.18, 1.05, rp.cz - s * 7);
-        fov = 36;
-      } else {
-        // the reverse angle: low behind the man it beat, the ball coming past him to its bounce
-        rp.cut = true;
-        const mx = (rp.lx + rp.bx) / 2, mz = (rp.lz + rp.bz) / 2, dz = Math.min(A.hz - 1.0, Math.max(Math.abs(rp.lz), Math.abs(rp.bz)) + 4.5);
-        cam.position.set(clamp(mx * 0.5 - rp.side * 1.2, -A.hx + 1, A.hx - 1), 1.65, -s * dz);
-        cam.lookAt(mx, 0.85, mz + s * 2.5);
-        fov = 38;
       }
       C.snap = false;
       if (Math.abs(cam.fov - fov) > 0.01) { cam.fov = fov; cam.updateProjectionMatrix(); C.fov = fov; }
-      if (this.gfx.setFocus && (globalThis.__repTvOld || globalThis.__repCamOld)) this.gfx.setFocus(cam.position.distanceTo(_w.set(b.x, b.y, b.z)), 12, 0.006);
       const held = b.held >= 0 ? this.fig[b.held].offHand : null;
       this.fx.update(sdt, b, cam, { held, maxScale: 1.6 });
       this.fx.showLanding(null, 0); this.fx.showAim(0, 0, 1, "#fff", 0); if (this.fx.showMine) this.fx.showMine(null);
@@ -788,16 +734,16 @@ export class Game {
       // (and the camera itself, not only where it is headed, stays inside with a clear line to him: easing after him at seven a
       // second, with him sprinting into a back corner it trailed most of a metre behind its mark, out through the boards, and for a
       // few frames the picture was the back of a hoarding; it is brought along toward its mark until it is clear)
-      if (this.arena && this.arena.F && !C.snap && !globalThis.__camOld) { const A = this.arena;
+      if (this.arena && this.arena.F && !C.snap) { const A = this.arena;
         const ok = (cx, cz) => { if (!insideCourt(A, cx, cz, 0.3)) return false; for (let q = 1; q <= 8; q++) { const f = q / 8; if (!insideCourt(A, lerp(cx, p.x, f), lerp(cz, p.z, f), 0.15)) return false; } return true; };
         if (!ok(C.pos.x, C.pos.z) && ok(_v.x, _v.z)) { let lo = 0, hi = 1; for (let it = 0; it < 8; it++) { const mid = (lo + hi) / 2; if (ok(lerp(C.pos.x, _v.x, mid), lerp(C.pos.z, _v.z, mid))) hi = mid; else lo = mid; }
           C.pos.x = lerp(C.pos.x, _v.x, hi); C.pos.z = lerp(C.pos.z, _v.z, hi); C.clampN = (C.clampN || 0) + 1; } }
       // (and the wider he is, or the more it has swung round, the more it looks at him rather than up the middle: out by the side
       // wall, aimed half way to the middle, he was at the edge of the picture and partly out of it)
       C.pull = C.snap ? (C.pullN || 0) : damp(C.pull || 0, C.pullN || 0, 7, dt);
-      { const kO = Math.max(sm(C.over / 3), sm(C.pull / 0.4)), kW = sm((Math.abs(p.x) - 3.2) / 2.6) * 0.75, kL = Math.max(kO, kW), lx = lerp(lerp(p.x, b.visible ? b.x : 0, 0.25) * 0.5, p.x, kL), pk = sm(C.pull / 0.4), ly = lerp(globalThis.__chaseLy ?? 0.55, lerp(0.85, 0.7, pk), kO)   /* (aimed a little lower than it was: at 1.05 his feet were on the bottom edge of the picture, often just below it) */, lz = lerp(-3.5, p.z - lerp(3, 0.9, pk), kO);   /* (raised over a corner, it looks at him, not on up the court past him) */
+      { const kO = Math.max(sm(C.over / 3), sm(C.pull / 0.4)), kW = sm((Math.abs(p.x) - 3.2) / 2.6) * 0.75, kL = Math.max(kO, kW), lx = lerp(lerp(p.x, b.visible ? b.x : 0, 0.25) * 0.5, p.x, kL), pk = sm(C.pull / 0.4), ly = lerp(0.55, lerp(0.85, 0.7, pk), kO)   /* (aimed a little lower than it was: at 1.05 his feet were on the bottom edge of the picture, often just below it) */, lz = lerp(-3.5, p.z - lerp(3, 0.9, pk), kO);   /* (raised over a corner, it looks at him, not on up the court past him) */
         cam.position.copy(C.pos); cam.lookAt(lx, ly, lz); }
-      fov = globalThis.__chaseFov ?? 55;
+      fov = 55;
       this.clearSight(C.pos, p);
     }
     if (this.camMode !== 'chase' && this._hid && this._hid.size) this.clearSight(null, null);
@@ -818,16 +764,16 @@ export class Game {
       // with the stadium turned round for a change of ends, the front of Wimbledon's far upper tier came up just under the
       // camera's line, a band across the middle of the picture where the net should be)
       const deepN = near && nzA > COURT.halfLen + 1.2;
-      if (this.arena && this.arena.root && !globalThis.__noCrane && (deepN || !globalThis.__craneCourtOld)) {
+      if (this.arena && this.arena.root) {
         if (!(this._craneT > this.time - 0.1)) { this._craneT = this.time; const rc = this._rc || (this._rc = new THREE.Raycaster()), sgn = near ? Math.sign(near.z) || 1 : 1;
           const court = [[0.5, 0, 0.4], [1.0, 0, 0], [0.5, 0, -COURT.halfLen], [0.3, 0, COURT.halfLen]].concat(near && !deepN ? [[0.06, near.x, near.z], [0.95, near.x, near.z]] : []);   /* (along the middle, and the near player wherever he is: by the near corners a ball kid would stand in the way of no picture) */
-          const zA = near ? near.z + (near.vz || 0) * 0.4 : 0, xA = near ? near.x + (near.vx || 0) * 0.4 : 0, pts = (deepN ? [[0.06, near.x, near.z], [0.45, near.x, near.z], [0.95, near.x, near.z], [0.06, xA, zA], [0.45, xA, zA]] : []).concat(globalThis.__craneCourtOld ? [] : court).map(([y, x, z]) => new THREE.Vector3(x, y, z));   /* (his feet too: tilted down after him, the front rows of the stand cut across the bottom of the picture at his shoes) */
+          const zA = near ? near.z + (near.vz || 0) * 0.4 : 0, xA = near ? near.x + (near.vx || 0) * 0.4 : 0, pts = (deepN ? [[0.06, near.x, near.z], [0.45, near.x, near.z], [0.95, near.x, near.z], [0.06, xA, zA], [0.45, xA, zA]] : []).concat(court).map(([y, x, z]) => new THREE.Vector3(x, y, z));   /* (his feet too: tilted down after him, the front rows of the stand cut across the bottom of the picture at his shoes) */
           let want = 9.6, wantZ = 30;
           for (const [h, cz] of [[9.6, 30], [10.8, 30], [12, 30], [13.2, 30], [14.4, 30], [15.6, 30]]) {   /* (up a little only: craned higher, or forward over the stands, it looked down on the top of his head and lost the far player) */ let ok = true; const o = new THREE.Vector3(0, h, cz * sgn);
             for (const q of pts) { const d = q.clone().sub(o), L = d.length(); d.normalize();
               // (asked of the stadium filed by the ground it stands on: the raycaster tested every triangle of the stands and every
               // card of the crowd for each line, 30 to 60 ms in Firefox ten times a second)
-              const hit = globalThis.__craneRayOld ? (rc.set(o, d), rc.far = L - 0.35, rc.intersectObject(this.arena.root, true).find(x => x.object.visible && !x.object.isPoints && !x.object.userData.noSight && !(x.object.material && x.object.material.userData && x.object.material.userData.noSight))) : this.sightGrid().blocked(o, d, L - 0.35);
+              const hit = this.sightGrid().blocked(o, d, L - 0.35);
               if (hit) { ok = false; break; } }
             want = h; wantZ = cz; if (ok) break; }
           this._craneW = want; this._craneZ = wantZ; } }
@@ -847,7 +793,7 @@ export class Game {
       C.tvz = C.snap ? tzT : damp(C.tvz ?? 0.4, tzT, 3, dt);
       cam.position.set(0, C.tvh || 9.6, C.tvcz || 30.0); cam.lookAt(C.tvx, 0.5, C.tvz ?? 0.4);
       this.clearCrowd(cam.position, near && nzA > COURT.halfLen + 1.5 ? near : null);
-      fov = globalThis.__noTvZoom ? 31 : Math.max(31, half * 2 * 180 / Math.PI);   // three metres of room behind the near baseline, as a broadcast frames it
+      fov = Math.max(31, half * 2 * 180 / Math.PI);   // three metres of room behind the near baseline, as a broadcast frames it
     }
     // focus: the court and both players sharp, the stands beyond them soft — strongly through the
     // broadcast camera's long lens, only a little through the player's own eyes
@@ -912,10 +858,6 @@ export class Game {
       if (ui) ui.event(e.type, e, this);
     }
     ev.length = 0;
-    // the cut for a change of ends happens as the players walk off
-    // (no fade to black: the stadium is turned round at the straight cut to the next point ('placed', below), as every other cut
-    // is straight; the 0.9 s dip to black at every change of ends was the "black screen flashes" he still saw)
-    if (this.flipAt && m.phase === 'between' && globalThis.__flipFadeOld) { this.flipAt = false; this.fadeT = 0.9; }
   }
 
   // The stadium scoreboard.

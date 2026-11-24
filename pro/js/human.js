@@ -25,17 +25,17 @@ export function reachOf(m, p) {
   // (a ball whose path never comes near his line, wide of him or already by him: judged by its nearest approach from here on)
   if (bt == null || best > 3.0) { let nd = 1e9, nt = null, nx = null; for (let q = 0; q + 3 < path.length; q += 4) { const tt = inc.t0 + path[q + 3]; if (tt < m.t) continue; const d = Math.hypot(path[q] - p.x, path[q + 2] - p.z); if (d < nd) { nd = d; nt = tt; nx = path[q]; } }
     if (nt == null) return { ok: false, gap: 1e9, left: 0, side: 'fh', relX: 0 };
-    const left = Math.max(0, nt - m.t), run = p.prof.speed * (globalThis.__reachRun ?? 1.0) * Math.max(0, left - 0.1), reach = REACH.max * 1.12 * (p.prof.height / 1.85) + (globalThis.__reachPad ?? 1.4), relX = (nx - p.x) * s * p.hs;
+    const left = Math.max(0, nt - m.t), run = p.prof.speed * 1.0 * Math.max(0, left - 0.1), reach = REACH.max * 1.12 * (p.prof.height / 1.85) + 1.4, relX = (nx - p.x) * s * p.hs;
     return { ok: nd - run <= reach, gap: nd, left, side: relX >= -0.05 ? 'fh' : 'bh', relX }; }
-  const left = Math.max(0, bt - m.t), relX = (bx - p.x) * s * p.hs, gap = Math.abs(bx - p.x), run = p.prof.speed * (globalThis.__reachRun ?? 1.0) * Math.max(0, left - 0.1);
+  const left = Math.max(0, bt - m.t), relX = (bx - p.x) * s * p.hs, gap = Math.abs(bx - p.x), run = p.prof.speed * 1.0 * Math.max(0, left - 0.1);
   // (generous: his controls reach further than this, most of all behind him, and the game's legs take him there faster than a sum of
   // speed and time; only a ball clearly beyond him is refused - judged strictly, a third of the returns he made went unswung)
-  const reach = REACH.max * 1.12 * (p.prof.height / 1.85) + (globalThis.__reachPad ?? 1.4);
+  const reach = REACH.max * 1.12 * (p.prof.height / 1.85) + 1.4;
   return { ok: gap - run <= reach, gap, left, side: relX >= -0.05 ? 'fh' : 'bh', relX };
 }
 export class Human {
   constructor(game) {
-    this.g = game; this.coach = new AI(); this.coach.eagerPre = true; this.coach.noLob = !globalThis.__autoLobOld; this.coach.noSlice = !globalThis.__autoSliceOld; this.coach.noDrop = !globalThis.__autoDropOld; this.aim = { X: 0, D: -9.5 }; this.hold = null; this.power = 0; this.lastTiming = null; this.tau = null; this.kind = 'drive';
+    this.g = game; this.coach = new AI(); this.coach.eagerPre = true; this.coach.noLob = true; this.coach.noSlice = true; this.coach.noDrop = true; this.aim = { X: 0, D: -9.5 }; this.hold = null; this.power = 0; this.lastTiming = null; this.tau = null; this.kind = 'drive';
     this.safe = [0.35, 0.9]; this.srvSafe = 0.35;       // how far inside the lines the aim marker is kept (set from the difficulty)
     this.readAt = 0; this.readInc = null; this.buf = -9;
     this.build = 'classic-9';                        // named in the local play log, so a browser running a stale copy shows up
@@ -46,7 +46,7 @@ export class Human {
     if (!inp) return;
     const serving = m.score.server === i, ph = m.phase;
     // ---- aim ----
-    const classic = (g.opts.controls || 'classic') === 'classic', wasd = classic && !globalThis.__wasdOld;
+    const classic = (g.opts.controls || 'classic') === 'classic', wasd = classic;
     const ms = inp.takeMouse(), k = classic ? 0 : 0.0105 * (g.opts.aimSens || 1);
     this.aim.X += ms.x * k; this.aim.D += ms.y * k;
     if (serving && (ph === 'ready' || ph === 'toss' || ph === 'between')) {
@@ -87,7 +87,7 @@ export class Human {
       if (!this.placed || this.placedNo !== m.score.pointNo) { this.placed = true; this.placedNo = m.score.pointNo; }
       // (at his ordinary pace, not a crawl: he said "the walk to move side to side preserve should be normal speed not slow" - the
       // input was halved and the server held to 1.6 m/s, so it went at 0.8; `__srvMoveOld`)
-      p.move.x = mv.x * s * (globalThis.__srvMoveOld ? 0.5 : 1); p.srvFree = !globalThis.__srvMoveOld;
+      p.move.x = mv.x * s * 1; p.srvFree = true;
       const lim = side > 0 ? [0.15, COURT.halfW + 0.2] : [-COURT.halfW - 0.2, -0.15];
       if ((bx <= lim[0] && mv.x < 0) || (bx >= lim[1] && mv.x > 0)) p.move.x = 0;
       p.x = clamp(bx, lim[0], lim[1]) * s;
@@ -106,7 +106,7 @@ export class Human {
       // With Assist a ball dropping short in front of him is the game's to run down from the start, as with Auto: by the time
       // a person has seen a drop shot for what it is and pressed a key, three or four tenths of a second, the run up from the
       // baseline is lost, and in the last five metres the legs that take over can no longer make it up.
-      const shortRun = A === 1 && coming && ((!globalThis.__shortRunOld && (p.z - plan.S.z) * s > 3.0) || (!globalThis.__lobAirOld && m.incoming && (m.incoming.apex || 0) > 4 && plan.pre));   /* (and back under a lob for the overhead, from the start) */
+      const shortRun = A === 1 && coming && (((p.z - plan.S.z) * s > 3.0) || (m.incoming && (m.incoming.apex || 0) > 4 && plan.pre));   /* (and back under a lob for the overhead, from the start) */
       const helped = coming && (shortRun || Math.hypot(plan.S.x - p.x, plan.S.z - p.z) < near); this.helpedNow = !!helped;
       const any = (wasd ? !(p.stroke && !p.stroke.done && p.stroke.tc != null) : !committed && !helped) && Math.abs(mv.x) + Math.abs(mv.y) > 0.01;   /* (W A S D held, he moves himself, the game's legs standing aside until he lets go; not through the swing itself) */
       if (any) {
@@ -115,7 +115,7 @@ export class Human {
         // it: a long run starts with a turn and is run, a step or two is shuffled. Left unknown, every run with the arrows to a ball
         // three or four metres away was shuffled sideways square to the net at up to 3.6 m/s, feet together and upright, turning
         // only part way and late, where the same run on Auto footwork turned and ran from the first step.)
-        if (!globalThis.__manGoOld && ph === 'live' && plan && !plan.leave && plan.S) { const dx = plan.S.x - p.x, dz = plan.S.z - p.z, d = Math.hypot(dx, dz), ml = Math.hypot(p.move.x, p.move.z);
+        if (ph === 'live' && plan && !plan.leave && plan.S) { const dx = plan.S.x - p.x, dz = plan.S.z - p.z, d = Math.hypot(dx, dz), ml = Math.hypot(p.move.x, p.move.z);
           if (d > 0.5 && ml > 0.01 && (dx * p.move.x + dz * p.move.z) / (d * ml) > 0.75) p.goDist = d; }
         if (p.burstOK) m.burst(i, p.move.x, p.move.z);
       }
@@ -140,14 +140,14 @@ export class Human {
     // ---- timing read-out: seconds until the ideal moment to let go ----
     this.tau = null;
     // (can he get to it at all: see reachOf)
-    this.rch = globalThis.__reachOld || ph !== 'live' ? null : reachOf(m, p); this.outOfReach = !!(this.rch && !this.rch.ok);
+    this.rch = ph !== 'live' ? null : reachOf(m, p); this.outOfReach = !!(this.rch && !this.rch.ok);
     // with the game's legs bringing him to the ball, the ball arrives when the plan says it will meet him
     // (only while his legs can still get him to that spot in the time left; otherwise the ball is met where he is)
     // (or wherever the game's own plan says the ball can be reached, at a stretch: judged only by four-fifths of his speed, a drop
     // shot he was being run up to was not, the swing was timed to a ball crossing just in front of where he stood, which a drop
     // shot never does, and went off at once into thin air; the computer's swing goes by its plan)
-    const canMake = plan && plan.S && plan.tc != null && ((!globalThis.__canMakeOld && plan.hit && !plan.leave) || Math.hypot(plan.S.x - p.x, plan.S.z - p.z) <= p.prof.speed * 0.8 * Math.max(0, plan.tc - m.t) + 0.25);
-    const planned = globalThis.__noPlan ? null : classic && this.helpedNow && plan && !plan.leave && canMake && plan.tc > m.t - 0.02 ? plan.tc : null;
+    const canMake = plan && plan.S && plan.tc != null && ((plan.hit && !plan.leave) || Math.hypot(plan.S.x - p.x, plan.S.z - p.z) <= p.prof.speed * 0.8 * Math.max(0, plan.tc - m.t) + 0.25);
+    const planned = classic && this.helpedNow && plan && !plan.leave && canMake && plan.tc > m.t - 0.02 ? plan.tc : null;
     if (planned != null && ph === 'live' && m.ball.live && m.ball.lastHit !== i) this.tau = planned - m.t - TIMING.swing;
     else if (ph === 'live' && m.ball.live && m.ball.lastHit !== i && m.incoming && !(m.ball.isServe && m.ball.bounces === 0 && false)) {
       const inc = m.incoming, path = inc.path, cz = p.z - s * 0.42; let best = 1e9, bt = null;
@@ -176,9 +176,9 @@ export class Human {
         // (the arrows pressed with Space, or any time after it, count until the swing goes: read only at the swing, a moment after the
         // press, an arrow let go of in between was not the aim at all, and the serve went where the game chose; he said "sometimes the
         // aiming on the stroke doesnt listen to keypresses")
-        if (this.srvWant && !globalThis.__aimLatchOld) { if (latT) this.srvL = latT; if (fkT) this.srvF = fkT; }
+        if (this.srvWant) { if (latT) this.srvL = latT; if (fkT) this.srvF = fkT; }
         if (this.srvWant && m.ball.held < 0 && p.stroke && p.stroke.tc == null && m.t >= m.tossIdeal - TIMING.serveSwing - 0.08) {
-          this.srvWant = false; if (!globalThis.__aimLatchOld) { lat = lat || this.srvL || 0; fk = fk || this.srvF || 0; }
+          this.srvWant = false; lat = lat || this.srvL || 0; fk = fk || this.srvF || 0;
           // left and right place it in the box: the T, the body, or wide
           const side = m.deuceSide ? -1 : 1, smg = this.srvSafe + 0.3, a = smg, b = COURT.halfW - smg, u = 0.5 + 0.5 * lat * side, X = side * (a + (b - a) * u), D = -(COURT.svc - this.srvSafe - 0.55);
           this.aim.X = X; this.aim.D = D;
@@ -204,7 +204,7 @@ export class Human {
         if (this.aimHFor !== m.incoming) { this.aimHFor = m.incoming; this.aimHDir = 0; this.aimHT = null; this.aimHDur = 0; }
         if (mine) { if (lat) { if (this.aimHDir !== lat || this.aimHT == null) { this.aimHDir = lat; this.aimHT = m.t; } this.aimHDur = m.t - this.aimHT; }
           else { this.aimHT = null; if (latT && this.aimHDir !== latT) { this.aimHDir = latT; this.aimHDur = 1 / 60; } } }
-        if (!globalThis.__aimLatchOld && mine && this.buf > m.t && this.aimFor === m.incoming) { if (latT) this.aimL = latT; if (fkT) this.aimF = fkT; if (!lat) lat = this.aimL || 0; if (!fk) fk = this.aimF || 0; }
+        if (mine && this.buf > m.t && this.aimFor === m.incoming) { if (latT) this.aimL = latT; if (fkT) this.aimF = fkT; if (!lat) lat = this.aimL || 0; if (!fk) fk = this.aimF || 0; }
         // He reads the ball and turns for it on his own, as early as a player does (about 0.85 s out, as the computer does):
         // the shoulders turn and the racket goes back on the side the ball is coming to, whether or not Space has been
         // pressed yet. Space says when he swings. (By the sooner of the plan's clock and the ball's own, which times the wind-up: by the
@@ -212,14 +212,14 @@ export class Human {
         // and crammed into a third of a second, the racket whipped across him - "the arms flail". Waiting for the press, the take-back used to start a tenth of a second
         // before contact, and he swung from the ready position with no wind-up at all.)
         const rch = this.rch, outOfReach = this.outOfReach;
-        if (mine && !swinging && !outOfReach && plan && !plan.leave && plan.tc != null && plan.cp && (globalThis.__prepClockOld ? plan.tc - m.t : Math.min(plan.tc - m.t, this.tau != null ? this.tau + TIMING.swing : 9)) < 0.85 && plan.tc - m.t > 0.1 && (!p.stroke || p.stroke.done) && (m.incoming == null || this.prepGone !== m.incoming) && !globalThis.__noPrep) {
+        if (mine && !swinging && !outOfReach && plan && !plan.leave && plan.tc != null && plan.cp && Math.min(plan.tc - m.t, this.tau != null ? this.tau + TIMING.swing : 9) < 0.85 && plan.tc - m.t > 0.1 && (!p.stroke || p.stroke.done) && (m.incoming == null || this.prepGone !== m.incoming)) {
           if (!this.choice || this.choiceFor !== m.incoming) { this.choiceFor = m.incoming; this.choice = this.coach.decide(m, i, plan); }
           if (m.prep(i, this.choice ? this.choice.kind : 'drive') && p.stroke && !p.stroke.done && p.stroke.tc == null && plan.wing) p.stroke.wing = plan.wing;
         }
         // (and a ball the planner has made nothing of, no plan or no time for it, that is still coming to within his reach: he
         // turns for it all the same, on the side it will reach him, by its own path. Without it a ball he then swung at had no
         // wind-up at all, the whole stroke begun at the press a seventh of a second before the ball.)
-        else if (mine && !swinging && !outOfReach && (!plan || (!plan.leave && (plan.tc == null || !plan.cp))) && this.tau != null && this.npCP && this.tau + TIMING.swing < 0.8 && this.tau + TIMING.swing > 0.25 && (!p.stroke || p.stroke.done) && (m.incoming == null || this.prepGone !== m.incoming) && !globalThis.__noPrep) {
+        else if (mine && !swinging && !outOfReach && (!plan || (!plan.leave && (plan.tc == null || !plan.cp))) && this.tau != null && this.npCP && this.tau + TIMING.swing < 0.8 && this.tau + TIMING.swing > 0.25 && (!p.stroke || p.stroke.done) && (m.incoming == null || this.prepGone !== m.incoming)) {
           const latN = (this.npCP.x - p.x) * p.sgn * p.hs;
           if (Math.abs(latN) < 2.0 && m.prep(i, 'drive') && p.stroke && !p.stroke.done && p.stroke.tc == null) { p.stroke.wing = latN >= -0.15 ? 'fh' : 'bh'; p.stroke.cpPlan = this.npCP; }
         }
@@ -237,7 +237,7 @@ export class Human {
         // (and a drop shot or a lob he is holding the key for is drawn as one from the start of the wind-up: decided only as he let
         // go, a sixth of a second before contact, by which time the figure keeps the swing it has begun, his drop shots and lobs
         // were played with the full swing of the drive the game had prepared, the ball dying over the net off a big forehand)
-        if (!globalThis.__ownKindOld && mine && !swinging && p.stroke && !p.stroke.done && p.stroke.tc == null) {
+        if (mine && !swinging && p.stroke && !p.stroke.done && p.stroke.tc == null) {
           const bl = m.ball, cy = plan && plan.cp ? plan.cp.y : bl.y, vin = Math.hypot(bl.vx, bl.vy, bl.vz), oppUp = Math.abs(m.players[1 - i].z) < 4.2;
           const vinC = bl.bounces > 0 || m.ball.isServe ? vin : vin * 0.68;   /* (as it will be when he meets it: it slows to about two-thirds at the bounce) */
           const ownNow = fk < 0 && cy < 1.75 && vinC < 22 ? 'drop' : fk > 0 && oppUp ? 'lob' : null;
@@ -252,7 +252,7 @@ export class Human {
         // ball: kept, he stood in it until the ball stopped bouncing, two seconds and more, both arms out at the place it had
         // been. Judged by where the ball is, not by when the plan last said it would arrive: by that, a plan behind the ball let
         // the wind-up go and the next frame began it again, the arms thrown fifty degrees between the two)
-        { const sp = p.stroke, bl = m.ball; if (sp && !sp.done && sp.tc == null && !sp.auto && sp.kind !== 'serve' && !globalThis.__keepPrep) {
+        { const sp = p.stroke, bl = m.ball; if (sp && !sp.done && sp.tc == null && !sp.auto && sp.kind !== 'serve') {
             const past = mine && (bl.z - p.z) * p.sgn > 0.6 && !(this.buf > m.t && this.tau != null);
             if (!mine || past) { p.stroke = null; this.prepGone = m.incoming; } } }
         if (mine && !swinging && outOfReach && p.stroke && !p.stroke.done && p.stroke.tc == null && p.stroke.kind !== 'serve') { p.stroke = null; this.prepGone = m.incoming; }
@@ -272,7 +272,7 @@ export class Human {
           // (and a drop shot the wind-up already showed, ↓ held through it, stays one: judged again at the press from the ball's speed
           // after its bounce instead of the estimate the wind-up used, a heavy ball came out a drive swung with a drop's arms, or the
           // other way round)
-          const shownDrop = !globalThis.__ownKindOld && fk < 0 && p.stroke && p.stroke.kind === 'drop' && p.stroke.__kind0;
+          const shownDrop = fk < 0 && p.stroke && p.stroke.kind === 'drop' && p.stroke.__kind0;
           const own = fk < 0 && cy < 1.75 && (vin < 22 || shownDrop) ? 'drop' : fk > 0 && oppUp ? 'lob' : null, deep = fk > 0 && !oppUp;
           const ch = own ? null : this.choice;
           const kind = own || (ch ? (deep && !/^(drive|flat|loop)$/.test(ch.kind) ? 'drive' : ch.kind) : 'drive');
@@ -282,11 +282,11 @@ export class Human {
           if (fire && !outOfReach) {
             // (swung on the side the ball will be: a wind-up begun for one side, the ball coming through on the other, was swung on the
             // wrong side, a forehand at a ball going by his backhand - "if theyre close to a ball but miss sometimes its the wrong animation")
-            if (!globalThis.__reachOld && rch && p.stroke && !p.stroke.done && p.stroke.wing && p.stroke.wing !== rch.side && Math.abs(rch.relX) > 0.35) p.stroke.wing = rch.side;
+            if (rch && p.stroke && !p.stroke.done && p.stroke.wing && p.stroke.wing !== rch.side && Math.abs(rch.relX) > 0.35) p.stroke.wing = rch.side;
             // the angle is his if he holds one; otherwise the game's choice of where
             const chX = ch ? ch.tx * s : 0, chD = ch ? ch.tz * s : -(COURT.halfLen - Math.max(2.4, this.safe[1] + 1.6));
-            const aimF = globalThis.__timedAimOld ? 1 : clamp(((this.aimHDir === lat ? this.aimHDur : 0) - 0.05) / 0.35, 0, 1);
-            const latX = globalThis.__timedAimOld ? COURT.halfW - this.safe[0] - 0.75 : 1.3 + (COURT.halfW - this.safe[0] - 0.3 - 1.3) * aimF;
+            const aimF = clamp(((this.aimHDir === lat ? this.aimHDur : 0) - 0.05) / 0.35, 0, 1);
+            const latX = 1.3 + (COURT.halfW - this.safe[0] - 0.3 - 1.3) * aimF;
             let X = lat ? lat * latX : clamp(chX, -(COURT.halfW - this.safe[0]), COURT.halfW - this.safe[0]), D = chD, power = ch ? ch.power : 0.74;
             // his own drop shot dies just over the net, his lob lands deep; with no angle held, both go away from the other man
             const away = -Math.sign(opp.x * s || 1);

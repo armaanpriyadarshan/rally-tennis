@@ -220,8 +220,6 @@ export class Audio {
         // (both feet down within a few hundredths of a second are one sound, not a flam)
         if (!this.on || clk - (S.ff || -9) < 0.07) continue; S.ff = clk;
         this.footfall(x, z, k);
-        // (no shoe squeaks: a synthesised squeak read as a weird noise, not a shoe; the footfalls alone carry the running)
-        if (globalThis.__squeakOn && this.surface === 'hard' && vpk > 2.6 && acc > 5.5 && clk - S.sq > 0.45 && Math.random() < clamp((vpk - 2.2) / 3, 0.25, 0.9)) { S.sq = clk; this.squeak(x, z, clamp(0.45 + (vpk - 2.6) * 0.18 + (acc - 5.5) * 0.04, 0.45, 1.2)); }
       }
       // a slide on clay, from the figure's own slide
       const sf = f.slideFx; if (sf && !S.sl && this.on && this.surface === 'clay') this.slide(sf.x, sf.z, clamp(sf.speed / 5, 0.5, 1.3), clamp(0.18 + sf.speed * 0.07, 0.25, 0.6));

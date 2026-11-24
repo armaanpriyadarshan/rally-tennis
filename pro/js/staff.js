@@ -162,7 +162,7 @@ export class Staff {
     // A ball lying in the court that nobody could fetch in time is quietly gone as the next point is set (the
     // picture dips for that in quick play), and at the latest as the serve is tossed.
     if ((ph === 'ready' && prev !== 'ready' && prev !== 'toss') || (ph === 'toss' && prev !== 'toss'))
-      for (const x of this.balls) if (x.mode === 'free' && !x.mirror && (!x.claim || ph === 'toss') && ((Math.abs(x.x) < COURT.halfWD + 0.3 && Math.abs(x.z) < COURT.halfLen + 0.3) || (!globalThis.__ballOld && !x.claim && x.age > 20))) this.free(x);   /* (and one anywhere that nobody has fetched in twenty seconds, at the same cut) */
+      for (const x of this.balls) if (x.mode === 'free' && !x.mirror && (!x.claim || ph === 'toss') && ((Math.abs(x.x) < COURT.halfWD + 0.3 && Math.abs(x.z) < COURT.halfLen + 0.3) || (!x.claim && x.age > 20))) this.free(x);   /* (and one anywhere that nobody has fetched in twenty seconds, at the same cut) */
     // whether a kid is out on the court (for a computer server that waits for him: see aiWaits)
     m.courtBusy = this.courtBusy();
     if (this.hideMatch && game.fx && game.fx.ball) game.fx.ball.visible = false;
@@ -215,7 +215,7 @@ export class Staff {
     // (a ball off the court that has lain through a serve is fetched whenever someone is free, in time or not: one in a far
     // corner is three seconds' run away, never in time for the next serve, and they lay there all match, seven at once.
     // If play starts while he is out he stops where he is, off the court, until the point is over.)
-    if (!best && !inCourt && ball.age > 4 && !globalThis.__ballOld) { let bt2 = 1e9;
+    if (!best && !inCourt && ball.age > 4) { let bt2 = 1e9;
       for (const k of this.kids) { if (k.state !== 'home') continue; const ok = netZone ? (k.home.kneel ? Math.sign(k.home.x) === Math.sign(p.x || 1) : Math.sign(k.home.z) === Math.sign(p.z || 1)) : (!k.home.kneel && Math.sign(k.home.z) === Math.sign(p.z)); if (!ok) continue;
         const t = runT(Math.hypot(p.x - k.x, p.z - k.z), k.home.kneel ? 6.0 : 4.6); if (t < bt2) { bt2 = t; best = k; } } }
     if (best) best.fetch(ball);
@@ -315,7 +315,7 @@ class Kid {
     // A player running at a back kid's place, chasing a wide ball deep or on his way back from one: the kid steps along the
     // wall out of his way and back again once he has gone, point or no point (standing still, the players ran shoulder to
     // shoulder with him, and from behind one seemed to run through him).
-    if (this.state === 'home' && !this.home.kneel && dt > 0 && !globalThis.__noDodge && this.threat() < 1.4) { this.state = 'dodge'; this.fromDodge = true; this.stateT = 0; this.dodgeAt = null; this.clearT = 0; }
+    if (this.state === 'home' && !this.home.kneel && dt > 0 && this.threat() < 1.4) { this.state = 'dodge'; this.fromDodge = true; this.stateT = 0; this.dodgeAt = null; this.clearT = 0; }
     if (this.state === 'home') { this.watch(dt, t); return; }
     if (dt <= 0) return;
     // the ball is in play: wherever he is, he stops, gets down low and keeps still until the point is over

@@ -195,7 +195,7 @@ export function buildHair(person, spec, headwear) {
         // strands run out toward the tips, raggedly; under a cap there is nothing to see
         const soft = hasFringe ? 0.30 : 0.50, tip = onHead ? (ext < 0.012 ? sm((v - 0.70) / 0.30) * soft : 0) : (ext < 0.012 ? soft + (1 - soft) * h : sm((h - 0.35) / 0.65));
         const shaved = sm(1 - (L - 0.3) / 0.9) * sm((v - 0.3) / 0.3);          // clipped to the skin: the scalp's own stubble shows instead
-        cut[k] = cap && onHead && th < cTh + (globalThis.__capCutOld ? -rad(3) : rad(globalThis.__capCutDeg ?? 2)) ? 2 : Math.min(1.01, cut0 + (0.90 - cut0) * tip * (li ? 1 : 0.85) + shaved * 1.01);
+        cut[k] = cap && onHead && th < cTh + rad(2) ? 2 : Math.min(1.01, cut0 + (0.90 - cut0) * tip * (li ? 1 : 0.85) + shaved * 1.01);
         const shade = bright * (0.86 + 0.28 * (noise(u * Nu * 1.3 + 3 + li, v * 3 + h * 2) - 0.5) + (curly ? 0.10 * lump : 0)) * (onHead ? 1 : 1 - 0.10 * h);
         tmp.copy(root).lerp(base, spec.c2 ? sm((v + h - 0.30) / 0.5) : 1).multiplyScalar(clamp(shade, 0.4, 1.3));
         col[k * 3] = tmp.r; col[k * 3 + 1] = tmp.g; col[k * 3 + 2] = tmp.b;
@@ -237,7 +237,7 @@ export function buildHair(person, spec, headwear) {
       const cTh = cap ? thetaAtY(S, phi, lineY(phi, capY[0], capY[1])) : 0;
       // under the cap, all of it: a lock rooted just inside the cap's edge stands two centimetres off the scalp, the cap one,
       // and it came out through the crown as dark flecks on the cap above the peak
-      if (cap && th0 < cTh + (globalThis.__capCutOld ? -rad(4) : rad(1))) continue;
+      if (cap && th0 < cTh + rad(1)) continue;
       if (band && Math.abs(th0 - bTh) < bW * 1.1) continue;                      // under the band
       n++;
       // how thick the mass lies here, as the layers above have it

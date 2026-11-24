@@ -140,11 +140,6 @@ function mixUpper(A, B, w, S) {
       for (const j of UPPER_J) { const x = P[j * 3] - cx, z = P[j * 3 + 2] - cz; P[j * 3] = cx + x * c - z * sn; P[j * 3 + 2] = cz + x * sn + z * c; } };
     rot(A, w * d); rot(B, -(1 - w) * d);
   }
-  // (the arms blended along themselves, each bone turned from the one pose's way to the other's, from the blended shoulder out:
-  // blended by where each joint is, an arm going from a finish over the far shoulder to the ready position in front had its
-  // forearm shrink to a few centimetres half way, and as it grew back its way round had flipped, the elbow thrown up and the
-  // forearm laid across the chest in a frame)
-  if (globalThis.__armSlerpOld) return mix(A, B, w);
   const ARMS = _armJ, sv = _armS; let q = 0;
   for (const ch of ARMS) for (let k = 1; k < 4; k++) { const a0 = ch[k - 1], a1 = ch[k];
     sv[q++] = A[a1 * 3] - A[a0 * 3]; sv[q++] = A[a1 * 3 + 1] - A[a0 * 3 + 1]; sv[q++] = A[a1 * 3 + 2] - A[a0 * 3 + 2]; }
@@ -291,38 +286,38 @@ export class Figure {
     // filmed walker swings his little, about a sixth of a metre from front to back, and a stroll swings a quarter: so a little
     // more than his, the racket hand, carrying the racket, less than the free one)
     const F = this.loco && this.loco.FW;
-    if (!globalThis.__strollArmOld && F) { const k = Math.min(1, speed / 1.0) * (this.loco.w.go || 0), rk = this.hs > 0 ? [J.rwri, J.rsho] : [J.lwri, J.lsho], fr = this.hs > 0 ? [J.lwri, J.lsho] : [J.rwri, J.rsho];
-      sw = (F[rk[0] * 3 + 2] - F[rk[1] * 3 + 2] - 0.075) * (globalThis.__strollSwR ?? 1.15) * k; swL = (F[fr[0] * 3 + 2] - F[fr[1] * 3 + 2] - 0.065) * (globalThis.__strollSwL ?? 1.6) * k; }
+    if (F) { const k = Math.min(1, speed / 1.0) * (this.loco.w.go || 0), rk = this.hs > 0 ? [J.rwri, J.rsho] : [J.lwri, J.lsho], fr = this.hs > 0 ? [J.lwri, J.lsho] : [J.rwri, J.rsho];
+      sw = (F[rk[0] * 3 + 2] - F[rk[1] * 3 + 2] - 0.075) * 1.15 * k; swL = (F[fr[0] * 3 + 2] - F[fr[1] * 3 + 2] - 0.065) * 1.6 * k; }
     // (and the hands hang a little in front of the hips, where a relaxed arm hangs, the racket hand swinging back only half as
     // far as forward: about the hips' line, both hands spent half of each step behind the body, the racket trailing behind him)
-    const fwdR = globalThis.__strollFwdOld ? 0.05 : 0.11, fwdL = globalThis.__strollFwdOld ? 0.02 : 0.09; if (!globalThis.__strollFwdOld && sw < 0) sw *= 0.5;
+    const fwdR = 0.11, fwdL = 0.09; if (sw < 0) sw *= 0.5;
     let R = [0.27, 0.80, fwdR + sw], L = [-0.27, 0.84, fwdL + swL];
     // (the hands where the players' are as they walk between points, tracked from footage of them: the racket hand carried a
     // little forward and in, the elbow bent, swinging little; the free hand swinging against the opposite leg. A left-hander's
     // are the same half a stride on, so his racket arm too swings with the other leg)
-    if (!globalThis.__strollClipOld && F) { const k = Math.min(1, speed / 0.6) * (this.loco.w.go || 0), G = this.hs > 0 ? F : (this.loco.FW2 || F);
+    if (F) { const k = Math.min(1, speed / 0.6) * (this.loco.w.go || 0), G = this.hs > 0 ? F : (this.loco.FW2 || F);
       if (k > 0.001) { const cR = [G[J.rhand * 3], G[J.rhand * 3 + 1], G[J.rhand * 3 + 2]], cL = [G[J.lhand * 3], G[J.lhand * 3 + 1], G[J.lhand * 3 + 2]];
         R = R.map((v, q) => v + (cR[q] - v) * k); L = L.map((v, q) => v + (cL[q] - v) * k); } }
     // (the racket carried head forward and down, as the players carry it walking back: hung straight down, its head reached the
     // court, the rule that keeps it off the court lifted the hand, and the arm walked bent and flared, from behind an elbow turned
     // out the wrong way)
-    return { R, L, dir: globalThis.__strollClipOld ? [0.05, -0.55, 0.83] : globalThis.__strollRkOld ? [0.08, -0.86, 0.5] : [0.08, -0.6, 0.8], nrm: [1, 0, 0], twist: 0, lean: 0.06, crouch: 0.02, stance: 0.14, lgrip: 0, head: this.lookUp ? 0.02 : -0.25 };
+    return { R, L, dir: [0.08, -0.6, 0.8], nrm: [1, 0, 0], twist: 0, lean: 0.06, crouch: 0.02, stance: 0.14, lgrip: 0, head: this.lookUp ? 0.02 : -0.25 };
   }
   runPose(t, speed, bhK = 0) {
-    const ph = this.gait * Math.PI * 2, sw = Math.sin(ph) * (globalThis.__pump2Old ? 0.07 : 0.15) * Math.min(1, speed / 4), up = Math.cos(ph * 2) * 0.012;   /* (a runner's hands swing a quarter of a metre and more each way; at seven centimetres the arms looked locked) */
+    const ph = this.gait * Math.PI * 2, sw = Math.sin(ph) * 0.15 * Math.min(1, speed / 4), up = Math.cos(ph * 2) * 0.012; /* (a runner's hands swing a quarter of a metre and more each way; at seven centimetres the arms looked locked) */
     // (the free hand carried in front of the stomach, as a tennis player runs with it, not beside the hip: the running arm's
     // swing is blended toward this, and held beside the hip, with the elbow swung back behind him, it read as a hand on the hip)
     // (the racket carried low and pointing ahead, the hand by the waist, as a player runs with it: held at the chest pointing
     // up, swung by the running arm, it rode up behind his head at a sprint, as if he were already taking it back)
     // (the racket hand rides less than half of it, the free hand most: both swinging fifteen centimetres each way, the racket head on
     // its long lever went through half a metre each stride, and he said "the arms still flail a lot on running")
-    const kR = globalThis.__flail2Old ? 1 : 0.4, kL = globalThis.__flail2Old ? 1 : 0.8;
+    const kR = 0.4, kL = 0.8;
     // (and with a backhand to come, carried across in front of him toward that side, the free hand nearer the throat, as a player
     // sprinting to his backhand runs: carried on the forehand side to the last, the take-back swung the racket across the body and
     // over the far shoulder in a seventh of a second, the arms seen to flail)
-    if (!globalThis.__runCarryOld && bhK > 0.001) { const b = bhK, d = [-0.22 + (-0.62 + 0.22) * b, 0.42 + (0.50 - 0.42) * b, 0.88 + (0.60 - 0.88) * b], dl = Math.hypot(d[0], d[1], d[2]);
+    if (bhK > 0.001) { const b = bhK, d = [-0.22 + (-0.62 + 0.22) * b, 0.42 + (0.50 - 0.42) * b, 0.88 + (0.60 - 0.88) * b], dl = Math.hypot(d[0], d[1], d[2]);
       return { R: [0.22 - 0.24 * b, 0.98 + up, 0.30 + sw * kR * (1 - 0.5 * b) + 0.04 * b], L: [-0.14 + 0.02 * b, 1.10 - 0.04 * b, 0.30 - sw * kL * (1 - 0.6 * b) + 0.04 * b], dir: d.map(v => v / dl), nrm: [0.7, 0.1, 0.7], twist: 0, lean: 0.22, crouch: 0.15, stance: 0.22, lgrip: 0, head: 0, elbows: 0.15 }; }
-    if (!globalThis.__runCarryOld) return { R: [0.22, 0.98 + up, 0.30 + sw * kR], L: [-0.14, 1.10, 0.30 - sw * kL], dir: [-0.22, 0.42, 0.88], nrm: [0.7, 0.1, 0.7], twist: 0, lean: 0.22, crouch: 0.15, stance: 0.22, lgrip: 0, head: 0, elbows: 0.15 };
+    return { R: [0.22, 0.98 + up, 0.30 + sw * kR], L: [-0.14, 1.10, 0.30 - sw * kL], dir: [-0.22, 0.42, 0.88], nrm: [0.7, 0.1, 0.7], twist: 0, lean: 0.22, crouch: 0.15, stance: 0.22, lgrip: 0, head: 0, elbows: 0.15 };
     return { R: [0.22, 1.06 + up, 0.40 + sw], L: [-0.14, 1.10, 0.30 - sw], dir: [-0.30, 0.78, 0.55], nrm: [0.7, 0.1, 0.7], twist: 0, lean: 0.22, crouch: 0.15, stance: 0.22, lgrip: 0, head: 0, elbows: 0.15 };
   }
 
@@ -331,7 +326,7 @@ export class Figure {
   // reach to it and the step back from it dragged both hands back through his chest in the follow-through: a two-hander's
   // top arm a dozen centimetres inside it, a forehand's finish across the ribs.)
   cpGone(st, p, t) {
-    if (!st.cp || globalThis.__cpOld) return st.cp;
+    if (!st.cp) return st.cp;
     if (this.cpAtSt !== st) { this.cpAtSt = st; this.cpAt = null; }
     if (t < st.tc) return st.cp;
     if (!this.cpAt) this.cpAt = { x: p.x, z: p.z, cp: { x: 0, y: 0, z: 0 } };
@@ -343,14 +338,14 @@ export class Figure {
     // lob and the forehand drop, disguised as a drive) the take-back are his; the clip is let go of over a fifth of a second
     // from tb on and the shot's own keys swing at the ball. (Played from the keys alone, every player's slice, lob and drop
     // were the same hand-made swing, and the lob was his drive.)
-    if (!globalThis.__noOwnTb && (kind === 'lob' || kind === 'drop' || kind === 'slice')) {
+    if (kind === 'lob' || kind === 'drop' || kind === 'slice') {
       const c = this.ownClip('drive', wing, st); if (!c) return null;
       // (a slice, and the backhand drop that is played as one, is a different take-back from early on, the racket going up high
       // by the far shoulder where the drive's goes back low: his own clip is kept only through the turn and let go of over a
       // third of a second; let go of over a fifth from half a second out, the racket was swung up from one to the other faster
       // than the free hand on its throat could follow, and that hand was left twenty centimetres off it)
       const sl = kind === 'slice' || (kind === 'drop' && wing === 'bh');
-      const tb = kind === 'lob' ? -0.22 : !sl ? -0.36 : (globalThis.__tbS ?? -0.72), tbD = sl ? (globalThis.__tbD ?? 0.32) : 0.2;
+      const tb = kind === 'lob' ? -0.22 : !sl ? -0.36 : -0.72, tbD = sl ? 0.32 : 0.2;
       const cache = this._tbW || (this._tbW = new Map()); let e = cache.get(c); if (!e) cache.set(c, e = {});
       const key = tb + '/' + tbD; return e[key] || (e[key] = Object.assign(Object.create(c), { tb, tbD }));
     }
@@ -363,7 +358,6 @@ export class Figure {
     // that fit, so no two rallies show the same forehand over and over.
     const alts = (key === 'fh' || key === 'bh') && PLAYER_MOTION_ALTS[this.look.name || ''] && PLAYER_MOTION_ALTS[this.look.name || ''][key];
     if (alts && alts.length && st) {
-      if (globalThis.__forcePick != null && (!st.clipPick || st.clipPick.i !== globalThis.__forcePick)) st.clipPick = { key, i: globalThis.__forcePick, sit: 'forced', want: 'forced' };   // (tools only: play one clip)
       if (!st.clipPick || st.clipPick.key !== key) {
         const sp = this.lastSpeed || 0, cp = st.cp, it = st.intent || {};
         const want = sp > 2.6 || st.onRun ? 'run' : it.state === 'attack' || (cp && cp.y > 1.25) ? 'attack' : cp && cp.y < 0.6 ? 'low' : 'set';
@@ -384,7 +378,7 @@ export class Figure {
         const pick = (from.length ? from : pool)[Math.floor(Math.random() * (from.length ? from.length : pool.length))];
         st.clipPick = { key, i: pick ? pick.i : -1, sit: pick ? pick.sit : null, want };
       }
-      if (st.clipPick.i >= 0) { const id = (this.look.name || '') + '#' + (globalThis.__altIdOld ? '' : key + '#') + st.clipPick.i, lib = this._altLib || (this._altLib = {});   /* (the wing in the name: kept under the number alone, a backhand's second clip took the place a forehand's had been filed under, found no backhand there and played his first one instead, every time after) */
+      if (st.clipPick.i >= 0) { const id = (this.look.name || '') + '#' + ((key + '#')) + st.clipPick.i, lib = this._altLib || (this._altLib = {});   /* (the wing in the name: kept under the number alone, a backhand's second clip took the place a forehand's had been filed under, found no backhand there and played his first one instead, every time after) */
         if (!lib[id]) lib[id] = { [key]: alts[st.clipPick.i] };
         const c = strokeClip(lib, id, key, this.lefty); if (usable(c)) return c; }
     }
@@ -392,7 +386,7 @@ export class Figure {
     // a serve tracked from a single clean instance keeps its own arm until the racket drop
     if (usable(mine)) { if (key === 'serve' && !mine.armZone) mine.armZone = (PLAYER_MOTION[this.look.name].serve.n || 1) > 1 ? SERVE_ARM : [-0.30, -0.06];
       // (a finish that goes on behind his head is held from before it does: see CLIP_END)
-      const ce = globalThis.__clipEnd ?? CLIP_END[(this.look.name || '') + '/' + key];
+      const ce = CLIP_END[(this.look.name || '') + '/' + key];
       if (ce != null && mine.span && mine.span[1] > ce) { const cc = this._ceW || (this._ceW = new Map()); let w = cc.get(mine); if (!w || w.span[1] !== ce) cc.set(mine, w = Object.assign(Object.create(mine), { span: [mine.span[0], ce] })); return w; }
       return mine; }
     // no passing swing of his own: borrow the nearest real one — same hand where there is one, the same
@@ -408,12 +402,12 @@ export class Figure {
     if (kind === 'serve') return SERVE;
     if (kind === 'smash') return SMASH;
     if (kind === 'volley' || kind === 'block') return wing === 'fh' ? FH_VOLLEY : BH_VOLLEY;
-    if (kind === 'drop' && !globalThis.__noOwnTb) return wing === 'fh' ? DROP_FH : DROP_BH;
-    if (kind === 'lob' && !globalThis.__noOwnTb) return wing === 'fh' ? LOB_FH : one ? LOB_BH1 : LOB_BH2;
+    if (kind === 'drop') return wing === 'fh' ? DROP_FH : DROP_BH;
+    if (kind === 'lob') return wing === 'fh' ? LOB_FH : one ? LOB_BH1 : LOB_BH2;
     if (kind === 'slice' || kind === 'drop') return wing === 'fh' ? FH_SLICE : BH_SLICE;
     const base = wing === 'fh' ? FOREHAND : one ? BACKHAND_1H : BACKHAND_2H;
     // where a player's own footage shows his racket somewhere else, his keys say so
-    const ov = globalThis.__noOvr ? null : RACKET_OVR[(this.look.name || '') + '/' + wing];   /* (__noOvr: tools only, a stroke seen without its override) */
+    const ov = RACKET_OVR[(this.look.name || '') + '/' + wing];   /* (__noOvr: tools only, a stroke seen without its override) */
     if (!ov) return base;
     const id = this.look.name + '/' + wing; if (_ovCache.has(id)) return _ovCache.get(id);
     const keys = base.keys.map(k => ({ ...k }));
@@ -437,9 +431,11 @@ export class Figure {
     // each second: the game gives a well-timed split step its first step at once, two and a half metres a second in a frame, and
     // stops a player at a limit of the arena in one; the stride and the feet were thrown with it, a foot a third of a metre in a
     // frame. (Where he is stays the game's; only how the body reads his going.)
-    if (!globalThis.__velSmoothOld) { if (!this.inited || this.vS == null || dt <= 0) this.vS = [p.vx, p.vz];
-      else { const dx = p.vx - this.vS[0], dz = p.vz - this.vS[1], dl = Math.hypot(dx, dz), mx = 18 * dt; if (dl > mx) { this.vS[0] += dx * mx / dl; this.vS[1] += dz * mx / dl; } else { this.vS[0] = p.vx; this.vS[1] = p.vz; } }
-      if (this.vS[0] !== p.vx || this.vS[1] !== p.vz) p = Object.assign(Object.create(p), { vx: this.vS[0], vz: this.vS[1] }); }
+    if (!this.inited || this.vS == null || dt <= 0)
+      this.vS = [p.vx, p.vz];
+    else
+      { const dx = p.vx - this.vS[0], dz = p.vz - this.vS[1], dl = Math.hypot(dx, dz), mx = 18 * dt; if (dl > mx) { this.vS[0] += dx * mx / dl; this.vS[1] += dz * mx / dl; } else { this.vS[0] = p.vx; this.vS[1] = p.vz; } }
+    if (this.vS[0] !== p.vx || this.vS[1] !== p.vz) p = Object.assign(Object.create(p), { vx: this.vS[0], vz: this.vS[1] });
     const H = this.H, s = p.sgn, hs = this.hs, t = m.t, D = this.D, person = this.person;
     const speed = this.lastSpeed = Math.hypot(p.vx, p.vz);
     const base = s > 0 ? 0 : Math.PI;                      // facing the net
@@ -509,7 +505,7 @@ export class Figure {
         // (but a drive turned into a drop shot or a lob as he lets go, ↓ or ↑ held with the press, is shown as one until a tenth of a
         // second before the ball, eased across from the drive's shape over that time: locked a third of a second out, every drop shot
         // the player called himself was swung as a drive)
-        const lateOwn = !globalThis.__dkLateOld && st.__dk != null && st.kind !== st.__dk && /^(drive|flat|loop|lob|drop)$/.test(st.__dk) && /^(drop|lob)$/.test(st.kind) && ue < -0.1;
+        const lateOwn = st.__dk != null && st.kind !== st.__dk && /^(drive|flat|loop|lob|drop)$/.test(st.__dk) && /^(drop|lob)$/.test(st.kind) && ue < -0.1;
         if (lateOwn && ue >= -0.3 && this.poseLast && this.lpLast) { this.xfT = t; this.xfD = clamp(-ue * 0.75, 0.06, 0.2); this.xfPose = this.poseLast; (this.xfLP || (this.xfLP = new Float32Array(N3))).set(this.lpLast); }
         if (st.__dk == null || st.kind === 'serve' || st.kind === 'smash' || st.__dk === 'serve' || st.__dk === 'smash' || ue < -0.3 || lateOwn) st.__dk = st.kind;
         // A groundstroke begun with under a third of a second to the ball, nothing set up for it (pressed late, or a ball the
@@ -517,7 +513,7 @@ export class Figure {
         // only a little and pushed through. (Played as the full stroke, the whole take-back and swing were crammed into a
         // seventh of a second: the figure went from the ready position to mid-swing in a few frames and flailed through it.)
         { const tcK = st.tc != null ? st.tc : st.tcPlan;
-          if (!st.__rushSet && tcK != null) { st.__rushSet = true; if (!globalThis.__noRushBlock && t - st.t0 < 0.06 && tcK - st.t0 < (globalThis.__rushT ?? 0.37) && /^(drive|loop|flat|lob)$/.test(st.kind)) st.__rush = true; }   /* (0.3 s left the strokes booked with 0.30-0.37 s to go as full swings squeezed in: the take-back snapped from the chest to the shoulder in two frames, 35 degrees a frame) */
+          if (!st.__rushSet && tcK != null) { st.__rushSet = true; if (t - st.t0 < 0.06 && tcK - st.t0 < 0.37 && /^(drive|loop|flat|lob)$/.test(st.kind)) st.__rush = true; }   /* (0.3 s left the strokes booked with 0.30-0.37 s to go as full swings squeezed in: the take-back snapped from the chest to the shoulder in two frames, 35 degrees a frame) */
           if (st.__rush) st.__dk = 'block'; } }
       keys = this.strokeKeys(st.__dk, st.wing);
       const span = keys.span;
@@ -542,7 +538,7 @@ export class Figure {
       // of a second: jumped to, the wind-up was thrown half a second back in one frame)
       else if (st.tcPlan != null) {
         if (this.tpSt !== st) { this.tpSt = st; this.tpOff = 0; this.tpOffT = -9; this.tpOffNow = 0; }
-        else if (Math.abs(st.tcPlan - this.tpLast) > (globalThis.__tpJumpOld ? 0.04 : 0.008)) { this.tpOff = this.tpOffNow + (st.tcPlan - this.tpLast); this.tpOffT = t; }   /* (any re-read over half a frame: under the old 0.04 s, one of 0.033 s was jumped, the wind-up and both feet skipped two frames) */
+        else if (Math.abs(st.tcPlan - this.tpLast) > 0.008) { this.tpOff = this.tpOffNow + (st.tcPlan - this.tpLast); this.tpOffT = t; }   /* (any re-read over half a frame: under the old 0.04 s, one of 0.033 s was jumped, the wind-up and both feet skipped two frames) */
         this.tpLast = st.tcPlan;
         // (worked off at the rate of the clock itself: a later contact holds the wind-up where it is until the new time
         // catches up with it, as a player who reads the ball as slower waits in his turn; worked off over a quarter of a
@@ -566,16 +562,16 @@ export class Figure {
       const end = st.done ? (st.tEnd - (st.tc || st.tEnd)) + TIMING.follow + TIMING.recover : 99;
       // (how fast it comes in is fixed by its first frame, from the contact time then known or planned: worked out again when
       // a person let go, a late press's fade-in was cut short and the body turned half its wind-up in one frame)
-      if (this.xinSt !== st) { this.xinSt = st; const tcK = st.tc != null ? st.tc : st.tcPlan; this.xin = tcK != null ? clamp((tcK - st.t0) * 0.8, 0.2, 0.22 + (globalThis.__xinRunOld ? 0 : 0.12 * sm((speed - 2.5) / 2.0))) : 0.22;   /* (2026-11-23: at a sprint, given time, in over up to a third of a second: in a fifth, a backhand's take-back begun at six metres a second swung the racket across him in seven frames) */   /* (never under a sixth of a second: a swing begun at the last moment turned the body round in four frames, and at an eighth, sprinting to a ball, the arm still swung seventy degrees in a frame as the trunk came round under it; a late ball is met with the body still turning, as it is) */ }
+      if (this.xinSt !== st) { this.xinSt = st; const tcK = st.tc != null ? st.tc : st.tcPlan; this.xin = tcK != null ? clamp((tcK - st.t0) * 0.8, 0.2, 0.22 + (0.12 * sm((speed - 2.5) / 2.0))) : 0.22;   /* (2026-11-23: at a sprint, given time, in over up to a third of a second: in a fifth, a backhand's take-back begun at six metres a second swung the racket across him in seven frames) */   /* (never under a sixth of a second: a swing begun at the last moment turned the body round in four frames, and at an eighth, sprinting to a ball, the arm still swung seventy degrees in a frame as the trunk came round under it; a late ball is met with the body still turning, as it is) */ }
       if (u < span[1] + 0.05) { const X = 0.3 + 0.22 * sm(speed / 3.5), Xin = this.xin; sw = sm((t - st.t0) / Xin) * (1 - sm5((u - (span[1] - X)) / X)) * cancelK * deferIn;   /* (in on a gentler curve: on the steeper one a swing begun at a sprint, a quarter of a second before the ball, turned the body and both arms sixty degrees in its steepest frame) */ void end; }   /* (in over at most a fifth of a second, and always well before contact on a late swing) */   /* (on the run the finish is cut shorter and let go of more slowly, as a player recovering does) */
       // Running hard to a ball still well over half a second away, he runs: arms pumping, free to turn and run, the racket taken
       // back only in the last steps. Booked nine-tenths of a second ahead, the stroke's take-back came in at once and held him
       // facing the net with the racket out to the side for the whole run, shuffling sideways at a sprint to a ball far from him.
-      if (!globalThis.__prepLateOld && st.kind !== 'serve' && st.kind !== 'smash') { const tcL = st.tc != null ? st.tc : st.tcPlan, left = tcL != null ? tcL - t : 0.9;
+      if (st.kind !== 'serve' && st.kind !== 'smash') { const tcL = st.tc != null ? st.tc : st.tcPlan, left = tcL != null ? tcL - t : 0.9;
         // (globalThis.__runAroundOn: running round the ball, away from the side he will hit on, the take-back waits for the last third
         // of a second; off, because a take-back begun that late swung the racket arm through his body to catch up, McEnroe's lob)
-        const lxR = p.vx * s, ra = !!globalThis.__runAroundOn && st.wing && Math.abs(lxR) > 0.5 * speed && Math.sign(lxR) !== (st.wing === 'fh' ? 1 : -1) * Math.sign(hs || 1);
-        const want = globalThis.__prepMoveOld ? sm((speed - (globalThis.__prepRunV ?? 2.2)) / 1.2) * sm((left - (ra ? 0.3 : (globalThis.__prepLead ?? 0.5))) / (ra ? 0.12 : 0.25)) : Math.max(globalThis.__prepStand ?? 1, sm((speed - (globalThis.__prepRunV ?? 0.9)) / 1.0)) * sm((left - (ra ? 0.3 : (globalThis.__prepLead ?? 0.55) - (globalThis.__prepRunOld ? 0 : 0.05 * sm((speed - 3) / 2)))) / (ra ? 0.12 : 0.2 + (globalThis.__prepRunOld ? 0 : 0.15 * sm((speed - 3) / 2))));   /* (2026-11-23: at a sprint let go of over 0.85-0.5 s, not 0.75-0.55: over a fifth of a second the take-back came in at six metres a second as a whip of the racket across him) */   /* (at any pace, not only a run: booked nine tenths of a second ahead, the racket went back the moment the other man hit it, and was carried there while he moved to the ball; he said 'take backs start too early ... instead of moving to the ball'. Now in from 0.75 s before contact, full by 0.55; __prepStand 0 keeps a standing player's early turn) */
+        const lxR = p.vx * s;
+        const want = Math.max(1, sm((speed - 0.9) / 1.0)) * sm((left - ((0.55 - 0.05 * sm((speed - 3) / 2)))) / ((0.2 + 0.15 * sm((speed - 3) / 2))));   /* (2026-11-23: at a sprint let go of over 0.85-0.5 s, not 0.75-0.55: over a fifth of a second the take-back came in at six metres a second as a whip of the racket across him) */   /* (at any pace, not only a run: booked nine tenths of a second ahead, the racket went back the moment the other man hit it, and was carried there while he moved to the ball; he said 'take backs start too early ... instead of moving to the ball'. Now in from 0.75 s before contact, full by 0.55; __prepStand 0 keeps a standing player's early turn) */
         this.prepLate = this.inited && dt > 0 && this.prepLateSt === st ? this.prepLate + (want - this.prepLate) * (1 - Math.exp(-dt * (want < this.prepLate ? 9 : 14))) : want; this.prepLateSt = st;
         sw *= 1 - this.prepLate; }
     }
@@ -592,24 +588,24 @@ export class Figure {
     // (the receiver walking to his place before the serve walks there as anyone does between points, upright, turned the way he goes,
     // and settles into his stance as he stops: counted as play, he went there crouched in the ready stance on play's footwork, gliding
     // on both feet and stepping to catch them up, the held foot slid along the court one to three metres a second)
-    const rcvWalk = this.rcvWalking = !!globalThis.__rcvWalkOn && m.phase === 'ready' && m.score.server !== p.i && !(p.stroke && !p.stroke.done) && speed > (this.rcvWalking ? 0.25 : 0.45) && speed < 3.5;
+    const rcvWalk = this.rcvWalking = false;
     const rcvWalkK = this.rcvWalkK = damp(this.rcvWalkK || 0, rcvWalk ? 1 : 0, 8, dt);
     // (a server moving along the baseline to choose his spot walks there, turned the way he is going, and settles into his
     // stance only once he stops: held in the side-on serving stance and slid sideways, the legs ran a sideways gait under it,
     // lunging, scissoring and splaying into the splits as he changed direction)
-    const srvWalkK = this.srvWalkK = serverWait && !globalThis.__srvWalkOld ? damp(this.srvWalkK || 0, globalThis.__srvWalk2Old ? sm((Math.hypot(p.vx, p.vz) - 0.25) / 0.5) : sm((Math.hypot(p.vx, p.vz) - 0.08) / 0.3) * (globalThis.__srvMoveOld ? 1 : 1 - sm((Math.hypot(p.vx, p.vz) - 2.2) / 0.6)), globalThis.__srvWalk2Old ? 8 : 10, dt) : 0;   /* (and quicker than a walk, his legs and arms are his run's) */
+    const srvWalkK = this.srvWalkK = serverWait ? damp(this.srvWalkK || 0, sm((Math.hypot(p.vx, p.vz) - 0.08) / 0.3) * ((1 - sm((Math.hypot(p.vx, p.vz) - 2.2) / 0.6))), 10, dt) : 0; /* (and quicker than a walk, his legs and arms are his run's) */
     // (he turns and runs from two and a half metres a second, not three and a fifth, and pumps his arms from three, not nearly four:
     // a run to a ball well wide, behind or in front of him began as a quick sideways shuffle of three steps a second and went
     // on with the racket held out in front of him at chest height, as if already taking it back)
-    const gT0 = globalThis.__turnOld ? GAIT.turn0 : (globalThis.__turn0 ?? 2.5), gT1 = globalThis.__turnOld ? GAIT.turn1 : (globalThis.__turn1 ?? 4.0), gP0 = globalThis.__pumpOld ? GAIT.pump0 : (globalThis.__pump0 ?? (globalThis.__pump2Old ? 3.0 : globalThis.__flail2Old ? 2.0 : 2.6)), gP1 = globalThis.__pumpOld ? GAIT.pump1 : (globalThis.__pump1 ?? (globalThis.__pump2Old ? 4.4 : globalThis.__flail2Old ? 3.4 : 4.0));   /* (2026-11-23: from two and a half, full by four: from two, every run to a ball pumped, 'the arms flail') */   /* (from two metres a second, full by three and a half: below three every run was run with the racket held out in front in both hands, the arms locked, like a man carrying a tray) */
+    const gT0 = 2.5, gT1 = 4.0, gP0 = 2.6, gP1 = 4.0; /* (2026-11-23: from two and a half, full by four: from two, every run to a ball pumped, 'the arms flail') */   /* (from two metres a second, full by three and a half: below three every run was run with the racket held out in front in both hands, the arms locked, like a man carrying a tray) */
     this.fastT = speed > gP0 ? (this.fastT || 0) + dt : 0;
     // (running in to the net, inside the service line or moving toward it in front of the baseline, a volleyer carries the
     // racket up in front and does not pump; pumping and then taking it up again was a racket that went up, down and up)
-    const inward = (-p.vz * p.sgn) > 0.6 * speed && Math.abs(p.z) < (globalThis.__pump2Old ? 10.5 : 6.6);   /* (only once inside the service line: running in from the baseline to a short ball or behind an approach, a player's arms pump until he is near enough to set the racket for the volley; held still from the baseline on, every run to the net was run with the racket held out like a tray) */
-    this.pumpSus = sm((this.fastT - (Math.abs(p.z) < 7.2 || inward ? 0.6 : (globalThis.__pumpOld ? 0.22 : 0.1))) / 0.25);
+    const inward = (-p.vz * p.sgn) > 0.6 * speed && Math.abs(p.z) < 6.6; /* (only once inside the service line: running in from the baseline to a short ball or behind an approach, a player's arms pump until he is near enough to set the racket for the volley; held still from the baseline on, every run to the net was run with the racket held out like a tray) */
+    this.pumpSus = sm((this.fastT - (Math.abs(p.z) < 7.2 || inward ? 0.6 : 0.1)) / 0.25);
     // (his routine at the line waits for him to stop walking: bounced on the move, the ball dropped to the court at his feet in
     // mid-stride; walking, he holds it, and once he has stopped he begins again)
-    if (serverWait && !globalThis.__ritWalkOld) { const RT0 = m.ritual || { t0: 0.5 }; if (this.ritT == null || m.phaseT < (this.ritPT ?? 0)) this.ritT = m.phaseT; else this.ritT += m.phaseT - this.ritPT; this.ritPT = m.phaseT; if ((this.srvWalkK || 0) > 0.25) this.ritT = Math.min(this.ritT, RT0.t0 - 0.35); } else this.ritT = null;
+    if (serverWait) { const RT0 = m.ritual || { t0: 0.5 }; if (this.ritT == null || m.phaseT < (this.ritPT ?? 0)) this.ritT = m.phaseT; else this.ritT += m.phaseT - this.ritPT; this.ritPT = m.phaseT; if ((this.srvWalkK || 0) > 0.25) this.ritT = Math.min(this.ritT, RT0.t0 - 0.35); } else this.ritT = null;
     let basePose;
     if (this.posed) basePose = this.posed;
     else if (between || !live) basePose = this.stroll(t, speed);
@@ -617,7 +613,7 @@ export class Figure {
       // walking to his mark to serve he walks as anyone does between points, arms down, racket hanging in his hand, ball in the
       // other; the set-up's turn of the chest and its stance come on only as he stops (walked in the set-up pose, the chest was
       // turned well round to the racket side and the feet kept the serving stance as he walked along the line)
-      if (!globalThis.__srvStrollOld && srvWalkK > 0.001) basePose = blendPose(basePose, this.stroll(t, speed), srvWalkK); }
+      if (srvWalkK > 0.001) basePose = blendPose(basePose, this.stroll(t, speed), srvWalkK); }
     else {
       // the racket stays in front in both hands until he is flat out; only then do the arms pump
       basePose = this.ready(t, { live: m.phase === 'live', wait: m.phase !== 'live' });
@@ -625,20 +621,20 @@ export class Figure {
       // (let go of as the stroke comes in, over its first third: cut off in the frame its weight passed 0.3, the arms jumped from
       // the run's carry to the take-back's, and swung across in the next frames as fast as an arm may turn - at every stroke
       // played at a run, "the arms flail a lot on running and strokes")
-      const swCut = globalThis.__pumpCutOld ? (st && sw > 0.3 ? 0 : 1) : (st ? 1 - sm(sw / 0.35) : 1);
+      const swCut = (st ? 1 - sm(sw / 0.35) : 1);
       const pump = sm((speed - gP0) / (gP1 - gP0)) * this.pumpSus * swCut;
-      { const want = !globalThis.__runBhOld && st && st.wing === 'bh' && st.kind !== 'serve' && st.kind !== 'smash' && !(st.tc != null && t > st.tc) ? 1 : 0;
+      { const want = st && st.wing === 'bh' && st.kind !== 'serve' && st.kind !== 'smash' && !(st.tc != null && t > st.tc) ? 1 : 0;
         this.runBhK = this.inited && dt > 0 ? (this.runBhK || 0) + (want - (this.runBhK || 0)) * (1 - Math.exp(-dt * 5)) : want; }
       this.pumpNow = pump; if (pump > 0.001) basePose = blendPose(basePose, this.runPose(t, speed, this.runBhK || 0), pump);
       // (and moving at all, the shoulders turn against the hips with each stride and the hands ride with them, as a runner's do even
       // with the racket held in front: held dead still over legs running, the upper body glided along like a statue on a cart)
-      if (!globalThis.__pump2Old && (globalThis.__pumpCutOld ? !(st && sw > 0.3) : swCut > 0.001)) { const k = sm((speed - 0.9) / 1.5) * (1 - pump * 0.6) * (globalThis.__pumpCutOld ? 1 : swCut), ph = this.gait * Math.PI * 2;
-        if (k > 0.001) { basePose = { ...basePose, twist: (basePose.twist || 0) + Math.sin(ph) * (globalThis.__flail2Old ? 0.10 : 0.07) * k, R: [basePose.R[0], basePose.R[1] + Math.cos(ph * 2) * 0.02 * k, basePose.R[2] + Math.sin(ph) * 0.05 * k], L: [basePose.L[0], basePose.L[1] + Math.cos(ph * 2) * 0.02 * k, basePose.L[2] - Math.sin(ph) * 0.05 * k] }; } }
+      if (swCut > 0.001) { const k = sm((speed - 0.9) / 1.5) * (1 - pump * 0.6) * swCut, ph = this.gait * Math.PI * 2;
+        if (k > 0.001) { basePose = { ...basePose, twist: (basePose.twist || 0) + Math.sin(ph) * 0.07 * k, R: [basePose.R[0], basePose.R[1] + Math.cos(ph * 2) * 0.02 * k, basePose.R[2] + Math.sin(ph) * 0.05 * k], L: [basePose.L[0], basePose.L[1] + Math.cos(ph * 2) * 0.02 * k, basePose.L[2] - Math.sin(ph) * 0.05 * k] }; } }
     }
     // (from one kind of standing to another, the walk between points into the stance to serve or to receive, over a quarter of a
     // second: switched in a frame, a foot still on its way down from a step was sent to its new place in the stance at once,
     // fifteen centimetres in a frame, and the other after it)
-    if (!globalThis.__baseXfOld && !this.posed) { const src = between || !live ? 1 : serverWait ? 2 : 3;
+    if (!this.posed) { const src = between || !live ? 1 : serverWait ? 2 : 3;
       if (this.baseSrc != null && src !== this.baseSrc && this.baseLast && this.baseLastPt === this.placedT) { this.baseFrom = this.baseLast; this.baseFT = t; }
       this.baseSrc = src;
       if (this.baseFrom) { const k = sm5((t - this.baseFT) / 0.25); if (k < 1 && this.baseLastPt === this.placedT) basePose = blendPose(this.baseFrom, basePose, k); else this.baseFrom = null; }
@@ -658,7 +654,7 @@ export class Figure {
       // with the time there is (with a fifth of a second, the full turn came in three frames, the arm 36 degrees a frame)
       // (eased in from the frame the contact's time is known: a stroke started before it was had its take-back target moved
       // thirty centimetres in a frame when it came)
-      if (!globalThis.__blockShortOld && (st.__rush || (!globalThis.__sliceShortOld && /^(slice|drop)$/.test(st.kind) && st.tc != null && st.tc - st.t0 < 0.37)) && st.tc != null && u < 0) { const av = st.tc - st.t0, k = sm((av - 0.14) / (globalThis.__lateSpan ?? 0.3));   /* (a slice or a drop shot booked as late, the same: its keys' take-back high by the far shoulder came in three frames) */
+      if ((st.__rush || (/^(slice|drop)$/.test(st.kind) && st.tc != null && st.tc - st.t0 < 0.37)) && st.tc != null && u < 0) { const av = st.tc - st.t0, k = sm((av - 0.14) / 0.3);   /* (a slice or a drop shot booked as late, the same: its keys' take-back high by the far shoulder came in three frames) */
         if (st.__tcSeen == null) st.__tcSeen = t; const ramp = st.__tcSeen <= st.t0 + 0.02 ? 1 : sm((t - st.__tcSeen) / 0.08);
         if (k < 0.999 && ramp > 0.001) { const q = clamp((u + av) / Math.max(av, 1e-3), 0, 1); sp = blendPose(sp, blendPose(basePose, keys.at(0, this, wSign), sm(q)), (1 - k) * ramp); } }
       if (this.keysOld) { const dur = this.keysSide ? 0.3 : 0.12, k = sm5((t - this.keysT) / dur);
@@ -674,12 +670,14 @@ export class Figure {
     this.reactK = 0; this.upOpen = 0;
     if (p.moodT !== this.reactFor) { this.reactFor = p.moodT; this.react = pickReaction(this, p, m); }
     if (this.react && m.phase === 'over' && t - p.moodT < 2.2 && m.phaseT > 0.3 && !(st && sw > 0.2)) {
-      const R0 = REACT[this.react], AN = !globalThis.__reactAnimOld && REACT_ANIM[this.react], R = AN ? AN.at(m.phaseT - 0.3, this) : R0, dur = (AN ? R0.adur : 0) || R0.dur || 1.5, k = sm((m.phaseT - 0.3) / (R0.in || 0.25)) * (1 - sm((t - p.moodT - dur) / 0.5));
+      const R0 = REACT[this.react], AN = REACT_ANIM[this.react], R = AN ? AN.at(m.phaseT - 0.3, this) : R0, dur = (AN ? R0.adur : 0) || R0.dur || 1.5, k = sm((m.phaseT - 0.3) / (R0.in || 0.25)) * (1 - sm((t - p.moodT - dur) / 0.5));
       this.reactK = k; this.reactShout = R0.shout || 0; this.reactFist = R0.fist || 0; this.reactPoint = R0.point || 0; this.reactPole = R0.poleL || null;
       pose = blendPose(pose, R, k);
       // (a hand going up to the head or above it goes up in front of him, not up the front of the chest: blended straight from
       // down by the hip to the top of the head, both arms passed up through the chest on the way to the hands-on-head)
-      if (!globalThis.__reactBowOld) { const bow = Math.sin(Math.PI * clamp(k, 0, 1)) * (globalThis.__reactBow ?? 0.26); if (bow > 0.001) for (const hk of ['R', 'L']) if (R[hk][1] > 1.3) pose[hk] = [pose[hk][0], pose[hk][1], pose[hk][2] + bow]; }
+      {
+        const bow = Math.sin(Math.PI * clamp(k, 0, 1)) * 0.26; if (bow > 0.001) for (const hk of ['R', 'L']) if (R[hk][1] > 1.3) pose[hk] = [pose[hk][0], pose[hk][1], pose[hk][2] + bow];
+      }
     }
     // At the end of a match (game.js, endSequence): the winner's celebration, the loser's walk off in his head, or the trophy held up.
     // The game sets this.celeb = { kind, u, k } each frame; kind picks a track below, u is its clock, k how far it holds the body.
@@ -697,12 +695,12 @@ export class Figure {
     // natural. On the way up and down it goes round by his side (carried round in front, its head came down past his face). The
     // body and legs are his own: he can walk with them up.
     if (this.celebArm && this.celebArm.k > 0.001 && this.celebArm.kind === 'up') { const k = clamp(this.celebArm.k, 0, 1), y = 2.0 + 0.015 * Math.sin(this.celebArm.u * 2.1);
-      const Rp = globalThis.__upR || [0.40, y, 0.10], Lp = globalThis.__upL || [-0.40, y, 0.10], dT = globalThis.__upDir || [0.30, 0.75, -0.60], dM = [0.80, 0.45, 0.40];
+      const Rp = [0.40, y, 0.10], Lp = [-0.40, y, 0.10], dT = [0.30, 0.75, -0.60], dM = [0.80, 0.45, 0.40];
       const k1 = sm(k * 2), k2 = sm(k * 2 - 1), d0 = pose.dir || [0, -0.6, 0.8];
       const dA = d0.map((v, q) => v + (dM[q] - v) * k1), dir = dA.map((v, q) => v + (dT[q] - v) * k2), dl = Math.hypot(...dir) || 1;
       const bl = (a, b) => a.map((v, q) => v + (b[q] - v) * k);
-      pose = { ...pose, L: bl(pose.L, Lp), R: bl(pose.R, Rp), dir: dir.map(v => v / dl), nrm: globalThis.__upNrm || [1, 0, 0], lgrip: (pose.lgrip || 0) * (1 - k), elbows: (pose.elbows || 0) * (1 - k) };
-      this.reactK = Math.max(this.reactK, k); this.reactFist = globalThis.__upOpen ? 0 : 1; this.reactShout = 0; this.reactPoint = 0; this.reactPole = null; this.upOpen = globalThis.__upOpen ? k : 0; }   /* (a fist, a real one: he said "should be fists") */
+      pose = { ...pose, L: bl(pose.L, Lp), R: bl(pose.R, Rp), dir: dir.map(v => v / dl), nrm: [1, 0, 0], lgrip: (pose.lgrip || 0) * (1 - k), elbows: (pose.elbows || 0) * (1 - k) };
+      this.reactK = Math.max(this.reactK, k); this.reactFist = 1; this.reactShout = 0; this.reactPoint = 0; this.reactPole = null; this.upOpen = 0; }   /* (a fist, a real one: he said "should be fists") */
     else if (this.celebArm && this.celebArm.k > 0.001) { const C = CELEB_MOTION.celeb_fists, k = clamp(this.celebArm.k, 0, 1);
       if (C && C.J) { const n = C.J.pelvis.length / 3, x = clamp(this.celebArm.u * 60, 0, n - 1.001), f0 = Math.floor(x), w = x - f0;
         const g = (nm, c) => C.J[nm][f0 * 3 + c] * (1 - w) + C.J[nm][(f0 + 1) * 3 + c] * w;
@@ -717,7 +715,7 @@ export class Figure {
     // = { u }, seconds since it began): the racket brought across in front of him at the waist, the left hand onto the handle just
     // above the right; at 0.35 s it is the left hand's (this.shakeSwap), the right lets go, and the racket is let down to hang by his
     // left side as both arms go back to his walk. (Cut to at the net, it was simply in his left hand; walked, it would have jumped.)
-    if (this.handover && !this.lefty && !globalThis.__handoverOld) { const u = this.handover.u, a = sm(u / 0.3) * (1 - sm((u - 0.35) / 0.4));
+    if (this.handover && !this.lefty) { const u = this.handover.u, a = sm(u / 0.3) * (1 - sm((u - 0.35) / 0.4));
       if (u >= 0.35 && !this.shakeSwap) { this.shakeSwap = true; (this.swapFrom || (this.swapFrom = V())).copy(this.rk.dir); }
       if (a > 0.001) { const bl = (x, y) => x.map((v, q) => v + (y[q] - v) * a);
         pose = { ...pose, R: bl(pose.R, [-0.02, 1.0, 0.3]), L: bl(pose.L, [-0.06, 1.03, 0.31]), dir: bl(pose.dir || [0, -0.6, 0.8], [-0.3, -0.55, 0.78]), lgrip: Math.max(pose.lgrip || 0, this.shakeSwap ? 0 : a), lgripAt: 0.085 };
@@ -726,7 +724,7 @@ export class Figure {
     // off the grip, metres). Everyone shakes with his right hand, out in front of him over the net, a little to his right, where the
     // other man's meets it: a right-hander has put his racket in his left hand, hanging by his side (this.shakeSwap, below, at
     // the hands and the racket); a left-hander's racket stays in his left hand, hanging, and his free right hand goes out.
-    if (this.shake && this.shake.k > 0.001) { const k = clamp(this.shake.k, 0, 1), at = globalThis.__shakeAt || [0.2, 1.04, 0.42], y = at[1] + (this.shake.pump || 0);
+    if (this.shake && this.shake.k > 0.001) { const k = clamp(this.shake.k, 0, 1), at = [0.2, 1.04, 0.42], y = at[1] + (this.shake.pump || 0);
       const bl = (a, b) => a.map((v, q) => v + (b[q] - v) * k), Sh = [at[0], y, at[2]];
       if (this.lefty) pose = { ...pose, L: bl(pose.L, [-Sh[0], Sh[1], Sh[2]]), R: bl(pose.R, HANG.R), dir: bl(pose.dir, HANG.dir), nrm: pose.nrm || [1, 0, 0], lgrip: (pose.lgrip || 0) * (1 - k), lean: (pose.lean || 0) + 0.08 * k };
       else pose = { ...pose, R: bl(pose.R, Sh), L: bl(pose.L, [-0.25, 0.93, 0.10]), lgrip: (pose.lgrip || 0) * (1 - k), lean: (pose.lean || 0) + 0.08 * k };
@@ -739,14 +737,14 @@ export class Figure {
     // trophy where the palms then are. (Before, a pose for a cup in general: the hands on its front, the right still a racket-hand's
     // fist turned the wrong way and the left open, and over his head its foot went into his head - he said "the hands are fucked up
     // on the trophy screen".)
-    if (this.trophyHold && !globalThis.__trophyOld) { const T = this.trophyHold, u = T.u, up = sm((u - 0.9) / 0.8) * (1 - sm((u - 5.2) / 1.1)), hw = T.w + (globalThis.__tPalm ?? 0.015);
+    if (this.trophyHold) { const T = this.trophyHold, u = T.u, up = sm((u - 0.9) / 0.8) * (1 - sm((u - 5.2) / 1.1)), hw = T.w + 0.015;
       // (overhead as high as his arms reach there, a little in front: set out of reach, the hands were left wide of a narrow trophy;
       // a narrow one - a stem, a slim body - in one hand above the other, as it is held)
-      const fT = globalThis.__tFwd ?? 0.17, ox = Math.max(0, 0.19 - hw), yTop = 1.5 + Math.sqrt(Math.max(0.09, 0.56 * 0.56 - ox * ox - fT * fT)) - 0.01;
+      const fT = 0.17, ox = Math.max(0, 0.19 - hw), yTop = 1.5 + Math.sqrt(Math.max(0.09, 0.56 * 0.56 - ox * ox - fT * fT)) - 0.01;
       const y = lerp(1.2, yTop, up) + 0.012 * Math.sin(u * 2.1) * up, f = lerp(0.33, fT, up) + 0.14 * Math.sin(Math.PI * up), sw = 0.025 * Math.sin(u * 1.3) * up, st = T.w < 0.08 ? 0.042 : 0;
       pose = { ...pose, R: [hw + sw, y + st, f], L: [-hw + sw, y - st, f], lgrip: 0, elbows: 0, lean: 0.02 - 0.06 * up, head: 0.06 + 0.3 * up, twist: 0, crouch: 0.02, stance: 0.27 };
       this.reactK = 1; this.reactFist = 0; this.reactShout = 0; this.reactPoint = 0; this.reactPole = null; }
-    if (this.celebClip && this.celebClip.k > 0.001 && !globalThis.__celebMocapOld) { const cc = strokeClip({ celeb: CELEB_MOTION }, 'celeb', 'celeb_' + this.celebClip.kind, this.lefty);
+    if (this.celebClip && this.celebClip.k > 0.001) { const cc = strokeClip({ celeb: CELEB_MOTION }, 'celeb', 'celeb_' + this.celebClip.kind, this.lefty);
       if (cc) { const S = sampleAt(cc, clamp(this.celebClip.u, cc.span[0], cc.span[1]), this._celS || (this._celS = new Float32Array(N3))), sd = this.lefty ? 'l' : 'r', e = J[sd + 'elb'], w = J[sd + 'wri'];
         const fx = (S[w * 3] - S[e * 3]) * this.hs, fy = S[w * 3 + 1] - S[e * 3 + 1], fz = S[w * 3 + 2] - S[e * 3 + 2], hi = S[w * 3 + 1] > 1.6;
         let dx = fx * (hi ? 0.8 : 0.35) + 0.14, dy = fy * (hi ? 0.8 : 0.35) + (hi ? 0.25 : 1.0), dz = fz * (hi ? 0.8 : 0.35) + 0.1; const l = Math.hypot(dx, dy, dz) || 1;
@@ -761,7 +759,7 @@ export class Figure {
     // to receive, now and then a spin of the racket in his hands. (Without them, between the points every man stood or walked
     // with his arms hanging the same way every time.)
     this.touchK = 0;
-    if (!globalThis.__touchOld && !this.fp) {
+    if (!this.fp) {
       const nm = this.look.name || '', often = TOUCH_OFTEN[nm] ?? 0.5;
       if (m.phase === 'over' && this.touchFor !== p.moodT) { this.touchFor = p.moodT; this.touch = !this.react && Math.random() < often ? TOUCH_KINDS[Math.floor(Math.random() * TOUCH_KINDS.length)] : null; this.touchT = t + 0.35 + Math.random() * 0.35; }
       const rcv = m.score && m.score.server !== p.i;
@@ -785,48 +783,48 @@ export class Figure {
     // (how long he has kept going the same way, and whether he is pulling up: for the turn to run below)
     { const hd = Math.atan2(p.vx, p.vz); if (speed > 0.8 && this.dirH != null && Math.abs(Math.atan2(Math.sin(hd - this.dirH), Math.cos(hd - this.dirH))) < 0.45) this.dirT = (this.dirT || 0) + dt; else { this.dirT = 0; this.dirH = speed > 0.8 ? hd : null; }
       const acc = dt > 0 && this.spdPrev != null ? (speed - this.spdPrev) / dt : 0; this.accS = (this.accS || 0) + (acc - (this.accS || 0)) * (1 - Math.exp(-dt * 12)); this.spdPrev = speed; }
-    let swTurn = globalThis.__turnRecOld || !(st && st.tc != null) ? sw : sw * (1 - sm((t - st.tc - 0.2) / 0.2));
+    let swTurn = !(st && st.tc != null) ? sw : sw * (1 - sm((t - st.tc - 0.2) / 0.2));
     // (running fast into a stroke on its own side, he runs turned and the take-back rides on the run, the hips coming round into the
     // swing in its last few tenths: a forehand run down to his right is taken back with his chest already to the sideline, as a
     // player's is. Held square to the net until the ball, he galloped sideways at three to six metres a second with the racket
     // back, both feet off the court, in one frame in thirty of every match; and out of a finish at a run likewise)
-    if (!globalThis.__runHoldOld && st && st.kind !== 'serve' && st.kind !== 'smash' && live && speed > 2.6) {
+    if (st && st.kind !== 'serve' && st.kind !== 'smash' && live && speed > 2.6) {
       const tcR = st.tc != null ? st.tc : st.tcPlan, ur = tcR != null ? t - tcR : null, lx = p.vx * s;
       const own = !st.wing || Math.abs(lx) < 0.4 * speed || Math.sign(lx) === (st.wing === 'fh' ? 1 : -1) * Math.sign(hs || 1);
-      const timeK = ur == null ? 1 : ur < 0 ? (own ? sm((-0.3 - ur) / (globalThis.__turnWinOld ? 0.15 : 0.3)) : 0) : sm((ur - 0.15) / 0.1);   /* (into the shot over the last 0.6 to 0.3 s: over 0.45 to 0.3, at a sprint the body whipped round in a seventh of a second and the racket with it, 'the arms flail') */
+      const timeK = ur == null ? 1 : ur < 0 ? (own ? sm((-0.3 - ur) / 0.3) : 0) : sm((ur - 0.15) / 0.1);   /* (into the shot over the last 0.6 to 0.3 s: over 0.45 to 0.3, at a sprint the body whipped round in a seventh of a second and the racket with it, 'the arms flail') */
       swTurn *= 1 - sm((speed - 2.8) / 0.8) * timeK; if (this.dbgOn) this.dbgTurn = { ur: ur == null ? null : +ur.toFixed(2), own, timeK: +timeK.toFixed(2), swTurn: +swTurn.toFixed(2), lx: +lx.toFixed(1) }; }
     this.turnT = live && speed > gT0 * 0.85 && !(swTurn > 0.3) ? (this.turnT || 0) + dt : 0;
     // (and going far, he turns as he sets off, a drop step and away: the game knows how far its legs are taking him, and a run of
     // more than a few metres was shuffled sideways for its first third of a second, at up to five metres a second, before the
     // turn had built up with the speed. A step or two across is still shuffled.)
-    const far = globalThis.__farTurnOld || p.goDist == null ? 0 : sm((p.goDist - 2.2) / 1.0) * sm((speed - 1.6) / 0.8);
+    const far = p.goDist == null ? 0 : sm((p.goDist - 2.2) / 1.0) * sm((speed - 1.6) / 0.8);
     if ((speed > gT0 || far > 0.01) && !(swTurn > 0.3) && live) {
       const lx = p.vx * s, lf = -p.vz * s;               // velocity in body space (x right, f forward)
       // (only once he has been going that fast for a moment: a step or two across to a ball near him is shuffled facing the net,
       // as a player does; turned at once at the peak of every quick shuffle, the body swung side-on and back in half a second
       // and the legs ran a crossover under a body still shuffling)
-      const fT0 = globalThis.__keyTurnOld ? 4.2 : (globalThis.__fastTurn0 ?? 3.0);
-      const turnSus = globalThis.__turnSusOld ? 1 : Math.max(sm(((this.turnT || 0) - 0.14) / 0.22), globalThis.__turnFastOld ? 0 : sm((speed - fT0) / 0.8));   /* (but nobody shuffles at a sprint: above about three and a half metres a second he turns at once) */   /* (from three metres a second, not four and a bit: moved with the arrows, a new way every third of a second, the wait for a steady run never ran out, and he went sideways and back at three or four metres a second square to the net, the legs a jumping jack, both feet off the court) */
+      const fT0 = 3.0;
+      const turnSus = Math.max(sm(((this.turnT || 0) - 0.14) / 0.22), sm((speed - fT0) / 0.8));   /* (but nobody shuffles at a sprint: above about three and a half metres a second he turns at once) */   /* (from three metres a second, not four and a bit: moved with the arrows, a new way every third of a second, the wait for a steady run never ran out, and he went sideways and back at three or four metres a second square to the net, the legs a jumping jack, both feet off the court) */
       // (moved with the arrows and no ball to run to, the game does not know how far he is going: he turns to run only once he has
       // kept going the same way for about four tenths of a second. Turned by speed alone, a half-second press, a metre's move,
       // turned him side-on to run as he let go, and he turned straight back: a spin on every short press)
-      const commit = !globalThis.__commitOld && p.goDist == null && live ? Math.max(sm(((this.dirT || 0) - 0.38) / 0.22), sm((speed - 3.8) / 0.6)) : 1;   /* (but at a sprint he turns whatever: nobody shuffles at four and a half metres a second) */
+      const commit = p.goDist == null && live ? Math.max(sm(((this.dirT || 0) - 0.38) / 0.22), sm((speed - 3.8) / 0.6)) : 1;   /* (but at a sprint he turns whatever: nobody shuffles at four and a half metres a second) */
       const spK = Math.max(sm((speed - gT0) / (gT1 - gT0)), far);
       yawT = clamp(Math.atan2(lx, Math.max(0.2, Math.abs(lf)) * Math.sign(lf || 1)), -1.15, 1.15) * spK * (lf < -0.5 ? 0.35 : 1) * Math.max(turnSus * commit, far);
       // (going back and across fast, as for a deep ball wide of him, he turns to the side and runs, the shoulders to the sideline:
       // kept within a third of the turn going back, at five or six metres a second he galloped sideways with his chest to the net)
-      if (!globalThis.__backRunOld && lf < -0.5 && Math.abs(lx) > 0.25 * speed) { const bk = sm((speed - 3.8) / 1.2); if (bk > 0.001) yawT = lerp(yawT, Math.sign(lx) * Math.min(1.6, Math.atan2(Math.abs(lx), lf)) * sm((speed - gT0) / (gT1 - gT0)) * turnSus, bk); }
+      if (lf < -0.5 && Math.abs(lx) > 0.25 * speed) { const bk = sm((speed - 3.8) / 1.2); if (bk > 0.001) yawT = lerp(yawT, Math.sign(lx) * Math.min(1.6, Math.atan2(Math.abs(lx), lf)) * sm((speed - gT0) / (gT1 - gT0)) * turnSus, bk); }
       // (and straight back, faster than a backpedal goes, he drops a foot back and turns side-on to run, to his forehand side unless
       // he is already going a little across: the arrow held back sent him backpedalling at four metres a second, facing the net)
-      if (!globalThis.__keyTurnOld && lf < -0.5 && Math.abs(lx) <= 0.25 * speed) { const bk = sm((speed - 2.6) / 0.9); if (bk > 0.001) { if (!this.backSide || Math.abs(lx) > 0.12 * speed) this.backSide = Math.abs(lx) > 0.12 * speed ? Math.sign(lx) : (hs > 0 ? 1 : -1); yawT = lerp(yawT, this.backSide * 1.25 * turnSus, bk); } } else if (!(lf < -0.5)) this.backSide = 0;
-    } else if ((between || (serverWait && !globalThis.__srvWalkOld)) && speed > (serverWait && !globalThis.__srvWalk2Old ? (this.srvWalking ? 0.08 : 0.15) : 0.5)) { yawT = Math.atan2(p.vx * s, -p.vz * s); }
+      if (lf < -0.5 && Math.abs(lx) <= 0.25 * speed) { const bk = sm((speed - 2.6) / 0.9); if (bk > 0.001) { if (!this.backSide || Math.abs(lx) > 0.12 * speed) this.backSide = Math.abs(lx) > 0.12 * speed ? Math.sign(lx) : (hs > 0 ? 1 : -1); yawT = lerp(yawT, this.backSide * 1.25 * turnSus, bk); } } else if (!(lf < -0.5)) this.backSide = 0;
+    } else if ((between || serverWait) && speed > (serverWait ? (this.srvWalking ? 0.08 : 0.15) : 0.5)) { yawT = Math.atan2(p.vx * s, -p.vz * s); }
     if (rcvWalk) yawT = Math.atan2(p.vx * s, -p.vz * s);
     // Going forward and across at once at a jog or more (moved with the arrows, up and to one side), he runs the diagonal turned
     // toward it, as a player runs in to a short ball wide of him: the turn above waits for two and a half metres a second and
     // builds up slowly past it, so at two to three metres a second he stayed square to the net and the legs played half a run and
     // half a side shuffle at once, neither, the body gliding diagonally on scissoring legs. Not for a moment's tap (after a tenth
     // of a second of it), not into a stroke, and not going back (that is the backpedal and the drop step above).
-    { const lx = p.vx * s, lf = -p.vz * s, dgOn = !globalThis.__diagTurnOld && live && !(swTurn > 0.3) && speed > 1.3 && lf > 0.2 * speed && Math.abs(lx) > 0.25 * speed;
+    { const lx = p.vx * s, lf = -p.vz * s, dgOn = live && !(swTurn > 0.3) && speed > 1.3 && lf > 0.2 * speed && Math.abs(lx) > 0.25 * speed;
       this.diagT = dgOn ? (this.diagT || 0) + dt : 0;
       if (dgOn) { const dk = sm((speed - 1.5) / 0.8) * sm((this.diagT - 0.08) / 0.15), yd = clamp(Math.atan2(lx, lf), -1.15, 1.15); if (dk > 0.001 && Math.abs(yd) > Math.abs(yawT)) yawT = yawT + (yd - yawT) * dk; } }
     // Pulling up out of a run he was turned for, he stays turned the way he is going until he is nearly stopped and turns back to the
@@ -834,14 +832,14 @@ export class Figure {
     // and a half metres a second, the body swung back to face the net while he was still going sideways at three, and the last metre
     // of every run was a sideways slide into a wide stance.
     { const lx = p.vx * s, lf = -p.vz * s;
-      if (!globalThis.__yawHoldOld && live && !(swTurn > 0.3) && (this.accS || 0) < -1.0 && Math.abs(this.yaw || 0) > 0.4 && speed > 0.3) {
+      if (live && !(swTurn > 0.3) && (this.accS || 0) < -1.0 && Math.abs(this.yaw || 0) > 0.4 && speed > 0.3) {
         const hk = sm((speed - 1.0) / 0.9), yd = clamp(Math.atan2(lx, Math.max(0.2, Math.abs(lf)) * Math.sign(lf || 1)), -1.15, 1.15), yh = Math.sign(yd) * Math.min(Math.abs(yd), Math.abs(this.yaw));
         if (hk > 0.001 && Math.sign(yh) === Math.sign(this.yaw) && Math.abs(yh) > Math.abs(yawT)) yawT = yawT + (yh - yawT) * hk; } }
     // (waiting to serve, any move along the line is a walk, turned to where he is going from a few steps a second and back into
     // his stance when he stops: held facing the net below half a metre a second, he slid along the line in his wide serving
     // stance, and just above it half turned, the legs of a sideways shuffle crossing under a body walking)
-    if (serverWait && !globalThis.__srvWalk2Old) this.srvWalking = speed > (this.srvWalking ? 0.08 : 0.15); else this.srvWalking = false;
-    { const y0 = this.yaw; this.yaw = dampAngle(this.yaw, yawT, between ? 5 : serverWait && !globalThis.__srvWalk2Old ? 12 : live && !globalThis.__turnFastOld && Math.abs(yawT) > Math.abs(this.yaw) ? 13 : 9, dt);   /* (into the turn to run as quickly as hips turn; back out of it at the old pace) */
+    if (serverWait) this.srvWalking = speed > (this.srvWalking ? 0.08 : 0.15); else this.srvWalking = false;
+    { const y0 = this.yaw; this.yaw = dampAngle(this.yaw, yawT, between ? 5 : serverWait ? 12 : live && Math.abs(yawT) > Math.abs(this.yaw) ? 13 : 9, dt);   /* (into the turn to run as quickly as hips turn; back out of it at the old pace) */
       // (out of play, turning round no faster than a man pivots on his feet, about five degrees a frame: stopping on his mark to
       // serve, the way he was walking at a tenth of a metre a second swung about, and the body and both feet with it went round a
       // hundred degrees in five frames, a foot thrown 27 cm in one)
@@ -849,7 +847,7 @@ export class Figure {
       // in a frame as the stroke took over, a sprinting man's body spun fifty degrees in three frames to face the net, every hand
       // target swung round with it, and the arm went through his chest and the racket was flung over)
       const outPlay = m.phase !== 'live' && m.phase !== 'toss', strokeIn = !outPlay && st && st.kind !== 'serve' && st.kind !== 'smash' && sw > 0.02;
-      if ((outPlay && !globalThis.__yawCapOld || strokeIn && !globalThis.__yawStrokeCapOld) && dt > 0) { let d = this.yaw - y0; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; const cap = (outPlay ? 5 : 7) * dt; if (Math.abs(d) > cap) this.yaw = y0 + Math.sign(d) * cap; } }
+      if ((outPlay || strokeIn) && dt > 0) { let d = this.yaw - y0; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; const cap = (outPlay ? 5 : 7) * dt; if (Math.abs(d) > cap) this.yaw = y0 + Math.sign(d) * cap; } }
     const tw = (pose.twist || 0) * hs;
     // (fast through a swing; outside one, getting into the stance to serve or to receive, the turn comes on over a fifth of a
     // second: chased at the swing's rate, the server's shoulders swung side-on in a frame as the point began, twenty centimetres)
@@ -886,30 +884,32 @@ export class Figure {
     // (setting off upright from a standstill sideways, the foot on the side he is going steps first, as anyone's does: left to
     // wherever the cycle stood, half the time the far foot went first, across the near one, and the legs crossed in an X as he
     // turned to walk along the line)
-    if (!globalThis.__walkLeadOld && this.loco.w.go < 0.03 && this.loco.w.up > 0.5 && speed > 0.03 && Math.abs(vR) > 0.5 * speed) this.loco.phF = this.loco.phS = vR < 0 ? 0.47 : 0.95;   /* (the walk lifts its left foot at 0.51-0.56 of the cycle, its right at 0.97-1.0) */
+    if (this.loco.w.go < 0.03 && this.loco.w.up > 0.5 && speed > 0.03 && Math.abs(vR) > 0.5 * speed) this.loco.phF = this.loco.phS = vR < 0 ? 0.47 : 0.95; /* (the walk lifts its left foot at 0.51-0.56 of the cycle, its right at 0.97-1.0) */
     // Strolling, the walk is laid out the way he is going, not the way he faces: turning to walk along the line, a quarter turn in
     // a third of a second, the walk's feet laid out the way he faced were swept round under him with the body, the planted foot
     // at two to four metres a second, and the walk set off as a sideways shuffle first. The body turns over the walk's feet.
-    let vRl = vR, vFl = vF; { const kT = !globalThis.__strollTravelOld && speed > 0.05 ? (this.strollK || 0) * sm((speed - 0.1) / 0.3) : 0; this.tBf = null;
-      if (kT > 0.001) { const tx = p.vx / speed, tz = p.vz / speed, an = Math.atan2(fx0 * tz - fz0 * tx, fx0 * tx + fz0 * tz) * kT, ca = Math.cos(an), sa = Math.sin(an);   /* (turned through the angle between, not blended as vectors: going the opposite way, a blend passed through nothing and spun) */
-        const bx = fx0 * ca - fz0 * sa, bz = fx0 * sa + fz0 * ca; this.tBf = [bx, bz]; vRl = p.vx * -bz + p.vz * bx; vFl = p.vx * bx + p.vz * bz; } }
+    let vRl = vR, vFl = vF; { const kT = speed > 0.05 ? (this.strollK || 0) * sm((speed - 0.1) / 0.3) : 0; this.tBf = null;
+        if (kT > 0.001) { const tx = p.vx / speed, tz = p.vz / speed, an = Math.atan2(fx0 * tz - fz0 * tx, fx0 * tx + fz0 * tz) * kT, ca = Math.cos(an), sa = Math.sin(an);   /* (turned through the angle between, not blended as vectors: going the opposite way, a blend passed through nothing and spun) */
+          const bx = fx0 * ca - fz0 * sa, bz = fx0 * sa + fz0 * ca; this.tBf = [bx, bz]; vRl = p.vx * -bz + p.vz * bx; vFl = p.vx * bx + p.vz * bz; } }
     // (and running hard across the court, the run's legs go the way he runs: the body turns to run at most about two thirds of a quarter
     // turn, the chest kept a little open to the ball, and the run's feet, laid out the way he faced, went twenty-odd degrees off the way he
     // was going, mixed with a fifth of the side shuffle: the feet landed behind his hips and the legs trailed after him)
     // (let in and out gradually: not past about seventy-five degrees between facing and going, faded over 63-86 degrees, and the
     // turn eased in over a tenth of a second; switched on in one frame at a hard cut-off, the feet were thrown up to half a metre)
-    if (!globalThis.__runTravelOld) { let anT = 0;
+    {
+      let anT = 0;
       if (!this.tBf && live && speed > 2.5 && !(st && sw > 0.3)) { const tx = p.vx / speed, tz = p.vz / speed, an0 = Math.atan2(fx0 * tz - fz0 * tx, fx0 * tx + fz0 * tz);
-        anT = an0 * sm((speed - 3) / 1) * sm((Math.abs(this.yaw || 0) - 0.8) / 0.3) * (globalThis.__runTravelCut ? (Math.abs(an0) < 1.3 ? 1 : 0) : 1 - sm((Math.abs(an0) - 1.1) / 0.4)); }
-      this.runTrA = this.inited && dt > 0 && !globalThis.__runTravelCut ? damp(this.runTrA || 0, anT, 10, dt) : anT;
-      if (!this.tBf && Math.abs(this.runTrA) > 0.001) { const an = this.runTrA, ca = Math.cos(an), sa = Math.sin(an), bx = fx0 * ca - fz0 * sa, bz = fx0 * sa + fz0 * ca; this.tBf = [bx, bz]; vRl = p.vx * -bz + p.vz * bx; vFl = p.vx * bx + p.vz * bz; } }
+        anT = an0 * sm((speed - 3) / 1) * sm((Math.abs(this.yaw || 0) - 0.8) / 0.3) * ((1 - sm((Math.abs(an0) - 1.1) / 0.4))); }
+      this.runTrA = this.inited && dt > 0 ? damp(this.runTrA || 0, anT, 10, dt) : anT;
+      if (!this.tBf && Math.abs(this.runTrA) > 0.001) { const an = this.runTrA, ca = Math.cos(an), sa = Math.sin(an), bx = fx0 * ca - fz0 * sa, bz = fx0 * sa + fz0 * ca; this.tBf = [bx, bz]; vRl = p.vx * -bz + p.vz * bx; vFl = p.vx * bx + p.vz * bz; }
+    }
     this.vRl = vRl; this.vFl = vFl;
     // (moving into a groundstroke, the last steps are timed so a foot is on the court when he hits: the run's cycle is quickened or slowed,
     // by at most about a fifth, over the last 0.08-0.7 s so that contact falls in the middle of a stance. Left to run on, it as often
     // reached contact in the stride's flight, both feet off the court in 14-19 % of the frames of the last quarter second; he said the feet
     // "dont set properly when running or before shots")
     { let rm = 1; const tcS = st && st.kind !== 'serve' && st.kind !== 'smash' ? (st.tc != null ? st.tc : st.tcPlan) : null, T = tcS != null ? tcS - t : null;
-      if (!globalThis.__stepTimeOld && live && T != null && T > 0.08 && T < 0.7 && speed > 1.3 && this.loco.lastRate) {
+      if (live && T != null && T > 0.08 && T < 0.7 && speed > 1.3 && this.loco.lastRate) {
         const rate = this.loco.lastRate, phC = ((this.loco.phF + rate * T) % 1 + 1) % 1, e = this.loco.stanceNear(phC);
         if (e != null) rm = clamp(1 + e / Math.max(0.05, rate * T), 0.8, 1.22); }
       this.loco.rateMul = this.inited && dt > 0 ? (this.loco.rateMul || 1) + (rm - (this.loco.rateMul || 1)) * (1 - Math.exp(-dt * 10)) : rm; }
@@ -923,26 +923,26 @@ export class Figure {
       OC = this.ownClip('serve', 'fh');
       // (the address is the clip's first moment with his feet set apart and uncrossed: Sinner's begins as he steps into
       // place, one foot across the other, and he stood waiting to serve cross-legged)
-      if (OC && OC.addrU == null) { OC.addrU = OC.span[0] + 0.02; const au = globalThis.__addrOld ? null : ADDR_U[this.look.name || ''];
+      if (OC && OC.addrU == null) { OC.addrU = OC.span[0] + 0.02; const au = ADDR_U[this.look.name || ''];
         const a0 = OC.F[0], sep0 = ((a0[J.rankle * 3] - a0[J.lankle * 3]) * (a0[J.rhip * 3] - a0[J.lhip * 3]) + (a0[J.rankle * 3 + 2] - a0[J.lankle * 3 + 2]) * (a0[J.rhip * 3 + 2] - a0[J.lhip * 3 + 2])) / (Math.hypot(a0[J.rhip * 3] - a0[J.lhip * 3], a0[J.rhip * 3 + 2] - a0[J.lhip * 3 + 2]) || 1);
         if (sep0 < 0.02) for (let f = 0; f < Math.min(OC.n, Math.round(0.9 * OC.fps)); f++) { const a = OC.F[f], hx = a[J.rhip * 3] - a[J.lhip * 3], hz = a[J.rhip * 3 + 2] - a[J.lhip * 3 + 2], hl = Math.hypot(hx, hz) || 1;
           const sep = ((a[J.rankle * 3] - a[J.lankle * 3]) * hx + (a[J.rankle * 3 + 2] - a[J.lankle * 3 + 2]) * hz) / hl, gap = Math.hypot(a[J.rankle * 3] - a[J.lankle * 3], a[J.rankle * 3 + 2] - a[J.lankle * 3 + 2]);
           if (sep > 0.12 && gap > 0.28) { OC.addrU = OC.span[0] + f / OC.fps; break; } }
         if (au != null && au > OC.span[0] && au < OC.span[1]) OC.addrU = au; }
       if (OC) { cu = OC.addrU; this.addrW = damp(this.addrW, 1 - srvWalkK, 7, dt); clipW = this.addrW * (1 - go); }
-    } else if (st && (sw > 0.001 || srvSt || (!globalThis.__finSwOld && st.kind !== 'serve' && st.kind !== 'smash' && st.tc != null && u > 0.05 && u < 1.3 && (p.stroke === st || p.lastStroke === st)))) {   /* (and on after the stroke's weight has run out, until the clip's own fade has: cut there, the last third of the finish went in three frames) */
+    } else if (st && (sw > 0.001 || srvSt || (st.kind !== 'serve' && st.kind !== 'smash' && st.tc != null && u > 0.05 && u < 1.3 && (p.stroke === st || p.lastStroke === st)))) {   /* (and on after the stroke's weight has run out, until the clip's own fade has: cut there, the last third of the finish went in three frames) */
       OC = this.ownClip(st.__dk || st.kind, st.wing, st);
       // (a clip tracked only a little way past contact, half a second, is played on into its last moment, slowing into it, and
       // that finish held a moment before it is let go of: faded out over its own last third of a second as before, the
       // finish was never seen at all, the fade began at contact and the racket came round low to the hip from hand-made keys)
-      if (OC) { const held = srvSt && this.addrW > 0.5, fo = (0.32 + 0.2 * sm(speed / 3.5)) * (globalThis.__foK ?? (st.kind !== 'serve' && st.kind !== 'smash' && OC.tb == null && FINISH_FADE[(this.look.name || '') + '/' + st.wing] || 1)); /* the finish comes back to ready over a third of a second, not in a snap */
+      if (OC) { const held = srvSt && this.addrW > 0.5, fo = (0.32 + 0.2 * sm(speed / 3.5)) * (st.kind !== 'serve' && st.kind !== 'smash' && OC.tb == null && FINISH_FADE[(this.look.name || '') + '/' + st.wing] || 1); /* the finish comes back to ready over a third of a second, not in a snap */
         const e1 = OC.span[1], hold = st.kind === 'serve' || st.kind === 'smash' ? 0 : clamp(0.82 - e1, 0, 0.4), dS = 0.14;
         if (hold > 0) this.ocHoldU = e1 - dS; if (OC.tb != null) this.ocTbU = OC.tb;
         if (hold > 0 && u > e1 - dS) cu = e1 - dS * Math.exp(-(u - (e1 - dS)) / dS);
         // (a finish that hangs at the top is played through faster from just after contact: FINISH_RATE)
-        const FR = st.kind !== 'serve' && st.kind !== 'smash' && !globalThis.__finRateOld ? FINISH_RATE[(this.look.name || '') + '/' + st.wing] : null, fr = FR ? FR[0] : 1, fE = FR ? FR[1] : 0, uF = fr !== 1 && u > 0.12 ? (u < 0.12 + (fE - 0.12) / fr ? 0.12 + (u - 0.12) * fr : fE + (u - 0.12 - (fE - 0.12) / fr)) : u;   /* (faster only through the hang, to fE in the clip's time; the racket comes down at its own speed) */
+        const FR = st.kind !== 'serve' && st.kind !== 'smash' ? FINISH_RATE[(this.look.name || '') + '/' + st.wing] : null, fr = FR ? FR[0] : 1, fE = FR ? FR[1] : 0, uF = fr !== 1 && u > 0.12 ? (u < 0.12 + (fE - 0.12) / fr ? 0.12 + (u - 0.12) * fr : fE + (u - 0.12 - (fE - 0.12) / fr)) : u;   /* (faster only through the hang, to fE in the clip's time; the racket comes down at its own speed) */
         if (fr !== 1 && hold <= 0) cu = uF;
-        const cIn = sm5((u - OC.span[0]) / (st.kind === 'serve' || st.kind === 'smash' ? 0.14 : 0.3)), cOut = 1 - sm5((uF - (e1 + hold - fo)) / fo); const swF = !globalThis.__finSwOld && st.kind !== 'serve' && st.kind !== 'smash' && st.tc != null && u > 0.05 && (p.stroke === st || p.lastStroke === st) ? 1 : 0;   /* (after contact a groundstroke's clip plays out to its own end and fades into the next pose over its own last third of a second: let go of with the stroke's weight, which falls over a quarter of a second from 0.45 s, Nadal's racket hung still over his head in the lasso and was then thrown down to the ready pose at ten metres a second, a pause and a snap) */
+        const cIn = sm5((u - OC.span[0]) / (st.kind === 'serve' || st.kind === 'smash' ? 0.14 : 0.3)), cOut = 1 - sm5((uF - (e1 + hold - fo)) / fo); const swF = st.kind !== 'serve' && st.kind !== 'smash' && st.tc != null && u > 0.05 && (p.stroke === st || p.lastStroke === st) ? 1 : 0;   /* (after contact a groundstroke's clip plays out to its own end and fades into the next pose over its own last third of a second: let go of with the stroke's weight, which falls over a quarter of a second from 0.45 s, Nadal's racket hung still over his head in the lasso and was then thrown down to the ready pose at ten metres a second, a pause and a snap) */
         clipW = held ? Math.max(sw, this.addrW) * cOut : Math.min(Math.max(sw, swF), cIn, cOut); clipWA = held ? clipW : Math.min(Math.max(swA, swF), cIn, cOut); }   /* (the least of the three, not their product: two fades at once would go twice as fast) */
       if (OC && OC.tb != null) { const k = 1 - sm5((u - OC.tb) / (OC.tbD || 0.2)); clipW *= k; clipWA *= k; }
       // A stroke that changes part way into one with no tracked swing of its own (a drive turned into a drop shot with
@@ -977,7 +977,7 @@ export class Figure {
         // (where the waiting pose comes from later in the clip than the toss begins, the clip goes back to its start: there the body
         // is crossfaded from how it stood, over a fifth of a second, as one stroke into another is; jumped, the feet were thrown
         // fifteen centimetres in the frame the toss began)
-        if (!globalThis.__tossXfOld && this.tossCuOff > 0.02 && this.lpLast && this.poseLast) { this.xfT = t; this.xfD = 0.2; this.xfK = 1; this.xfPose = this.poseLast; (this.xfLP || (this.xfLP = new Float32Array(N3))).set(this.lpLast); } }
+        if (this.tossCuOff > 0.02 && this.lpLast && this.poseLast) { this.xfT = t; this.xfD = 0.2; this.xfK = 1; this.xfPose = this.poseLast; (this.xfLP || (this.xfLP = new Float32Array(N3))).set(this.lpLast); } }
       const k = 1 - sm5((t - this.tossCuT) / 0.33); if (k > 0.001 && this.tossCuOff < 0) cu = Math.max(OC.span[0], cu + this.tossCuOff * k);
     }
     this.wasSrvWait = serverWait;
@@ -985,16 +985,16 @@ export class Figure {
     if (this.dbgOn) { if (sw - (this.swPrevD || 0) > 0.35 && dt > 0) (this.popLog || (this.popLog = [])).push({ t: +t.toFixed(3), from: +(this.swPrevD || 0).toFixed(2), to: +sw.toFixed(2), same: st === this.popSt, isP: st === p.stroke, isLast: st === p.lastStroke, isPrev: st === this.prevSt, kind: st && st.kind, wing: st && st.wing, t0: st && st.t0 != null ? +(t - st.t0).toFixed(3) : null, tc: st && st.tc != null ? +(t - st.tc).toFixed(3) : null, u: +u.toFixed(3), cancelK: +cancelK.toFixed(2), deferIn: +deferIn.toFixed(3), xin: this.xin, ph: m.phase, auto: st && st.auto, done: st && st.done, prev: this.popInfo, dtNow: +dt.toFixed(4), tPrev: this.popT }); this.swPrevD = sw; this.popSt = st; this.popT = +t.toFixed(3); this.popInfo = st ? { kind: st.kind, wing: st.wing, tc: st.tc != null ? +(t - st.tc).toFixed(3) : null, isP: st === p.stroke, isLast: st === p.lastStroke, sw: +sw.toFixed(2), ph: m.phase } : { none: true, ph: m.phase, pS: !!p.stroke, pSdone: p.stroke ? p.stroke.done : null, pStc: p.stroke && p.stroke.tc != null ? +(t - p.stroke.tc).toFixed(3) : null, pSkind: p.stroke ? p.stroke.kind : null }; }
     // the end of a match: a celebration tracked from footage of a real one (celebmotion.js), played on its own clock through the same
     // path as a stroke's clip, the whole body and both arms (game.js sets this.celebClip = { kind, u, k })
-    if (this.celebClip && this.celebClip.k > 0.001 && !globalThis.__celebMocapOld) { const cc = strokeClip({ celeb: CELEB_MOTION }, 'celeb', 'celeb_' + this.celebClip.kind, this.lefty);
+    if (this.celebClip && this.celebClip.k > 0.001) { const cc = strokeClip({ celeb: CELEB_MOTION }, 'celeb', 'celeb_' + this.celebClip.kind, this.lefty);
       if (cc) { OC = cc; cu = clamp(this.celebClip.u, cc.span[0], cc.span[1]); const k = clamp(this.celebClip.k, 0, 1); clipW = Math.max(clipW * (1 - k), k); clipWA = Math.max(clipWA * (1 - k), k); } }
     this.clipW = clipW; this.swNow = sw; if (this.dbgOn) { this.dbgClipS = OC && clipW > 0.001 ? Float32Array.from(sampleAt(OC, cu, this._dbgS || (this._dbgS = new Float32Array(N3)))) : null; this.dbgClipW = clipW; this.dbgClipWA = clipWA; } if (this.dbgOn) this.ocDbg = OC ? { id: OC.id, span: OC.span.map(x => +x.toFixed(2)), cu: +cu.toFixed(2), n: OC.n, pick: st && st.clipPick ? st.clipPick.i + ':' + st.clipPick.sit : '-' } : null;                         // (swNow: read by the transition checks in /tmp tools)
     // the arms: the clip's, except inside a partial clip's contact window
     let armW = clipWA; if (OC && OC.armZone && armW > 0) { const z = OC.armZone, zk = 1 - sm5((cu - (z[0] - 0.14)) / 0.14) * (1 - sm5((cu - z[1]) / 0.14));   /* (the arms go over to the keys and back over a seventh of a second each way, not an eighth of one: a snap at the speed of the swing) */
-      // (and over a fifth of a second of real time at least: a serve's clock runs up to half as fast again after the toss to
-      // arrive at contact on time, and on it Sampras's arm was handed from his tracked trophy to the keyed racket drop in four
-      // frames, the hand thrown eighty centimetres)
-      if (this.azSt !== st || !(dt > 0)) { this.azSt = st; this.azK = zk; } else this.azK += clamp(zk - this.azK, -dt / 0.2, dt / 0.2);
-      armW *= this.azK; }
+        // (and over a fifth of a second of real time at least: a serve's clock runs up to half as fast again after the toss to
+        // arrive at contact on time, and on it Sampras's arm was handed from his tracked trophy to the keyed racket drop in four
+        // frames, the hand thrown eighty centimetres)
+        if (this.azSt !== st || !(dt > 0)) { this.azSt = st; this.azK = zk; } else this.azK += clamp(zk - this.azK, -dt / 0.2, dt / 0.2);
+        armW *= this.azK; }
     // (the legs of a shot hit on the move are the run's: the clip's feet were planted for the man it was filmed on, whose
     // hips went where his did, and played under a body going somewhere else they slid away under him and were stepped back
     // under him every twenty centimetres, six patting steps a second through every shot hit on the run; the upper body and
@@ -1005,7 +1005,7 @@ export class Figure {
     const isSrvK = !!st && (st.kind === 'serve' || st.kind === 'smash');
     // (all of it at a run: with a sixth of the leg pose still the stroke's planted stance, which does not travel with him, the planted
     // foot fell out of step with the stride and was left behind, then caught up in a slow step, both legs trailing him sideways)
-    const legRun = this.legRunNow = clipW > 0.001 ? (globalThis.__lrOld ? 0.85 : lerp(0.85, 1, sm((speed - 2.4) / 1.2))) * sm((speed - (isSrvK ? 0.5 : 1.3)) / (isSrvK ? 1.0 : 1.7)) * go * srvLand : 0;
+    const legRun = this.legRunNow = clipW > 0.001 ? (lerp(0.85, 1, sm((speed - 2.4) / 1.2))) * sm((speed - (isSrvK ? 0.5 : 1.3)) / (isSrvK ? 1.0 : 1.7)) * go * srvLand : 0;
     if (legRun > 0.001) { const LL = this._locoLegs || (this._locoLegs = new Float32Array(18)); let q = 0; for (const j of LEG_RUN_J) for (let c = 0; c < 3; c++) LL[q++] = LP[j * 3 + c]; }
     if (clipW > 0.001) {
       // (the upper body mixed at a common heading: the two poses' shoulder lines are turned about the hips to the heading part
@@ -1014,15 +1014,19 @@ export class Figure {
       // degrees in two frames as Nadal's backhand let go into his run)
       const runHip = Math.atan2(LP[J.rhip * 3 + 2] - LP[J.lhip * 3 + 2], LP[J.rhip * 3] - LP[J.lhip * 3]);
       mixUpper(LP, sampleAt(OC, cu, this.SP), clipW, this);
-      if (legRun > 0.001) { const LL = this._locoLegs; let q = 0; for (const j of LEG_RUN_J) for (let c = 0; c < 3; c++) { LP[j * 3 + c] = lerp(LP[j * 3 + c], LL[q++], legRun * clipW); }
+      if (legRun > 0.001) {
+        const LL = this._locoLegs; let q = 0; for (const j of LEG_RUN_J) for (let c = 0; c < 3; c++) { LP[j * 3 + c] = lerp(LP[j * 3 + c], LL[q++], legRun * clipW); }
         // (and the hips go with the run, the shoulders keeping most of the stroke's turn: running in to a ball with the racket
         // taken back, a player runs with his hips to the ball and his shoulders turned. With the clip's hips, side-on for the
         // take-back, over legs running forward, the thighs swung across under him and he ran at the ball in a sideways gallop.)
-        if (!globalThis.__noHipRun) { const ch = Math.atan2(LP[J.rhip * 3 + 2] - LP[J.lhip * 3 + 2], LP[J.rhip * 3] - LP[J.lhip * 3]);
+        {
+          const ch = Math.atan2(LP[J.rhip * 3 + 2] - LP[J.lhip * 3 + 2], LP[J.rhip * 3] - LP[J.lhip * 3]);
           const d = Math.atan2(Math.sin(runHip - ch), Math.cos(runHip - ch)) * legRun * clipW;
           if (Math.abs(d) > 1e-3) { const cx = (LP[J.lhip * 3] + LP[J.rhip * 3]) / 2, cz = (LP[J.lhip * 3 + 2] + LP[J.rhip * 3 + 2]) / 2;
             const rot = (j, a) => { const c = Math.cos(a), sn = Math.sin(a), x = LP[j * 3] - cx, z = LP[j * 3 + 2] - cz; LP[j * 3] = cx + x * c - z * sn; LP[j * 3 + 2] = cz + x * sn + z * c; };
-            rot(J.lhip, d); rot(J.rhip, d); const du = d * (globalThis.__hipRunUp ?? 0.35) * (globalThis.__finRunOld ? 1 : 1 - sm(cu / 0.12)); for (const j of UPPER_J) rot(j, du); } } }   /* (but from contact on the shoulders keep all of the stroke's turn: running out of a finish, the hips go with the legs and the chest still comes round through the ball - turned back with the hips, his finish wrapped half as far as the man's, the swing with no follow-through) */
+            rot(J.lhip, d); rot(J.rhip, d); const du = d * 0.35 * ((1 - sm(cu / 0.12))); for (const j of UPPER_J) rot(j, du); }
+        }
+      }   /* (but from contact on the shoulders keep all of the stroke's turn: running out of a finish, the hips go with the legs and the chest still comes round through the ball - turned back with the hips, his finish wrapped half as far as the man's, the swing with no follow-through) */
       if (this.ocFrom) { const k = (1 - sm5((t - this.ocFromT) / (this.ocFromD || 0.2))) * this.ocFromW; if (k > 0.001) mixUpper(LP, sampleAt(this.ocFrom, cu, this.SP2 || (this.SP2 = new Float32Array(N3))), k, this.ocMu || (this.ocMu = {})); else { this.ocFrom = null; if (this.ocMu) this.ocMu.muD = null; } }
       // bouncing the ball: the hand that holds it goes down with each bounce
       if (serverWait && this.bounceDy) { const o = hs > 0 ? [J.lwri, J.lhand] : [J.rwri, J.rhand]; for (const j of o) LP[j * 3 + 1] += this.bounceDy * clipW; }
@@ -1038,7 +1042,7 @@ export class Figure {
     // been, inside his chest, and the arm folded up across it with the racket beside his head.) The game's own place for him
     // is unchanged; this is where the body is drawn, at most a third of a metre from it.
     let roomT = 0, roomFT = 0;
-    if (st && !/^(serve|smash|volley|block)$/.test(st.__dk || st.kind) && !this.posed && sw > 0.01 && !globalThis.__noRoom) {
+    if (st && !/^(serve|smash|volley|block)$/.test(st.__dk || st.kind) && !this.posed && sw > 0.01) {
       const cpR = st.tc != null ? this.cpGone(st, p, t) : st.cpPlan;
       if (cpR) { const side = (st.wing === 'fh' ? 1 : -1) * hs, L = ((cpR.x - p.x) * rx + (cpR.z - p.z) * rz) * side;
         // (and a ball let get level with him or past him is taken by stepping back from it, so it is still met a little in front)
@@ -1066,7 +1070,7 @@ export class Figure {
     const hmx = (LP[J.lhip * 3] + LP[J.rhip * 3]) / 2, hmy = (LP[J.lhip * 3 + 1] + LP[J.rhip * 3 + 1]) / 2, hmz = (LP[J.lhip * 3 + 2] + LP[J.rhip * 3 + 2]) / 2;
     // hips: at the clip's height, or where the stroke wants them (low to load, rising through the ball)
     const strokeK = Math.max(sw * (1 - 0.55 * go), (pose.set || 0) * (1 - go)) * (1 - clipW), clipY = (hmy - ANKLE_H) * r + D.ankle;
-    let wantY = lerp(clipY, D.hipY - (pose.crouch || 0) * H, strokeK) - hopLand * H - ((brakeK * 0.08 + driveK * 0.05) * (globalThis.__dipClipOld ? 1 : 1 - clipW) + (sliding ? 0.07 : 0)) * H;   /* (not under a tracked stroke: the clip has its own load and drive, and braking into the ball the hips were let down 15 cm through contact, where the real man drives up 20 cm through it) */
+    let wantY = lerp(clipY, D.hipY - (pose.crouch || 0) * H, strokeK) - hopLand * H - ((brakeK * 0.08 + driveK * 0.05) * ((1 - clipW)) + (sliding ? 0.07 : 0)) * H; /* (not under a tracked stroke: the clip has its own load and drive, and braking into the ball the hips were let down 15 cm through contact, where the real man drives up 20 cm through it) */
     if (this.dbgOn) this.hipDbg = { clipY: +clipY.toFixed(3), hmy: +hmy.toFixed(3), r: +r.toFixed(3), legC: +legC.toFixed(3), strokeK: +strokeK.toFixed(2), crouch: +(pose.crouch || 0).toFixed(3), base: +wantY.toFixed(3), metW: +(this.metW || 0).toFixed(2), metCpY: this.metCpY != null ? +this.metCpY.toFixed(2) : null, hipY: +D.hipY.toFixed(3), clipW: +clipW.toFixed(2) };
     // a low ball is played from the legs, not by dropping the racket: through the swing the hips go down with
     // the height of the contact (knees bent, back still upright), as far as about a third of a metre
@@ -1086,7 +1090,7 @@ export class Figure {
     // their height. The slice's crouch, a lowish ball and the stance reaching both feet added up, and Djokovic sat through his
     // slice take-back on an invisible stool, hips at two thirds of their height, chest upright)
     const deepK = Math.max(this.plW || 0, this.metCpY != null && this.metW > 0.2 ? sm((0.5 - this.metCpY) / 0.25) : 0);
-    this.hipFloor = st && st.kind !== 'serve' && st.kind !== 'smash' ? D.hipY * (globalThis.__floorOld ? 0.64 : lerp(0.75, 0.68, deepK)) : D.hipY * 0.6;
+    this.hipFloor = st && st.kind !== 'serve' && st.kind !== 'smash' ? D.hipY * lerp(0.75, 0.68, deepK) : D.hipY * 0.6;
     if (st && st.kind !== 'serve' && st.kind !== 'smash') wantY = Math.max(wantY, this.hipFloor);
     // waiting in a rally he is never still: a small bounce on the balls of the feet and a weight shift side to side
     const readyW = (1 - go) * (1 - strokeK) * (live && !strolling && !serverWait ? 1 : 0);
@@ -1100,7 +1104,7 @@ export class Figure {
     if (this.plSt !== st) { this.plSt = st; this.pl = null; }
     if (this.pl && this.pl.placedT !== this.placedT) this.pl = null;
     // (begun only in play; once begun it is let go of in its own time, not dropped in a frame as the point ends)
-    if (st && st.tc != null && !/^(serve|smash)$/.test(st.kind) && !this.posed && !globalThis.__noPlant) {
+    if (st && st.tc != null && !/^(serve|smash)$/.test(st.kind) && !this.posed) {
       const uP = t - st.tc;
       // (a run mostly across the court: one mostly forward, to a short ball, is met in its stride)
       if (!this.pl && live && dt > 0 && uP > -0.42 && uP < -0.2 && Math.abs(vR) > 1.5 && Math.abs(vR) > 0.7 * speed) {
@@ -1141,13 +1145,15 @@ export class Figure {
     // (Not running flat out, where the feet do land near a line with the swinging knee high; not a sideways crossover, a step
     // across on purpose; not inside a stroke, whose footwork is the stroke's.)
     const widen = this.widenOff || (this.widenOff = [0, 0]); widen[0] = widen[1] = 0;
-    if (!globalThis.__widenOld) { const jaL = LEG_J[0][2], jaR = LEG_J[1][2], kL = 1 + 0.15 * clipW, gap = (LP[jaR * 3] - LP[jaL * 3]) * r * kL, minW = (globalThis.__stepW ?? 0.15) * H;
+    {
+      const jaL = LEG_J[0][2], jaR = LEG_J[1][2], kL = 1 + 0.15 * clipW, gap = (LP[jaR * 3] - LP[jaL * 3]) * r * kL, minW = 0.15 * H;
       const vL = p.vx * right.x + p.vz * right.z, vF = p.vx * fwd.x + p.vz * fwd.z, sideK = speed > 0.3 ? Math.abs(vL) / speed : 0;
-      const wK = (1 - sm((speed - 2.2) / 1.4)) * (1 - sm((sideK - 0.55) / 0.25)) * (1 - strokeK) * (1 - (globalThis.__widenSrvOld ? (srvSt ? 1 : 0) : (this.wSrvE = this.inited && dt > 0 ? (this.wSrvE || 0) + ((srvSt ? 1 : 0) - (this.wSrvE || 0)) * (1 - Math.exp(-dt * 14)) : (srvSt ? 1 : 0)))); void vF;   /* (let go of over a tenth of a second as the serve begins: dropped in a frame, a foot was moved ten centimetres as the toss began) */
+      const wK = (1 - sm((speed - 2.2) / 1.4)) * (1 - sm((sideK - 0.55) / 0.25)) * (1 - strokeK) * (1 - ((this.wSrvE = this.inited && dt > 0 ? (this.wSrvE || 0) + ((srvSt ? 1 : 0) - (this.wSrvE || 0)) * (1 - Math.exp(-dt * 14)) : (srvSt ? 1 : 0)))); void vF; /* (let go of over a tenth of a second as the serve begins: dropped in a frame, a foot was moved ten centimetres as the toss began) */
       // (the weight itself eased over a tenth of a second: how sideways he is going counts from a third of a metre a second, and
       // crossing that it went from nothing to all, the stance's width dropped and a foot moved fourteen centimetres in a frame)
-      const wKr = wK; let wKe = wKr; if (!globalThis.__widenEaseOld) { wKe = this.inited && dt > 0 && this.wKE != null ? this.wKE + (wKr - this.wKE) * (1 - Math.exp(-dt * 14)) : wKr; this.wKE = wKe; }
-      if (wKe > 0.001 && gap < minW) { const d = (minW - Math.max(gap, -minW)) * 0.5 * wKe; widen[0] = -d; widen[1] = d; } }
+      const wKr = wK; let wKe = wKr; wKe = this.inited && dt > 0 && this.wKE != null ? this.wKE + (wKr - this.wKE) * (1 - Math.exp(-dt * 14)) : wKr; this.wKE = wKe;
+      if (wKe > 0.001 && gap < minW) { const d = (minW - Math.max(gap, -minW)) * 0.5 * wKe; widen[0] = -d; widen[1] = d; }
+    }
     // (and wherever both feet are at or near the court, their places are never closer than a shoe and a little: McEnroe's
     // serving stance, feet in line along the baseline, had them four centimetres apart, one shoe inside the other. They are
     // set apart along the line between them, so the stance keeps its shape. A foot already planted is not moved: this sets
@@ -1156,7 +1162,7 @@ export class Figure {
     // court because the cycle runs at the pace its feet cover the ground. (Run through the locks and catch-up steps kept for
     // play, the walker's planted foot was held down a beat long, the body went on, the hips sank to reach it and a step of the
     // game's own, short and low, took over: both feet off the court a hand's breadth apart, the knees bent, every few steps.)
-    { const want = !globalThis.__strollFaithOld && (between && !serverWait || (serverWait && this.srvWalking && !globalThis.__srvStrollFaithOld) || rcvWalk) && !this.posed && !(st && sw > 0.05) ? clamp(this.loco.w.up, 0, 1) * sm((speed - 0.35) / 0.4) * (1 - sm((speed - 2.2) / 0.6)) * (!globalThis.__strollAlignOn ? 1 : sm((Math.cos(this.yaw - Math.atan2(p.vx * s, -p.vz * s)) - 0.82) / 0.14)) * (globalThis.__strollBackOld ? 1 : sm((Math.cos(this.yaw - Math.atan2(p.vx * s, -p.vz * s)) + 0.5) / 0.3)) : 0;   /* (not stepping back facing the net: walked forwards under a body going backwards, laid out the way he went, the walk turned half round under him in a sixth of a second; that is play's backpedal) */   /* (and walking along the line to serve: left to play's footwork, it walked there on bent knees with catch-up steps) */   /* (only on the walk back, 'between': brought in as the point ended, while he was still pulling up out of a run, play's running feet were thrown across to the walk's in a few frames) */   /* (walking, not standing: stood still after a point, the feet are play's, planted where they are) */
+    { const want = (between && !serverWait || (serverWait && this.srvWalking) || rcvWalk) && !this.posed && !(st && sw > 0.05) ? clamp(this.loco.w.up, 0, 1) * sm((speed - 0.35) / 0.4) * (1 - sm((speed - 2.2) / 0.6)) * 1 * (sm((Math.cos(this.yaw - Math.atan2(p.vx * s, -p.vz * s)) + 0.5) / 0.3)) : 0;   /* (not stepping back facing the net: walked forwards under a body going backwards, laid out the way he went, the walk turned half round under him in a sixth of a second; that is play's backpedal) */   /* (and walking along the line to serve: left to play's footwork, it walked there on bent knees with catch-up steps) */   /* (only on the walk back, 'between': brought in as the point ended, while he was still pulling up out of a run, play's running feet were thrown across to the walk's in a few frames) */   /* (walking, not standing: stood still after a point, the feet are play's, planted where they are) */
       // (from the moment he sets off, turning or not: the walk's own plants (below) hold the standing foot while he turns over it.
       // Taken up only once he faced the way he was going (globalThis.__strollAlignOn), the play's footwork turned him, its far foot
       // stepping first across the near one, the shins through each other; taken up while turning without the plants, the planted
@@ -1164,18 +1170,18 @@ export class Figure {
       this.strollK = !this.inited || dt <= 0 ? want : (this.strollK || 0) + (want - (this.strollK || 0)) * (1 - Math.exp(-dt * 8)); }
     const stK = this.strollK || 0;
     const sepO = this.sepOff || (this.sepOff = [V(), V()]); sepO[0].set(0, 0, 0); sepO[1].set(0, 0, 0);
-    if (!globalThis.__footSepOld) { const tg = [0, 1].map(i => { const ja = LEG_J[i][2]; return _sfT[i].set(px, 0, pz).addScaledVector(right, LP[ja * 3] * r * (1 + 0.15 * clipW) + widen[i]).addScaledVector(fwd, LP[ja * 3 + 2] * r); });
+    { const tg = [0, 1].map(i => { const ja = LEG_J[i][2]; return _sfT[i].set(px, 0, pz).addScaledVector(right, LP[ja * 3] * r * (1 + 0.15 * clipW) + widen[i]).addScaledVector(fwd, LP[ja * 3 + 2] * r); });
       const lowK = (1 - sm(((LP[LEG_J[0][2] * 3 + 1] - ANKLE_H) * r - 0.06 * H) / (0.05 * H))) * (1 - sm(((LP[LEG_J[1][2] * 3 + 1] - ANKLE_H) * r - 0.06 * H) / (0.05 * H))) * (1 - sm((speed - 2.2) / 1.4));
-      const dx = tg[1].x - tg[0].x, dz = tg[1].z - tg[0].z, d = Math.hypot(dx, dz), mnS = (globalThis.__footMin ?? 0.17) * H;
+      const dx = tg[1].x - tg[0].x, dz = tg[1].z - tg[0].z, d = Math.hypot(dx, dz), mnS = 0.17 * H;
       if (lowK > 0.001 && d < mnS) { let ux = dx, uz = dz; if (d < 0.02 * H) { ux = right.x; uz = right.z; } const ul = Math.hypot(ux, uz) || 1, k = (mnS - d) * 0.5 * lowK; sepO[0].set(-ux / ul * k, 0, -uz / ul * k); sepO[1].set(ux / ul * k, 0, uz / ul * k); } }
     // (running, the feet come forward under him: the run's motion capture is a jogger's, the hips 0.2 m ahead of the middle of the feet on
     // average through the stride, a long stride kicking back, and with the trunk leant into the run the feet read as trailing behind the
     // body; a tennis player's steps stay under him. Up to 0.1 m forward along the gait's own direction, from 1.5 to 4 m/s, none under a
     // tracked stroke's legs. A held foot is set down where its target is then, so nothing slides.)
-    this.feetFwd = globalThis.__feetFwdOld ? 0 : (globalThis.__feetFwdK ?? 0.1) * sm((speed - 1.5) / 2.5) * go * (1 - clipW);
+    this.feetFwd = 0.1 * sm((speed - 1.5) / 2.5) * go * (1 - clipW);
     for (let i = 0; i < 2; i++) {
-      const lgR = this.tBf && !globalThis.__runTravelOld ? _lgR.set(-this.tBf[1], 0, this.tBf[0]) : right, lgF = this.tBf && !globalThis.__runTravelOld ? _lgF.set(this.tBf[0], 0, this.tBf[1]) : fwd;   /* (the gait's own frame: the way he faces, or the way he goes) */
-      const sx = i === 0 ? -1 : 1, ja = LEG_J[i][2], ft = this.feet[i], ankle = _an[i].set(px, 0, pz).addScaledVector(lgR, LP[ja * 3] * r * (1 + 0.15 * clipW) + widen[i]).addScaledVector(lgF, LP[ja * 3 + 2] * r + (globalThis.__feetFwdOld ? 0 : this.feetFwd || 0)).add(sepO[i]);   // (tracked clips come out narrow in the feet: lifting video to 3D squeezes the spread)
+      const lgR = this.tBf ? _lgR.set(-this.tBf[1], 0, this.tBf[0]) : right, lgF = this.tBf ? _lgF.set(this.tBf[0], 0, this.tBf[1]) : fwd;   /* (the gait's own frame: the way he faces, or the way he goes) */
+      const sx = i === 0 ? -1 : 1, ja = LEG_J[i][2], ft = this.feet[i], ankle = _an[i].set(px, 0, pz).addScaledVector(lgR, LP[ja * 3] * r * (1 + 0.15 * clipW) + widen[i]).addScaledVector(lgF, LP[ja * 3 + 2] * r + ((this.feetFwd || 0))).add(sepO[i]);   // (tracked clips come out narrow in the feet: lifting video to 3D squeezes the spread)
       ankle.y = Math.max(D.ankle, (LP[ja * 3 + 1] - ANKLE_H) * r + D.ankle) + air * 0.9;
       // (how fast the gait's own foot is going over the court: a planted one stands still)
       const tgP = this.tgtPrev || (this.tgtPrev = [null, null]), tgV = tgP[i] && dt > 0 && this.inited ? Math.hypot(ankle.x - tgP[i].x, ankle.z - tgP[i].z) / dt : 0; tgP[i] = { x: ankle.x, z: ankle.z };
@@ -1193,9 +1199,9 @@ export class Figure {
       // come round through it, the rest eased to a quarter. Nadal's first clip lifted his right foot 11-16 cm from 0.2 s before contact
       // to 0.25 s after; on the back-fence film both feet are down while he loads and the right leg only swings up as he hits. Not where
       // both feet are up, a jump; and the run's own strides, on the way in, are the run's.)
-      if (!globalThis.__gsLiftOld && !srvSt && clipW > 0.01 && st && st.kind !== 'serve' && st.kind !== 'smash' && st.tc != null) {
+      if (!srvSt && clipW > 0.01 && st && st.kind !== 'serve' && st.kind !== 'smash' && st.tc != null) {
         const oj = LEG_J[1 - i][2], oLift = (LP[oj * 3 + 1] - ANKLE_H) * r;
-        const ok = 1 - sm((oLift - 0.03) / 0.05); if (ok > 0.001) { const uu = t - st.tc, cap = lerp(globalThis.__gsCap0 ?? 0.085, 0.14, sm((uu + 0.02) / 0.1)), lf = ankle.y - D.ankle; if (lf > cap) ankle.y -= (lf - cap) * 0.75 * clipW * ok; } }   /* (faded as the other foot lifts, 3-8 cm: switched off at 6 cm in one frame, the foot was thrown up 6 m/s) */
+        const ok = 1 - sm((oLift - 0.03) / 0.05); if (ok > 0.001) { const uu = t - st.tc, cap = lerp(0.085, 0.14, sm((uu + 0.02) / 0.1)), lf = ankle.y - D.ankle; if (lf > cap) ankle.y -= (lf - cap) * 0.75 * clipW * ok; } }   /* (faded as the other foot lifts, 3-8 cm: switched off at 6 cm in one frame, the foot was thrown up 6 m/s) */
       // A groundstroke clip is one shot, filmed once: whatever the feet did in it (Alcaraz's backhand kicks the back leg up
       // to the knee, the counterweight of a ball hit on the run) would happen on every shot. A foot leaves the court only as
       // far as this shot asks: a small lift standing, the clip's whole kick when he is running or stretched for it.
@@ -1214,12 +1220,12 @@ export class Figure {
       // the split step lands wider than it took off
       // (and let go of over a tenth of a second when the hop's time is up: dropped in a frame, the feet were pulled thirteen
       // centimetres in, a foot thrown that far as he set off from the split)
-      { const want = this.hopT != null ? sm(this.hopT / GAIT.hopT) : 0; if (i === 0) this.hopW = globalThis.__hopWOld || !this.inited || dt <= 0 || want >= (this.hopW || 0) ? want : this.hopW + (want - this.hopW) * (1 - Math.exp(-dt * 16));
+      { const want = this.hopT != null ? sm(this.hopT / GAIT.hopT) : 0; if (i === 0) this.hopW = !this.inited || dt <= 0 || want >= (this.hopW || 0) ? want : this.hopW + (want - this.hopW) * (1 - Math.exp(-dt * 16));
         if ((this.hopW || 0) > 1e-4) ankle.addScaledVector(right, sx * 0.07 * H * this.hopW); }
       // sliding, the leading foot reaches out wide and glides on with the body
       const slideLead = sliding && i === (vR >= 0 ? 1 : 0);
       // (eased in and out over a tenth of a second, not set and cleared in a frame as a slide begins, ends or changes side)
-      { const sw2 = this.slideW || (this.slideW = [0, 0]); sw2[i] = globalThis.__slideWOld || !this.inited || dt <= 0 ? (slideLead ? 1 : 0) : sw2[i] + ((slideLead ? 1 : 0) - sw2[i]) * (1 - Math.exp(-dt * 16));
+      { const sw2 = this.slideW || (this.slideW = [0, 0]); sw2[i] = !this.inited || dt <= 0 ? (slideLead ? 1 : 0) : sw2[i] + ((slideLead ? 1 : 0) - sw2[i]) * (1 - Math.exp(-dt * 16));
         if (sw2[i] > 1e-4) ankle.addScaledVector(right, sx * 0.10 * H * sw2[i]); }
       if (this.dbgOn) (this.dbgFt || (this.dbgFt = {}))['k' + i] = [+(strokeK || 0).toFixed(2), this.hopT != null ? +this.hopT.toFixed(3) : null, slideLead ? 1 : 0, sliding ? 1 : 0];
       // a foot on the ground stays where it is; when the body has gone too far from it, it steps
@@ -1256,24 +1262,24 @@ export class Figure {
       { const Lk = this.lockF[i], hgt = ankle.y - D.ankle, toeY = LP[LEG_J[i][3] * 3 + 1], toeDown = toeY < (Lk.on ? 0.062 : 0.05) && hgt < 0.13 * H && speed < 1.6 && go < 0.6,   /* (not in a running stride: there the toe is down only at the push-off, and held to it the foot stuck behind him, a speed-walk) */
         // (at a walk or a shuffle a foot a few centimetres up in the clip is a foot set down, not a step: counted as in the air it
         // hovered there, and with the other foot stepping, both were off the court together)
-        slowK = globalThis.__noSlowDown ? 0 : (1 - sm((speed - (globalThis.__skOld ? 1.8 : 1.2)) / (globalThis.__skOld ? 1.4 : 1.0))) * (1 - this.loco.w.up) * (strolling ? 0 : 1),   /* (not at a shuffle's pace: its steps are that low, and held down as planted the trailing foot was towed after him) */   /* (not walking upright between points: there the walk's own swing foot dips that low, and held down it was dragged into a lunge at every step) */
-        down = (hgt < ((Lk.on ? 0.042 : 0.03) + 0.045 * slowK) * H || (globalThis.__toeLock !== false && toeDown)) && air < 0.005, engage = globalThis.__runPlantOld || speed < 2.5 || Lk.on || tgV < 1.8 + 0.25 * speed,   /* (running, a foot is held only once the run's own foot has stopped going over the court: held as soon as it came down low, a sprint's foot still sweeping in to touch down was pinned thirty to fifty centimetres short and the legs trailed after him) */ stepD = plW > 0.001 && this.pl.force[i] ? 0.06 * H : Math.abs(this.roomX) > 0.05 && Math.sign(this.roomX) === (i === 0 ? -1 : 1) ? 0.09 * H : (0.19 + 0.09 * clamp(speed - 2, 0, 4)) * H;
+        slowK = (1 - sm((speed - 1.2) / 1.0)) * (1 - this.loco.w.up) * (strolling ? 0 : 1),   /* (not at a shuffle's pace: its steps are that low, and held down as planted the trailing foot was towed after him) */   /* (not walking upright between points: there the walk's own swing foot dips that low, and held down it was dragged into a lunge at every step) */
+        down = (hgt < ((Lk.on ? 0.042 : 0.03) + 0.045 * slowK) * H || toeDown) && air < 0.005, engage = speed < 2.5 || Lk.on || tgV < 1.8 + 0.25 * speed,   /* (running, a foot is held only once the run's own foot has stopped going over the court: held as soon as it came down low, a sprint's foot still sweeping in to touch down was pinned thirty to fifty centimetres short and the legs trailed after him) */ stepD = plW > 0.001 && this.pl.force[i] ? 0.06 * H : Math.abs(this.roomX) > 0.05 && Math.sign(this.roomX) === (i === 0 ? -1 : 1) ? 0.09 * H : (0.19 + 0.09 * clamp(speed - 2, 0, 4)) * H;
         if (Lk.step) {
           // (a step that goes further is lifted higher and takes a little longer: a foot carried a few centimetres off the
           // court across half a metre read as a foot sliding along it)
           const sd = Lk.step.d != null ? Lk.step.d : (Lk.step.d = Math.hypot(ankle.x - Lk.step.x, ankle.z - Lk.step.z));
-          Lk.step.t += dt / ((Lk.step.fast ? 0.17 : 0.13 + 0.12 * clamp(sd / 0.6, 0, 1)) / (globalThis.__stepOld ? 1 : 1 + 0.3 * clamp(speed - 2, 0, 3)));   /* (quicker at speed: a step as slow as a walking one, the body ran half a metre on while the foot was still on its way) */ const w = sm(Math.min(1, Lk.step.t));
+          Lk.step.t += dt / ((Lk.step.fast ? 0.17 : 0.13 + 0.12 * clamp(sd / 0.6, 0, 1)) / ((1 + 0.3 * clamp(speed - 2, 0, 3))));   /* (quicker at speed: a step as slow as a walking one, the body ran half a metre on while the foot was still on its way) */ const w = sm(Math.min(1, Lk.step.t));
           ankle.x = lerp(Lk.step.x, ankle.x, w); ankle.z = lerp(Lk.step.z, ankle.z, w);
           // (and no faster over the court than a foot is carried, about twelve metres a second at most: the step's own place moves under
           // it, a stop's plant sent a metre out after the step began, and the foot was dragged after it forty centimetres a frame into the
           // splits as he pulled up out of a sideways run)
-          if (!globalThis.__stepVcapOld && dt > 0) { if (Lk.step.px != null) { const ddx = ankle.x - Lk.step.px, ddz = ankle.z - Lk.step.pz, dd = Math.hypot(ddx, ddz), mx = Math.max(12, speed * 2.2) * dt; if (dd > mx) { ankle.x = Lk.step.px + ddx * mx / dd; ankle.z = Lk.step.pz + ddz * mx / dd; Lk.step.t = Math.min(Lk.step.t, 0.86); } }   /* (and the step goes on until the foot has caught up: ended short of its place, the foot was thrown the rest of the way in a frame) */ Lk.step.px = ankle.x; Lk.step.pz = ankle.z; }
+          if (dt > 0) { if (Lk.step.px != null) { const ddx = ankle.x - Lk.step.px, ddz = ankle.z - Lk.step.pz, dd = Math.hypot(ddx, ddz), mx = Math.max(12, speed * 2.2) * dt; if (dd > mx) { ankle.x = Lk.step.px + ddx * mx / dd; ankle.z = Lk.step.pz + ddz * mx / dd; Lk.step.t = Math.min(Lk.step.t, 0.86); } }   /* (and the step goes on until the foot has caught up: ended short of its place, the foot was thrown the rest of the way in a frame) */ Lk.step.px = ankle.x; Lk.step.pz = ankle.z; }
           ankle.y = Math.max(ankle.y, D.ankle + Math.sin(w * Math.PI) * (0.055 + 0.11 * clamp(sd / 0.5, 0, 1)) * H);
           // (and set down once it is down, in the last tenth of the step: carried on to the step's own end, a foot already on the
           // court followed the clip's ankle as it drifted, two or three centimetres a frame along the court)
-          if (Lk.step.t >= 1 || (!globalThis.__stepEndOld && Lk.step.t >= 0.88 && down && ankle.y - D.ankle < 0.012 * H)) { Lk.step = null; Lk.on = down; const lpo = !globalThis.__landDrawnOld && down && this.lpOff ? this.lpOff[i] : null; Lk.x = ankle.x + (lpo ? lpo.x : 0); Lk.z = ankle.z + (lpo ? lpo.z : 0); if (lpo) { ankle.x = Lk.x; ankle.z = Lk.z; } Lk.ox = Lk.oz = 0; Lk.ox0 = Lk.oz0 = 0; }
+          if (Lk.step.t >= 1 || (Lk.step.t >= 0.88 && down && ankle.y - D.ankle < 0.012 * H)) { Lk.step = null; Lk.on = down; const lpo = down && this.lpOff ? this.lpOff[i] : null; Lk.x = ankle.x + (lpo ? lpo.x : 0); Lk.z = ankle.z + (lpo ? lpo.z : 0); if (lpo) { ankle.x = Lk.x; ankle.z = Lk.z; } Lk.ox = Lk.oz = 0; Lk.ox0 = Lk.oz0 = 0; }
         } else if (down && engage) {
-          if (!Lk.on) { const lpo = !globalThis.__landDrawnOld && this.lpOff ? this.lpOff[i] : null; Lk.on = true; Lk.x = ankle.x + (Lk.ox || 0) + (lpo ? lpo.x : 0); Lk.z = ankle.z + (Lk.oz || 0) + (lpo ? lpo.z : 0); Lk.ox = Lk.oz = 0; Lk.ox0 = Lk.oz0 = 0; }
+          if (!Lk.on) { const lpo = this.lpOff ? this.lpOff[i] : null; Lk.on = true; Lk.x = ankle.x + (Lk.ox || 0) + (lpo ? lpo.x : 0); Lk.z = ankle.z + (Lk.oz || 0) + (lpo ? lpo.z : 0); Lk.ox = Lk.oz = 0; Lk.ox0 = Lk.oz0 = 0; }
           if (slideLead) { Lk.x += p.vx * dt * 0.95; Lk.z += p.vz * dt * 0.95; this.slideFx = { x: Lk.x, z: Lk.z, vx: p.vx, vz: p.vz, speed }; }
           const e = Math.hypot(ankle.x - Lk.x, ankle.z - Lk.z);
           // (and a foot planted across the other, or almost on top of it, out of a stroke: a serve that lands with the back
@@ -1281,30 +1287,33 @@ export class Figure {
           let crossed = false;
           if (i === 1 && strokeK < 0.3 && !srvSt && this.lockF[0].on && !this.lockF[0].step) { const o = this.lockF[0], sep = (Lk.x - o.x) * right.x + (Lk.z - o.z) * right.z; crossed = sep < 0.06 * H; }
           // (and planted almost on top of each other, a shoe inside the other, it steps out to its place, wherever it is)
-          if (!globalThis.__footSepOld && !crossed && !(srvSt && st.tc != null)) { const o = this.lockF[1 - i]; if (o.on && !o.step && Math.hypot(Lk.x - o.x, Lk.z - o.z) < (globalThis.__footStepMin ?? 0.12) * H) crossed = true; }
+          if (!crossed && !(srvSt && st.tc != null)) { const o = this.lockF[1 - i]; if (o.on && !o.step && Math.hypot(Lk.x - o.x, Lk.z - o.z) < 0.12 * H) crossed = true; }
           // (a catch-up step waits for the other foot to be down, unless it is well overdue: started while the other was still in
           // the air, both feet were off the court together at a backpedal's pace)
-          const oth = this.lockF[1 - i], othDown = oth.on || globalThis.__noWaitStep;
-          if (!slideLead && (e > stepD || (crossed && e > (globalThis.__footSepOld ? 0.04 : 0.025) * H)) && !oth.step && (othDown || e > stepD * 1.6 || (plW > 0.001 && this.pl.force[i]))) { Lk.step = { t: 0, x: Lk.x, z: Lk.z }; Lk.on = false; this.forcedSteps = (this.forcedSteps || 0) + 1; if (e > stepD) this.forcedE = (this.forcedE || 0) + 1; else this.forcedX = (this.forcedX || 0) + 1; if (this.dbgSteps) this.dbgSteps.push({ t: +t.toFixed(2), i, e: +e.toFixed(2), stepD: +stepD.toFixed(2), sp: +speed.toFixed(2), ph: m.phase, sk: +strokeK.toFixed(2), st: st ? st.kind : '-', yaw: +this.yaw.toFixed(2), dx: +(ankle.x - Lk.x).toFixed(2), dz: +(ankle.z - Lk.z).toFixed(2), px: +(p.x - (this.lastStepPx ?? p.x)).toFixed(2), pz: +(p.z - (this.lastStepPz ?? p.z)).toFixed(2), hop: this.hopT != null, u: st && st.tc != null ? +(t - st.tc).toFixed(2) : null, cw: +clipW.toFixed(2), sw: +sw.toFixed(2), go: +go.toFixed(2), lr: +(this.legRunNow || 0).toFixed(2), srv: m.score.server === p.i, phT: +(m.phaseT || 0).toFixed(2), sk: +strokeK.toFixed(2), clipF: +((LP[LEG_J[i][2] * 3] * right.x + 0) ).toFixed(2) }); this.lastStepPx = p.x; this.lastStepPz = p.z; }
+          const oth = this.lockF[1 - i], othDown = oth.on;
+          if (!slideLead && (e > stepD || (crossed && e > 0.025 * H)) && !oth.step && (othDown || e > stepD * 1.6 || (plW > 0.001 && this.pl.force[i]))) { Lk.step = { t: 0, x: Lk.x, z: Lk.z }; Lk.on = false; this.forcedSteps = (this.forcedSteps || 0) + 1; if (e > stepD) this.forcedE = (this.forcedE || 0) + 1; else this.forcedX = (this.forcedX || 0) + 1; if (this.dbgSteps) this.dbgSteps.push({ t: +t.toFixed(2), i, e: +e.toFixed(2), stepD: +stepD.toFixed(2), sp: +speed.toFixed(2), ph: m.phase, sk: +strokeK.toFixed(2), st: st ? st.kind : '-', yaw: +this.yaw.toFixed(2), dx: +(ankle.x - Lk.x).toFixed(2), dz: +(ankle.z - Lk.z).toFixed(2), px: +(p.x - (this.lastStepPx ?? p.x)).toFixed(2), pz: +(p.z - (this.lastStepPz ?? p.z)).toFixed(2), hop: this.hopT != null, u: st && st.tc != null ? +(t - st.tc).toFixed(2) : null, cw: +clipW.toFixed(2), sw: +sw.toFixed(2), go: +go.toFixed(2), lr: +(this.legRunNow || 0).toFixed(2), srv: m.score.server === p.i, phT: +(m.phaseT || 0).toFixed(2), sk: +strokeK.toFixed(2), clipF: +((LP[LEG_J[i][2] * 3] * right.x + 0) ).toFixed(2) }); this.lastStepPx = p.x; this.lastStepPz = p.z; }
           ankle.x = Lk.x; ankle.z = Lk.z;
           // (and on it: a foot counted down is held at its place on the court, but its height was left to the clip, which counts
           // anything up to four centimetres as down; held there it hovered, and at a backpedal or pulling up both feet were seen
           // off the court together. A flat foot is pressed onto the court; one up on its toes keeps its heel up, the toe on the
           // court, below.)
-          Lk.toe = !(hgt < ((0.042 + 0.045 * slowK) * H)) && !globalThis.__noPress;
-          if (!Lk.toe && !globalThis.__noPress) { const hh = (this.heel[i] || 0) * H, ex = ankle.y - D.ankle - hh; if (ex > 0) ankle.y = D.ankle + hh + ex * 0.25; }
+          Lk.toe = !(hgt < ((0.042 + 0.045 * slowK) * H));
+          if (!Lk.toe) { const hh = (this.heel[i] || 0) * H, ex = ankle.y - D.ankle - hh; if (ex > 0) ankle.y = D.ankle + hh + ex * 0.25; }
         } else {
           // (the gap is closed from rest, critically damped: a foot leaving the ground does not jerk off its mark; and a foot that
           // has been left far behind by a running body is picked up and carried forward as a step, in an arc, not drawn along
           // the court to where the stride has it)
           // (and the step begins where the foot is, this frame too: left at the stride's place for the frame it was let go of, a
           // third of a metre on, the foot flashed forward and back before the step set off, plain to see in a slow-motion replay)
-          if (Lk.on && Math.hypot(Lk.x - ankle.x, Lk.z - ankle.z) > 0.1 * H && !this.lockF[1 - i].step) { Lk.step = { t: 0, x: Lk.x, z: Lk.z }; Lk.on = false; this.liftSteps = (this.liftSteps || 0) + 1; if (!globalThis.__flashOld) { ankle.x = Lk.x; ankle.z = Lk.z; } }
+          if (Lk.on && Math.hypot(Lk.x - ankle.x, Lk.z - ankle.z) > 0.1 * H && !this.lockF[1 - i].step) {
+            Lk.step = { t: 0, x: Lk.x, z: Lk.z }; Lk.on = false; this.liftSteps = (this.liftSteps || 0) + 1; ankle.x = Lk.x; ankle.z = Lk.z;
+          }
           else if (Lk.on) { Lk.ox0 = Lk.x - ankle.x; Lk.oz0 = Lk.z - ankle.z; Lk.oT = 0; Lk.on = false; }
           if (Lk.ox0 || Lk.oz0) { Lk.oT += dt; const q = Lk.oT / 0.045, f = (1 + q) * Math.exp(-q); Lk.ox = Lk.ox0 * f; Lk.oz = Lk.oz0 * f;
             if (f < 0.002) { Lk.ox0 = Lk.oz0 = 0; Lk.ox = Lk.oz = 0; } ankle.x += Lk.ox; ankle.z += Lk.oz; }
         } }
-      if (stK > 0.001) { const tb = this.tBf, bfx = tb ? tb[0] : fwd.x, bfz = tb ? tb[1] : fwd.z, brx = tb ? -bfz : right.x, brz = tb ? bfx : right.z; let cx = px + brx * LP[ja * 3] * r + bfx * LP[ja * 3 + 2] * r, cz = pz + brz * LP[ja * 3] * r + bfz * LP[ja * 3 + 2] * r; const cy = Math.max(D.ankle, (LP[ja * 3 + 1] - ANKLE_H) * r + D.ankle);
+      if (stK > 0.001) {
+        const tb = this.tBf, bfx = tb ? tb[0] : fwd.x, bfz = tb ? tb[1] : fwd.z, brx = tb ? -bfz : right.x, brz = tb ? bfx : right.z; let cx = px + brx * LP[ja * 3] * r + bfx * LP[ja * 3 + 2] * r, cz = pz + brz * LP[ja * 3] * r + bfz * LP[ja * 3 + 2] * r; const cy = Math.max(D.ankle, (LP[ja * 3 + 1] - ANKLE_H) * r + D.ankle);
         // (a foot that comes down once he is walking stays where it landed until the walk lifts it, and is let go of smoothly, the
         // step taking up the difference (setting off and pulling up, the stand and the walk are blended and the feet follow the
         // blend: planted from a standstill, the first foot was left a stride behind as he got going): followed exactly, the walker's heel still travelling forward as it touched down slid
@@ -1315,31 +1324,33 @@ export class Figure {
         // it is: the standing foot stays planted, the one the walk has in the air goes from where it stood. Blended in from the stance's
         // footwork instead, both feet slid from where they stood to where the walk had them, half a metre a second, and with the body
         // turning a quarter turn to walk along the line, swept round under him)
-        if (!globalThis.__strollLockOld) { const sl = this.stLock || (this.stLock = [{ on: false, x: 0, z: 0, ox: 0, oz: 0, sT: 9, px: null, pz: null }, { on: false, x: 0, z: 0, ox: 0, oz: 0, sT: 9, px: null, pz: null }]), L = sl[i];
+        {
+          const sl = this.stLock || (this.stLock = [{ on: false, x: 0, z: 0, ox: 0, oz: 0, sT: 9, px: null, pz: null }, { on: false, x: 0, z: 0, ox: 0, oz: 0, sT: 9, px: null, pz: null }]), L = sl[i];
           // (its speed over the court read in the walk's own frame, the clip's foot against the body's going: read from the court, the
           // body turning over a planted foot made it look to be moving, and it was let go of)
-          const lx = LP[ja * 3] * r, lz = LP[ja * 3 + 2] * r, fresh = (this.stKPrev || 0) < 0.002 || L.px == null, cv = fresh || dt <= 0 ? 0 : globalThis.__stLockWorldV ? Math.hypot(cx - L.px, cz - L.pz) / dt : Math.hypot((lx - L.lx) / dt + (this.vRl || 0), (lz - L.lz) / dt + (this.vFl || 0)); L.px = cx; L.pz = cz; L.lx = lx; L.lz = lz;
+          const lx = LP[ja * 3] * r, lz = LP[ja * 3 + 2] * r, fresh = (this.stKPrev || 0) < 0.002 || L.px == null, cv = fresh || dt <= 0 ? 0 : Math.hypot((lx - L.lx) / dt + (this.vRl || 0), (lz - L.lz) / dt + (this.vFl || 0)); L.px = cx; L.pz = cz; L.lx = lx; L.lz = lz;
           // (while the walk fades in, he setting off, its plant holds a foot until the walk clearly lifts it: at the first slow steps the
           // walker's standing heel is up a centimetre or two as it rolls, the plant let go of it, and the foot, half play's and half the
           // walk's, slid along the court after the walk's drifting foot)
-          const fin = !globalThis.__fadeInHoldOld && between && !serverWait && stK < 0.95 && stK > (this.stKPrev || 0) + 1e-4;   /* (on the walk back: the walk along the line to serve has its own short taps) */
+          const fin = between && !serverWait && stK < 0.95 && stK > (this.stKPrev || 0) + 1e-4; /* (on the walk back: the walk along the line to serve has its own short taps) */
           const downC = cy - D.ankle < (L.on ? (fin ? 0.03 : 0.016) : (fin ? 0.02 : 0.01)) * H && (L.on ? cv < (fin ? 1.6 : 1.0) : cv < (fin ? 1.0 : 0.6));
           if (fresh) { L.on = downC; if (downC) { L.x = ankle.x; L.z = ankle.z; } else { L.ox = ankle.x - cx; L.oz = ankle.z - cz; L.sT = 0; } }
           if (downC) { if (!L.on) { const f = 1 - sm(L.sT / 0.3); L.on = true; L.x = cx + L.ox * f; L.z = cz + L.oz * f; } cx = L.x; cz = L.z; }
-          else { if (L.on) { L.on = false; L.ox = L.x - cx; L.oz = L.z - cz; L.sT = 0; } else if (dt > 0) L.sT += dt; const f = 1 - sm(L.sT / 0.3); cx += L.ox * f; cz += L.oz * f; } }
-        if (globalThis.__strollPlantOn) { const sl = this.sfLock || (this.sfLock = [{ on: false, x: 0, z: 0, ox: 0, oz: 0 }, { on: false, x: 0, z: 0, ox: 0, oz: 0 }]), L = sl[i];
-          if (cy - D.ankle < 0.02 * H && dt > 0 && (L.on || go > (globalThis.__plantGo ?? 0.92))) { if (!L.on) { L.on = true; L.x = cx + L.ox; L.z = cz + L.oz; L.ox = L.oz = 0; } else if (globalThis.__plantPull) { const k = 1 - Math.exp(-dt * globalThis.__plantPull); L.x += (cx - L.x) * k; L.z += (cz - L.z) * k; } cx = L.x; cz = L.z; }
-          else { if (L.on) { L.on = false; L.ox = L.x - cx; L.oz = L.z - cz; } const k = Math.exp(-dt * 18); L.ox *= k; L.oz *= k; cx += L.ox; cz += L.oz; } }
+          else { if (L.on) { L.on = false; L.ox = L.x - cx; L.oz = L.z - cz; L.sT = 0; } else if (dt > 0) L.sT += dt; const f = 1 - sm(L.sT / 0.3); cx += L.ox * f; cz += L.oz * f; }
+        }
         ankle.x += (cx - ankle.x) * stK; ankle.z += (cz - ankle.z) * stK; ankle.y += (cy - ankle.y) * stK;
         // (and as the walk fades in, a foot leaving the spot play's footwork holds it on, the walk already carrying it, lifts as it goes,
         // by how far it has gone: blended, the walk's foot moving low and play's on the court, it was drawn sliding over the court up to
         // two metres a second for a tenth of a second)
-        if (!globalThis.__fadeLiftOld) { const FL = this.fadeLift || (this.fadeLift = [0, 0]); let want = 0;
-          if (between && !serverWait && stK < 0.95 && stK > (this.stKPrev || 0) + 1e-4 && !(this.stLock && this.stLock[i].on)) { const Lk = this.lockF[i]; if (Lk.on && !Lk.step) want = Math.min(0.06 * H, (globalThis.__fadeLiftK ?? 1.2) * Math.hypot(ankle.x - Lk.x, ankle.z - Lk.z)); }
+        {
+          const FL = this.fadeLift || (this.fadeLift = [0, 0]); let want = 0;
+          if (between && !serverWait && stK < 0.95 && stK > (this.stKPrev || 0) + 1e-4 && !(this.stLock && this.stLock[i].on)) { const Lk = this.lockF[i]; if (Lk.on && !Lk.step) want = Math.min(0.06 * H, 1.2 * Math.hypot(ankle.x - Lk.x, ankle.z - Lk.z)); }
           // (let down over a tenth of a second when it no longer applies, as a foot comes down, not dropped in a frame)
           FL[i] = dt > 0 ? Math.max(want, FL[i] - Math.max(FL[i] * (1 - Math.exp(-dt / 0.05)), 0.004 * H * dt * 60)) : want; if (FL[i] < 1e-4) FL[i] = 0;
-          if (FL[i] > 0) ankle.y = Math.max(ankle.y, D.ankle + FL[i]); }
-        if (stK > (globalThis.__strollResetOld ? 0.5 : 0.95)) { const Lk = this.lockF[i]; Lk.step = null; Lk.on = cy - D.ankle < 0.03 * H; Lk.x = ankle.x; Lk.z = ankle.z; Lk.ox = Lk.oz = Lk.ox0 = Lk.oz0 = 0; Lk.toe = false; } }
+          if (FL[i] > 0) ankle.y = Math.max(ankle.y, D.ankle + FL[i]);
+        }
+        if (stK > 0.95) { const Lk = this.lockF[i]; Lk.step = null; Lk.on = cy - D.ankle < 0.03 * H; Lk.x = ankle.x; Lk.z = ankle.z; Lk.ox = Lk.oz = Lk.ox0 = Lk.oz0 = 0; Lk.toe = false; }
+      }
       else if (this.sfLock) { const L = this.sfLock[i]; L.on = false; L.ox = L.oz = 0; }
       if (stK <= 0.001 && this.stLock) { const L = this.stLock[i]; L.on = false; L.px = null; }   /* (not strolling: the walk's plant is let go of, or the next walk back began by dragging a foot to where it stood on the last one) */
       ft.p.set(ankle.x, 0, ankle.z); ft.lift = ankle.y - D.ankle;
@@ -1359,15 +1370,15 @@ export class Figure {
     // (not in a serve, whose stance brings the feet together on purpose: let go of over a tenth of a second as one begins or
     // waits, taken up again after it; and a foot coming down or leaving the court takes little of it, so a planted foot does not
     // slide)
-    const sepT = ((srvSt || serverWait) ? 0 : 1) * (1 - stK), sepK = this.sepK = !this.inited || dt <= 0 ? sepT : (this.sepK ?? 1) + (sepT - (this.sepK ?? 1)) * (1 - Math.exp(-dt * 10));   /* (and not strolling: the walk's feet are its own) */
-    if (!globalThis.__softSepOld && this.inited && this.lpW && this.lpWPt === this.placedT && sepK > 0.001) { const pw0 = this.lpW, f0 = (1 - pw0[0]) ** 2, f1 = (1 - pw0[1]) ** 2, fs0 = f0 + f1;
-      if (fs0 > 0.02) { const gmin = (globalThis.__sepMin ?? 0.06) * H, soft = (globalThis.__sepSoft ?? 0.04) * H, sep = (_an[1].x - _an[0].x) * right.x + (_an[1].z - _an[0].z) * right.z, x0 = sep - gmin, eff = gmin + 0.5 * (x0 + Math.sqrt(x0 * x0 + soft * soft)), dd = (eff - sep) * sepK;
-        if (dd > 1e-4) { const pl0 = !globalThis.__plantHoldOld && this.lockF[0].on && !this.lockF[0].step, pl1 = !globalThis.__plantHoldOld && this.lockF[1].on && !this.lockF[1].step, k0 = pl0 ? 0 : dd * f0 / fs0, k1 = pl1 ? 0 : dd * f1 / fs0; _an[0].x -= right.x * k0; _an[0].z -= right.z * k0; _an[1].x += right.x * k1; _an[1].z += right.z * k1; this.feet[0].p.set(_an[0].x, 0, _an[0].z); this.feet[1].p.set(_an[1].x, 0, _an[1].z); } } }
+    const sepT = ((srvSt || serverWait) ? 0 : 1) * (1 - stK), sepK = this.sepK = !this.inited || dt <= 0 ? sepT : (this.sepK ?? 1) + (sepT - (this.sepK ?? 1)) * (1 - Math.exp(-dt * 10)); /* (and not strolling: the walk's feet are its own) */
+    if (this.inited && this.lpW && this.lpWPt === this.placedT && sepK > 0.001) { const pw0 = this.lpW, f0 = (1 - pw0[0]) ** 2, f1 = (1 - pw0[1]) ** 2, fs0 = f0 + f1;
+      if (fs0 > 0.02) { const gmin = 0.06 * H, soft = 0.04 * H, sep = (_an[1].x - _an[0].x) * right.x + (_an[1].z - _an[0].z) * right.z, x0 = sep - gmin, eff = gmin + 0.5 * (x0 + Math.sqrt(x0 * x0 + soft * soft)), dd = (eff - sep) * sepK;
+        if (dd > 1e-4) { const pl0 = this.lockF[0].on && !this.lockF[0].step, pl1 = this.lockF[1].on && !this.lockF[1].step, k0 = pl0 ? 0 : dd * f0 / fs0, k1 = pl1 ? 0 : dd * f1 / fs0; _an[0].x -= right.x * k0; _an[0].z -= right.z * k0; _an[1].x += right.x * k1; _an[1].z += right.z * k1; this.feet[0].p.set(_an[0].x, 0, _an[0].z); this.feet[1].p.set(_an[1].x, 0, _an[1].z); } } }
     if (this.dbgOn) for (let a = 0; a < 2; a++) (this.dbgFt || (this.dbgFt = {}))['s0' + a] = [+(_an[a].x - px).toFixed(3), +(_an[a].z - pz).toFixed(3)];
-    if (!globalThis.__footPassOld && this.inited) { const minD = (globalThis.__footSep ?? 0.13) * H, ap = this.ankAir || (this.ankAir = [V(), V()]), apOk = this.ankAirOk || (this.ankAirOk = [false, false]);
+    if (this.inited) { const minD = 0.13 * H, ap = this.ankAir || (this.ankAir = [V(), V()]), apOk = this.ankAirOk || (this.ankAirOk = [false, false]);
       for (let i = 0; i < 2; i++) { const a = _an[i], b = _an[1 - i], La = this.lockF[i], Lb = this.lockF[1 - i];
         const airA = !La.on || !!La.step, downB = Lb.on && !Lb.step;
-        const wB = !globalThis.__lpShareOld && this.lpW && this.lpWPt === this.placedT ? this.lpW[1 - i] : downB ? 1 : 0;   /* (by how planted the other foot is, eased: switched on and off as it landed and lifted, the passing foot was thrown a quarter of a metre sideways in a frame) */
+        const wB = this.lpW && this.lpWPt === this.placedT ? this.lpW[1 - i] : downB ? 1 : 0;   /* (by how planted the other foot is, eased: switched on and off as it landed and lifted, the passing foot was thrown a quarter of a metre sideways in a frame) */
         if (airA && wB > 0.01 && a.y - D.ankle < 0.25 * H) { const dx = a.x - b.x, dz = a.z - b.z, d = Math.hypot(dx, dz);
           if (d < minD) { let ux = 0, uz = 0; if (apOk[i]) { ux = a.x - ap[i].x; uz = a.z - ap[i].z; } let ul = Math.hypot(ux, uz); if (ul < 1e-4) { ux = p.vx; uz = p.vz; ul = Math.hypot(ux, uz); } if (ul < 1e-4) { ux = fwd.x; uz = fwd.z; ul = 1; } ux /= ul; uz /= ul;
             const nx = -uz, nz = ux, along = dx * ux + dz * uz; let side = dx * nx + dz * nz; if (Math.abs(side) < 0.01 * H) side = (nx * fwd.x + nz * fwd.z) >= 0 ? 1 : -1;
@@ -1378,7 +1389,7 @@ export class Figure {
             const want = Math.sqrt(Math.max(0, minD * minD - along * along)), cur = Math.max(0, (dx * nx + dz * nz) * sg);
             if (this.dbgOn) (this.dbgFt || (this.dbgFt = {}))['pr' + i] = [+side.toFixed(3), sideW[i], +along.toFixed(3), +d.toFixed(3), +wB.toFixed(2)];
             if (want > cur) { const k = (want - cur) * sg * Math.min(1, wB) * (1 - stK); a.x += nx * k; a.z += nz * k; this.feet[i].p.set(a.x, 0, a.z); this.dbgFP = { t: +t.toFixed(2), i, k: +k.toFixed(3), d: +d.toFixed(3) }; } } } }
-      for (let i = 0; i < 2; i++) { ap[i].copy(globalThis.__apPreOld ? _an[i] : lpPre[i]); apOk[i] = true; if (this.footSide && this.lockF[i].on && !this.lockF[i].step) this.footSide[i] = 0; } }   /* (the way a foot is going read from where the stride takes it, not where this pushed it: read with the push, a foot hovering by the other was pushed one way, read as going that way, and pushed back the other, flicking fifteen centimetres every frame) */
+      for (let i = 0; i < 2; i++) { ap[i].copy(lpPre[i]); apOk[i] = true; if (this.footSide && this.lockF[i].on && !this.lockF[i].step) this.footSide[i] = 0; } }/* (the way a foot is going read from where the stride takes it, not where this pushed it: read with the push, a foot hovering by the other was pushed one way, read as going that way, and pushed back the other, flicking fifteen centimetres every frame) */
     // upright, the legs carry the hips: as high as the leg on the ground allows with the knee just soft
     // (and in a stretch the hips go as low as it takes for both legs to reach the court: the trailing leg nearly straight, the
     // front knee bent deep over its foot)
@@ -1392,10 +1403,10 @@ export class Figure {
       // (the knee under the weight all but straight: at 0.982 of the leg's length it stayed bent twenty-two degrees, and every
       // player walked back to the line, and stood at it, in a crouch, like a man creeping; a walker's knee is near straight but for
       // the moment the weight comes on, which the foot landing ahead gives him here, the hips coming down to reach it)
-      let cap = 1e9; const L = (D.thigh + D.shank) * (globalThis.__walkStraightOld ? 0.982 : (globalThis.__walkReach ?? 0.995));
+      let cap = 1e9; const L = (D.thigh + D.shank) * 0.995;
       // (strolling, a foot up on its toes behind him counts too: left out, the hips rode too high for that leg to reach it as it
       // pushed off, and the planted foot was dragged along the court under him)
-      const liftMax = (0.035 + (globalThis.__strollToeOld ? 0 : 0.065 * stK)) * H;
+      const liftMax = (0.035 + (0.065 * stK)) * H;
       for (let i = 0; i < 2; i++) { if (this.feet[i].lift > liftMax) continue; const jh = LEG_J[i][0], hx = px + right.x * LP[jh * 3] * r + fwd.x * LP[jh * 3 + 2] * r, hz = pz + right.z * LP[jh * 3] * r + fwd.z * LP[jh * 3 + 2] * r, dh = Math.hypot(_an[i].x - hx, _an[i].z - hz); if (dh < L) cap = Math.min(cap, _an[i].y + Math.sqrt(L * L - dh * dh)); }
       if (cap < 1e8) wantY = lerp(wantY, Math.min(cap, D.hipY + 0.012 * H), upW);
     }
@@ -1403,7 +1414,7 @@ export class Figure {
     // (and always low enough for a planted foot to reach the court: in a wide stance, pulling up out of a run, the hips were
     // kept at standing height, the leg could not reach the foot held at its place, and the foot was drawn hanging in the air
     // up to a fifth of a metre above the court)
-    if (!globalThis.__noReachCap && !strolling) { let cap = 1e9; const L = (D.thigh + D.shank) * 0.985;
+    if (!strolling) { let cap = 1e9; const L = (D.thigh + D.shank) * 0.985;
       for (let i = 0; i < 2; i++) { if (!this.lockF[i].on) continue; const jh = LEG_J[i][0], hx = px + right.x * LP[jh * 3] * r + fwd.x * LP[jh * 3 + 2] * r, hz = pz + right.z * LP[jh * 3] * r + fwd.z * LP[jh * 3 + 2] * r, dh = Math.hypot(_an[i].x - hx, _an[i].z - hz);
         cap = Math.min(cap, _an[i].y + Math.sqrt(Math.max(0, L * L - dh * dh))); }
       // (only standing, shuffling or pulling up, and by no more than a hand's breadth: at a sprint the foot left behind is a
@@ -1421,17 +1432,17 @@ export class Figure {
     // than hips turn over planted feet; nothing is done with the feet close together, where their line means little.)
     // (the turn the shoulders' twist adds to the hips counted in: clamped first and turned after, a drop shot's take-back, whose
     // twist is large, still turned the hips past the feet and crossed the legs)
-    const hipV = cdir(J.lhip, J.rhip, _v4), hipTw = -this.twist * (pose.hipTurn == null ? 0.42 : pose.hipTurn), twFirst = !globalThis.__hipClampOld && !globalThis.__hipTwLateOld && this.inited;
+    const hipV = cdir(J.lhip, J.rhip, _v4), hipTw = -this.twist * (pose.hipTurn == null ? 0.42 : pose.hipTurn), twFirst = this.inited;
     if (twFirst) hipV.applyAxisAngle(UP, hipTw);
-    if (!globalThis.__hipClampOld && this.inited) { const fx = _an[1].x - _an[0].x, fz = _an[1].z - _an[0].z, fl = Math.hypot(fx, fz), w = sm((fl - 0.07 * H) / (0.06 * H));
-      if (w > 0.001) { const th = Math.atan2(fz * hipV.x - fx * hipV.z, fx * hipV.x + fz * hipV.z), mxA = (globalThis.__hipClampDeg ?? 80) * Math.PI / 180;
+    if (this.inited) { const fx = _an[1].x - _an[0].x, fz = _an[1].z - _an[0].z, fl = Math.hypot(fx, fz), w = sm((fl - 0.07 * H) / (0.06 * H));
+      if (w > 0.001) { const th = Math.atan2(fz * hipV.x - fx * hipV.z, fx * hipV.x + fz * hipV.z), mxA = 80 * Math.PI / 180;
         if (Math.abs(th) > mxA) hipV.applyAxisAngle(UP, -(th - Math.sign(th) * mxA) * w); } }
     const qPel = frameOf(hipV, _v5.copy(UP).lerp(spine, 0.35), _q1); if (!twFirst) qPel.multiply(_q3.setFromAxisAngle(UP, hipTw));
     // a stroke's own lean and side bend replace the clip's while it is being played
     // (and the lower the hips go, the more the trunk hinges forward over them, as a player's does getting down to a ball: the
     // hips lowered for a low ball or a wide stance with the chest left upright, from behind and above he sat on an invisible
     // chair through the take-back. About fifteen degrees of lean at four fifths of standing height, twenty-five at three quarters.)
-    const hipK = this.pelvisY / D.hipY, hinge = globalThis.__noHinge ? 0 : clamp((0.9 - hipK) / 0.16, 0, 1) * 0.46;
+    const hipK = this.pelvisY / D.hipY, hinge = clamp((0.9 - hipK) / 0.16, 0, 1) * 0.46;
     const leanT = ((pose.lean || 0) - clipLean) * strokeK, total = clipLean + leanT;
     this.lean = damp(this.lean, total < hinge ? leanT + (hinge - total) : leanT, 14, dt);
     const leanS = (pose.sideLean || 0) * hs * sw;
@@ -1442,9 +1453,9 @@ export class Figure {
     // bent into it. Up to about seven degrees for speed and six more while he is still speeding up, a little back while he
     // pulls up; none while a stroke is played at all (by its own weight, not the share it has of the pose: running into a take-back
     // at 7 m/s, the chest leant into the racket arm)
-    if (!globalThis.__runLeanOld) {
+    {
       if (speed > 0.5) { this.runDir = [p.vx / speed, p.vz / speed]; }
-      const lk = globalThis.__runLeanK ?? 1, tgt = live && this.runDir ? lk * (sm((speed - 2.5) / 3) * 0.12 + clamp(along / 6.8, -0.5, 1) * 0.1 * sm((speed - 0.5) / 1.5)) * (globalThis.__runLeanSk ? 1 - strokeK : 1 - sw) : 0;
+      const lk = 1, tgt = live && this.runDir ? lk * (sm((speed - 2.5) / 3) * 0.12 + clamp(along / 6.8, -0.5, 1) * 0.1 * sm((speed - 0.5) / 1.5)) * ((1 - sw)) : 0;
       this.runLean = this.inited ? damp(this.runLean || 0, tgt, 6, dt) : tgt;
       // (from the hips: the pelvis tips forward half as far, so the lean runs down the whole back, not a stoop at the chest)
       if (Math.abs(this.runLean) > 1e-3 && this.runDir) { _v6.set(this.runDir[1], 0, -this.runDir[0]); qChest.premultiply(_q3.setFromAxisAngle(_v6, this.runLean)); qPel.premultiply(_q3.setFromAxisAngle(_v6, this.runLean * 0.5)); }
@@ -1453,7 +1464,7 @@ export class Figure {
     // judged both by which way he faces and which way his chest does: in a turned take-back the two differ by a right angle)
     const backCap = (mv, h) => { const mz = _bcM.copy(sh[0]).add(sh[1]).multiplyScalar(0.5);
       for (const dir of [fwd, _bcF.set(0, 0, -1).applyQuaternion(qChest)]) { const fx = dir.x, fzz = dir.z, l = Math.hypot(fx, fzz); if (l < 1e-3) continue; const ux = fx / l, uz = fzz / l;
-        const fz = mv.x * ux + mv.z * uz; if (fz >= 0) continue; const f0 = (h.x - mz.x) * ux + (h.z - mz.z) * uz, back = Math.max(0, f0 - (globalThis.__backMin ?? 0.24)); if (-fz > back) { const d = -fz - back; mv.x += ux * d; mv.z += uz * d; } } };
+        const fz = mv.x * ux + mv.z * uz; if (fz >= 0) continue; const f0 = (h.x - mz.x) * ux + (h.z - mz.z) * uz, back = Math.max(0, f0 - 0.24); if (-fz > back) { const d = -fz - back; mv.x += ux * d; mv.z += uz * d; } } };
     // pose the trunk first: where the shoulders and hips end up is read back from the skeleton
     person.setTrunk(pelvis, qPel, qChest);
     const cRight = _v6.set(1, 0, 0).applyQuaternion(qChest), pRight = _v7.set(1, 0, 0).applyQuaternion(qPel);
@@ -1463,53 +1474,47 @@ export class Figure {
     // shins would come closer than two calves' thickness, the foot in the air is carried out to its own side by what is
     // missing. (At a run the swinging shin crossed the standing one a hand's height above the ankle, the ankles themselves
     // still well apart.) The foot on the court is never moved.
-    if (!globalThis.__legPassOld && this.inited) { const hp = [hipL, hipR], kq = [_lpK0, _lpK1], mn = (globalThis.__legPass ?? 0.12) * H;
+    if (this.inited) {
+      const hp = [hipL, hipR], kq = [_lpK0, _lpK1], mn = 0.12 * H;
       const segD = (p0, p1, q0, q1) => { let best = 9; for (let k = 0; k <= 6; k++) { const q = _lsA.copy(p0).lerp(p1, k / 6), ab = _lsB.copy(q1).sub(q0), tt = clamp(_lsC.copy(q).sub(q0).dot(ab) / Math.max(1e-6, ab.lengthSq()), 0, 1); best = Math.min(best, q.distanceTo(_lsC.copy(q0).addScaledVector(ab, tt))); } return best; };
       const knee = (i) => { const pl = _lpP.copy(fwd).addScaledVector(right, (i === 0 ? -1 : 1) * 0.2); return ik(hp[i], _an[i], D.thigh, D.shank, pl, kq[i]); };
       // (both in the air, in a sprint's flight or a jump, each goes half the way out to its own side)
       // (and how the way out is shared between the feet goes by how planted each is, eased over a few frames as a foot lands or
       // lifts, not switched: shared half and half with both up and all to the moving foot with one down, the share flipped as a
       // foot landed or lifted and the other was thrown a third of a metre in a frame)
-      if (!globalThis.__lpShareOld) { const pw = this.lpW || (this.lpW = [1, 1]), ke = 1 - Math.exp(-dt * (globalThis.__lpShareK ?? 30));
+      {
+        const pw = this.lpW || (this.lpW = [1, 1]), ke = 1 - Math.exp(-dt * 30);
         for (let a = 0; a < 2; a++) { const L0 = this.lockF[a], want = L0.on && !L0.step ? 1 : 0; pw[a] = this.lpWPt === this.placedT ? pw[a] + (want - pw[a]) * ke : want; } this.lpWPt = this.placedT;
         const f0 = 1 - pw[0], f1 = 1 - pw[1], fs = f0 + f1;
         if (this.dbgOn) (this.dbgFt || (this.dbgFt = {})).pw = [+pw[0].toFixed(2), +pw[1].toFixed(2)];
-        if (fs > 0.02) { const sh = [f0 / fs, f1 / fs];
+        if (fs > 0.02) {
+          const sh = [f0 / fs, f1 / fs];
           // (a foot down on the court is not moved by this at all, even while its weight is still easing in after it landed: moved, a
           // foot just set down slid a quarter of a metre; the other foot's share is left as it was, to grow as the weight eases)
-          if (!globalThis.__plantHoldOld) for (let a = 0; a < 2; a++) { const L0 = this.lockF[a]; if (L0.on && !L0.step) sh[a] = 0; }
-          for (let a = 0; a < 2; a++) { const L0 = this.lockF[a]; if (L0.step && L0.step.t < 0.33 && !globalThis.__stepOutOld && pw[1 - a] > 0.5) sh[a] *= Math.max(0.2, L0.step.t / 0.33); }
+          for (let a = 0; a < 2; a++)
+            { const L0 = this.lockF[a]; if (L0.on && !L0.step) sh[a] = 0; }
+          for (let a = 0; a < 2; a++) { const L0 = this.lockF[a]; if (L0.step && L0.step.t < 0.33 && pw[1 - a] > 0.5) sh[a] *= Math.max(0.2, L0.step.t / 0.33); }
           knee(0); knee(1); const dd = () => Math.min(segD(kq[0], _an[0], kq[1], _an[1]), segD(_lpM.copy(hp[0]).lerp(kq[0], 0.5), kq[0], _lpN.copy(hp[1]).lerp(kq[1], 0.5), kq[1])); let k = mn - dd();
           for (let it = 0; it < 3 && k > 0.002; it++) { for (const a of [0, 1]) { if (sh[a] < 1e-3) continue; const sx = a === 0 ? -1 : 1, rx = right.x * sx, rz = right.z * sx, l = Math.hypot(rx, rz) || 1; _an[a].x += rx / l * k * sh[a]; _an[a].z += rz / l * k * sh[a]; this.feet[a].p.set(_an[a].x, 0, _an[a].z); knee(a); } k = mn - dd(); }
-          if (this.dbgOn) (this.dbgFt || (this.dbgFt = {})).lp = { sh: sh.map(x => +x.toFixed(2)), right: [+right.x.toFixed(2), +right.z.toFixed(2)], kEnd: +k.toFixed(3) }; } }
-      else {
-      { const air0 = !this.lockF[0].on || !!this.lockF[0].step, air1 = !this.lockF[1].on || !!this.lockF[1].step;
-        if (air0 && air1) { knee(0); knee(1); const dd = () => Math.min(segD(kq[0], _an[0], kq[1], _an[1]), segD(_lpM.copy(hp[0]).lerp(kq[0], 0.5), kq[0], _lpN.copy(hp[1]).lerp(kq[1], 0.5), kq[1])); let k = mn - dd();
-          for (let it = 0; it < 3 && k > 0.002; it++) { for (const a of [0, 1]) { const sx = a === 0 ? -1 : 1, rx = right.x * sx, rz = right.z * sx, l = Math.hypot(rx, rz) || 1; _an[a].x += rx / l * k * 0.5; _an[a].z += rz / l * k * 0.5; this.feet[a].p.set(_an[a].x, 0, _an[a].z); knee(a); } k = mn - dd(); } } }
-      for (let a = 0; a < 2; a++) { const b = 1 - a, La = this.lockF[a], Lb = this.lockF[b]; if (!((!La.on || La.step) && Lb.on && !Lb.step)) continue;
-        knee(a); knee(b); const d = Math.min(segD(kq[a], _an[a], kq[b], _an[b]), segD(_lpM.copy(hp[a]).lerp(kq[a], 0.5), kq[a], _lpN.copy(hp[b]).lerp(kq[b], 0.5), kq[b]));
-        if (d < mn) { const sx = a === 0 ? -1 : 1, rx = right.x * sx, rz = right.z * sx, l = Math.hypot(rx, rz) || 1; let k = mn - d;
-          // (a foot only now lifting to step out from beside the other goes out over the first third of its step, not all in the
-          // frame it leaves the court: shoved the whole way at once it jumped seventeen centimetres as it lifted)
-          const kS = !globalThis.__stepOutOld && La.step && La.step.t < 0.33 ? Math.max(0.2, La.step.t / 0.33) : 1;
-          // (by steps, re-measured: the way out is to its own side, and how far depends on where the shins meet)
-          for (let it = 0; it < 3 && k > 0.002; it++) { k *= kS; _an[a].x += rx / l * k; _an[a].z += rz / l * k; this.feet[a].p.set(_an[a].x, 0, _an[a].z); knee(a); k = mn - Math.min(segD(kq[a], _an[a], kq[b], _an[b]), segD(_lpM.copy(hp[a]).lerp(kq[a], 0.5), kq[a], _lpN.copy(hp[b]).lerp(kq[b], 0.5), kq[b])); }
-          if (this.dbgOn) this.dbgLegPass = { t: +t.toFixed(2), a, d: +d.toFixed(3) }; } } } }
+          if (this.dbgOn) (this.dbgFt || (this.dbgFt = {})).lp = { sh: sh.map(x => +x.toFixed(2)), right: [+right.x.toFixed(2), +right.z.toFixed(2)], kEnd: +k.toFixed(3) };
+        }
+      }
+    }
     // (what that pass moved each foot by, kept for the frame after: a foot it carried round the other that then lands is put down
     // where it was drawn, not where the stride had it, across the other foot, a third of a metre away)
     if (this.dbgOn) for (let a = 0; a < 2; a++) (this.dbgFt || (this.dbgFt = {}))['s3' + a] = [+(_an[a].x - px).toFixed(3), +(_an[a].z - pz).toFixed(3)];
     // (and let go of no faster than about seven centimetres a frame, though taken up at once: what keeps the feet apart can vanish
     // in a frame, the other foot lifting or turning, and the foot it held out was dropped back across twenty centimetres; held out a
     // frame or two longer than it need be, the legs are only further apart)
-    { const lo = this.lpOff || (this.lpOff = [V(), V()]), mxR = (globalThis.__lpRel ?? 0.04) * H * Math.min(2, dt * 60);
+    { const lo = this.lpOff || (this.lpOff = [V(), V()]), mxR = 0.04 * H * Math.min(2, dt * 60);
       for (let a = 0; a < 2; a++) { const tx = _an[a].x - lpPre[a].x, tz = _an[a].z - lpPre[a].z, L0 = this.lockF[a];
-        if (globalThis.__lpRelOld || (L0.on && !L0.step) || this.lpPt !== this.placedT) { lo[a].set(tx, 0, tz); continue; }
+        if ((L0.on && !L0.step) || this.lpPt !== this.placedT) { lo[a].set(tx, 0, tz); continue; }
         // (taken up at once: capped even at eleven centimetres a frame, legs passing through each other went up by half across the
         // roster, tried 2026-11-19 and taken out)
         // (except a foot crossed over to the other's side, being put back on its own: that goes across at most about eleven
         // centimetres a frame, not through the other leg in one)
-        const sxA = a === 0 ? -1 : 1, latA = ((lpPre[a].x - lpPre[1 - a].x) * right.x + (lpPre[a].z - lpPre[1 - a].z) * right.z) * sxA, crossedA = !globalThis.__crossCapOld && latA < 0;
-        const out = Math.hypot(tx, tz) >= Math.hypot(lo[a].x, lo[a].z), mxA = out ? (globalThis.__lpOut != null ? globalThis.__lpOut * H * Math.min(2, dt * 60) : crossedA ? (globalThis.__crossCap ?? 0.08) * H * Math.min(2, dt * 60) : 1e9) : mxR;
+        const sxA = a === 0 ? -1 : 1, latA = ((lpPre[a].x - lpPre[1 - a].x) * right.x + (lpPre[a].z - lpPre[1 - a].z) * right.z) * sxA, crossedA = latA < 0;
+        const out = Math.hypot(tx, tz) >= Math.hypot(lo[a].x, lo[a].z), mxA = out ? (crossedA ? 0.08 * H * Math.min(2, dt * 60) : 1e9) : mxR;
         let dx = tx - lo[a].x, dz = tz - lo[a].z; const dl = Math.hypot(dx, dz); if (dl > mxA) { dx *= mxA / dl; dz *= mxA / dl; }
         lo[a].x += dx; lo[a].z += dz; _an[a].x = lpPre[a].x + lo[a].x; _an[a].z = lpPre[a].z + lo[a].z; this.feet[a].p.set(_an[a].x, 0, _an[a].z); }
       this.lpPt = this.placedT; }
@@ -1517,7 +1522,7 @@ export class Figure {
 
     // ---- hands ----
     // hitting hand R / off hand L in a right-hander's terms; mirrored for a left-hander
-    const hit = hs > 0 ? 1 : 0, off = 1 - hit, srvOff = !!st && st.kind === 'serve' && (globalThis.__srvOffOld || !(st.tc != null && t - st.tc > 0.6 && sw < 0.05));
+    const hit = hs > 0 ? 1 : 0, off = 1 - hit, srvOff = !!st && st.kind === 'serve' && (!(st.tc != null && t - st.tc > 0.6 && sw < 0.05));
     const tgt = _tg;
     W(pose.R[0] * hs, pose.R[1], pose.R[2], tgt[hit]);
     W(pose.L[0] * hs, pose.L[1], pose.L[2], tgt[off]); if (this.dbgOn) (this._keyOff || (this._keyOff = V())).copy(tgt[off]);
@@ -1526,7 +1531,7 @@ export class Figure {
     // that bent both arms, hands at the waist, elbows out behind: a gunslinger's stance from the camera behind him. (Eased in
     // and out; not in a reaction, which places its own hands, nor waiting to serve.)
     // (not while he is still running out the point: hanging straight down at a sprint, the free hand sat on his hip)
-    { const want = !live && !this.posed && !serverWait ? (1 - Math.max(this.reactK || 0, this.touchK || 0)) * (1 - sm(sw / 0.2)) * (1 - sm((speed - 2.0) / 1.5)) : 0, wH = clamp(ease(this, 'hangW', want, 13, dt), 0, 1) * (globalThis.__reactHangOld ? 1 : 1 - Math.max(this.reactK || 0, this.touchK || 0));   /* (and let go of with the reaction's own weight, not after it on its own spring: a fist pumped up to the chin was held 8 cm down by the hanging arm still letting go) */
+    { const want = !live && !this.posed && !serverWait ? (1 - Math.max(this.reactK || 0, this.touchK || 0)) * (1 - sm(sw / 0.2)) * (1 - sm((speed - 2.0) / 1.5)) : 0, wH = clamp(ease(this, 'hangW', want, 13, dt), 0, 1) * ((1 - Math.max(this.reactK || 0, this.touchK || 0)));   /* (and let go of with the reaction's own weight, not after it on its own spring: a fist pumped up to the chin was held 8 cm down by the hanging arm still letting go) */
       if (wH > 0.001) { const shs = [shL, shR]; for (let i = 0; i < 2; i++) { const hy = shs[i].y - (D.upper + D.fore) * 0.97; if (tgt[i].y > hy) tgt[i].y = lerp(tgt[i].y, hy, wH); } } }
     // running flat out, or strolling between points, the arms are the clip's own: they swing
     // (coming out of a stroke the arms are handed to the run as the stroke lets go of them, not at once below some mark, and
@@ -1537,8 +1542,8 @@ export class Figure {
     // steps to a volley is made with the racket held up in front in both hands, and pumping for each dart, the arms flicked
     // between the two at every step)
     const sustain = this.pumpSus;
-    const walkSv = serverWait && !globalThis.__srvStrollOld ? (this.srvWalkK || 0) : 0;   /* (walking to serve: the arms swing as they do strolling between points) */
-    const free = ease(this, 'armFree', strolling ? 1 - Math.max(this.reactK || 0, this.touchK || 0) : lerp(sm((speed - gP0) / (gP1 - gP0)) * sustain * (1 - sm(sw / 0.4)), 1, walkSv), strolling || walkSv > 0.5 ? 7 : this.sinceSw < 0.5 ? 8 : 19, dt);   /* (after a point the arms loosen slowly) */
+    const walkSv = serverWait ? (this.srvWalkK || 0) : 0; /* (walking to serve: the arms swing as they do strolling between points) */
+    const free = ease(this, 'armFree', strolling ? 1 - Math.max(this.reactK || 0, this.touchK || 0) : lerp(sm((speed - gP0) / (gP1 - gP0)) * sustain * (1 - sm(sw / 0.4)), 1, walkSv), strolling || walkSv > 0.5 ? 7 : this.sinceSw < 0.5 ? 8 : 19, dt); /* (after a point the arms loosen slowly) */
     const sh = [shL, shR], cEl = _el2, cWr = _wr2, CJ = ARM_J;
     // the way each knee bends (see below): a function, so either leg's can be had while the other is solved
     // (strolling, the knees bend the way the walk's feet go, in the walk's frame)
@@ -1561,22 +1566,24 @@ export class Figure {
     // behind runs straight through the body, and the hand and forearm were moved a third of a metre into it; the move is cut
     // back to the most that leaves the hand a forearm's thickness outside the trunk)
     const inTrunk = (q) => { const mz = _stM.copy(sh[0]).add(sh[1]).multiplyScalar(0.5), ax = _stA.copy(mz).sub(pelvis), L = ax.length(); if (L < 1e-3) return false; ax.multiplyScalar(1 / L);
-      const rel = _stR.copy(q).sub(pelvis), al = rel.dot(ax); if (al < -(globalThis.__stBelow ?? 0.16) || al > L * 1.05) return false; const rt = _stX.copy(sh[1]).sub(sh[0]); rt.addScaledVector(ax, -rt.dot(ax)); const shW = rt.length(); if (shW < 1e-3) return false; rt.multiplyScalar(1 / shW);
-      const fw = _stF.copy(ax).cross(rt), dx = rel.dot(rt), dz = rel.dot(fw), mg = globalThis.__stMargin ?? 0.13, a = shW * 0.39 + mg, b = (dz > 0 ? shW * 0.25 : shW * 0.32) + mg; return Math.hypot(dx / a, dz / b) < 1; };
+      const rel = _stR.copy(q).sub(pelvis), al = rel.dot(ax); if (al < -0.16 || al > L * 1.05) return false; const rt = _stX.copy(sh[1]).sub(sh[0]); rt.addScaledVector(ax, -rt.dot(ax)); const shW = rt.length(); if (shW < 1e-3) return false; rt.multiplyScalar(1 / shW);
+      const fw = _stF.copy(ax).cross(rt), dx = rel.dot(rt), dz = rel.dot(fw), mg = 0.13, a = shW * 0.39 + mg, b = (dz > 0 ? shW * 0.25 : shW * 0.32) + mg; return Math.hypot(dx / a, dz / b) < 1; };
     // (and a hand that starts already within the margin, by the hip at the start of a forehand, may not be taken any deeper
     // than it is: skipped as already inside, a ball jammed into the body took the forehand swing half a metre across through
     // the stomach, the hand in front of the navel and the elbow in his side)
     const trunkE = (q) => { const mz = _stM.copy(sh[0]).add(sh[1]).multiplyScalar(0.5), ax = _stA.copy(mz).sub(pelvis), L = ax.length(); if (L < 1e-3) return 9; ax.multiplyScalar(1 / L);
-      const rel = _stR.copy(q).sub(pelvis), al = rel.dot(ax); if (al < -(globalThis.__stBelow ?? 0.16) || al > L * 1.05) return 9; const rt = _stX.copy(sh[1]).sub(sh[0]); rt.addScaledVector(ax, -rt.dot(ax)); const shW = rt.length(); if (shW < 1e-3) return 9; rt.multiplyScalar(1 / shW);
-      const fw = _stF.copy(ax).cross(rt), dx = rel.dot(rt), dz = rel.dot(fw), mg = globalThis.__stMargin ?? 0.13, a = shW * 0.39 + mg, b = (dz > 0 ? shW * 0.25 : shW * 0.32) + mg; return Math.hypot(dx / a, dz / b); };
-    const shiftClear = (mv, h) => { if (globalThis.__shiftClearOld) return; const e0 = trunkE(h), need = globalThis.__shiftDeepOld ? 1 : Math.min(1, e0); if (globalThis.__shiftDeepOld && e0 < 1) return;
-      if (trunkE(_stQ.copy(h).add(mv)) >= need - 1e-4) return; let lo = 0, hi = 1; for (let it = 0; it < 7; it++) { const sv = (lo + hi) / 2; if (trunkE(_stQ.copy(h).addScaledVector(mv, sv)) < need - 1e-4) hi = sv; else lo = sv; } mv.multiplyScalar(lo); };
+      const rel = _stR.copy(q).sub(pelvis), al = rel.dot(ax); if (al < -0.16 || al > L * 1.05) return 9; const rt = _stX.copy(sh[1]).sub(sh[0]); rt.addScaledVector(ax, -rt.dot(ax)); const shW = rt.length(); if (shW < 1e-3) return 9; rt.multiplyScalar(1 / shW);
+      const fw = _stF.copy(ax).cross(rt), dx = rel.dot(rt), dz = rel.dot(fw), mg = 0.13, a = shW * 0.39 + mg, b = (dz > 0 ? shW * 0.25 : shW * 0.32) + mg; return Math.hypot(dx / a, dz / b); };
+    const shiftClear = (mv, h) => {
+      const e0 = trunkE(h), need = Math.min(1, e0);
+      if (trunkE(_stQ.copy(h).add(mv)) >= need - 1e-4) return; let lo = 0, hi = 1; for (let it = 0; it < 7; it++) { const sv = (lo + hi) / 2; if (trunkE(_stQ.copy(h).addScaledVector(mv, sv)) < need - 1e-4) hi = sv; else lo = sv; } mv.multiplyScalar(lo);
+    };
     // how much of the runner's arm swing the racket arm takes: all of it strolling, about half flat out
     // (eased: from strolling between points to the ready position it went from all of it to half in a frame)
-    const carry = this.posed ? 0 : clamp(ease(this, 'carryE', strolling ? 1 : lerp(0.12 + (globalThis.__runCarryOld ? 0.38 : 0.2) * free, 1, walkSv), 12, dt), 0, 1);   /* (the racket arm swings less than the free one at a run) */
+    const carry = this.posed ? 0 : clamp(ease(this, 'carryE', strolling ? 1 : lerp(0.12 + 0.2 * free, 1, walkSv), 12, dt), 0, 1); /* (the racket arm swings less than the free one at a run) */
     // waiting to serve, the ball hand works in front of him at the waist (the keyed bounce), not where his tracked
     // address clip lets it hang at his side, where the ball is lost against his leg
-    this.addrHandW = damp(this.addrHandW || 0, serverWait && m.ball && m.ball.held === p.i ? 1 - (globalThis.__srvStrollOld ? 0.7 : 1) * (this.srvWalkK || 0) : 0, 10, dt);   /* (walking, the ball hand hangs at his side with the ball in it) */
+    this.addrHandW = damp(this.addrHandW || 0, serverWait && m.ball && m.ball.held === p.i ? 1 - 1 * (this.srvWalkK || 0) : 0, 10, dt); /* (walking, the ball hand hangs at his side with the ball in it) */
     // and the racket arm holds the racket in front of him (head down while he bounces, then pointing at the box at the
     // address), not hanging at his side as the tracked serve starts; it gives way to the clip as the toss begins
     this.addrArmW = damp(this.addrArmW || 0, serverWait ? 1 - (this.srvWalkK || 0) : 0, serverWait ? 10 : 5, dt);
@@ -1584,7 +1591,7 @@ export class Figure {
     // keys hold it, not where the clip's first moments have it, hanging by his hip as the man stood waiting: Lendl's forehand
     // started at a sprint with his free hand on his hip)
     const runEarly = st && !/^(serve|smash)$/.test(st.kind) ? sm((speed - 2.0) / 1.5) * (1 - sm5((u + 0.62) / 0.16)) : 0;
-    const freeA = free * (1 - sm(swA / 0.4)), freeOf = i => Math.max(freeA * (i === hit ? carry : 1), (i === hit ? armW : clipWA * (1 - runEarly)) * (1 - (i === hit ? this.addrArmW : this.addrHandW)));   /* (in a stroke the running arms are gone at once: the hands' entry carries them) */
+    const freeA = free * (1 - sm(swA / 0.4)), freeOf = i => Math.max(freeA * (i === hit ? carry : 1), (i === hit ? armW : clipWA * (1 - runEarly)) * (1 - (i === hit ? this.addrArmW : this.addrHandW))); /* (in a stroke the running arms are gone at once: the hands' entry carries them) */
     this.lastFreeA = Math.max(freeA, free * (1 - sm(sw / 0.4)));
     _keyHand.copy(tgt[hit]);                                    // where the stroke's keys put the hitting hand, before the clip moves it
     // running flat out the arms swing as a runner's do, whichever way the legs are going: a sideways run's
@@ -1607,7 +1614,8 @@ export class Figure {
         if (pp.lengthSq() > 1e-6) { pp.normalize(); const th = Math.acos(clamp(need, -1, 1)); fd.copy(ud).multiplyScalar(Math.cos(th)).addScaledVector(pp, Math.sin(th)); } }
       // (the free arm running back into position carries itself: a third of the way it stays with the ready position's
       // hold, so it swings less than a sprinter's; flat out, a sprinter's swing from the clip would flail round the body)
-      cWr[i].copy(cEl[i]).addScaledVector(fd, Fl); let fw = freeOf(i); if (i === off && !strolling && swA < 0.4) fw = Math.min(fw, 1 - 0.35 * free * (1 - sm(swA / 0.4))); if (!globalThis.__reactHangOld) fw *= 1 - (this.reactK || 0); if (fw > 0.001) tgt[i].lerp(cWr[i], fw); }   /* (a reaction places both hands itself: the arms' loosening after the rally took 4 cm off the top of a fist pump) */
+      cWr[i].copy(cEl[i]).addScaledVector(fd, Fl); let fw = freeOf(i); if (i === off && !strolling && swA < 0.4) fw = Math.min(fw, 1 - 0.35 * free * (1 - sm(swA / 0.4))); fw *= 1 - (this.reactK || 0); if (fw > 0.001) tgt[i].lerp(cWr[i], fw);
+    }/* (a reaction places both hands itself: the arms' loosening after the rally took 4 cm off the top of a fist pump) */
     if (this.dbgOn) this.dbg = { cWr: cWr.map(v => v.clone()), cEl: cEl.map(v => v.clone()), tgt1: tgt.map(v => v.clone()), freeOff: freeOf(off), armW, clipWA, sh: sh.map(v => v.clone()), keyH: _keyHand.clone(), keyOff: this._keyOff ? this._keyOff.clone() : null, free, rw, freeA, carry, swA, sw, clipFeet: Math.hypot(LP[J.lankle * 3] - LP[J.rankle * 3], LP[J.lankle * 3 + 2] - LP[J.rankle * 3 + 2]) * H, clipW, locks: this.lockF.map(l => (l.on ? 'on' : l.step ? 'step' : 'air')), cR: cRight.clone(), cU: _v9.set(0, 1, 0).applyQuaternion(qChest).clone() };
     // Both hands on one handle: the clip's two wrists are two measurements of where that handle is (the tracker often
     // has one of them, hidden behind the body, a hand's length or more out), so the bottom hand goes where the two agree
@@ -1687,7 +1695,7 @@ export class Figure {
       // (the tuck at the end is in front of the stomach as the chest faces then, near the middle: placed by the hips, with
       // the chest still turned from the swing, it put the hand beside the hip, and from behind he stood hand on hip)
       const cUt = _v6b.set(0, 1, 0).applyQuaternion(qChest), cFt = _v6c.copy(cUt).cross(cRight).normalize();
-      const P3 = _c.copy(chest).addScaledVector(cUt, -0.40 * H).addScaledVector(cFt, 0.25 * H).addScaledVector(cRight, (off === 1 ? 1 : -1) * (globalThis.__tuckX ?? -0.05) * H);   /* (across the middle of the stomach, the elbow in by the side: tucked on its own side the elbow stood out, and from behind it was a hand on the hip) */   /* (a forearm's length out from the shoulder all the way: brought down closer, it passed the shoulder joint as the trunk turned and the hand jumped round it) */
+      const P3 = _c.copy(chest).addScaledVector(cUt, -0.40 * H).addScaledVector(cFt, 0.25 * H).addScaledVector(cRight, (off === 1 ? 1 : -1) * -0.05 * H);   /* (across the middle of the stomach, the elbow in by the side: tucked on its own side the elbow stood out, and from behind it was a hand on the hip) */   /* (a forearm's length out from the shoulder all the way: brought down closer, it passed the shoulder joint as the trunk turned and the hand jumped round it) */
       const k1 = sm((su + 0.24) / 0.14), k2 = sm((su + 0.10) / 0.12), k3 = sm((su - 0.02) / 0.23);
       const want = _v5.copy(aim).lerp(P1, k1).lerp(P2, k2).lerp(P3, k3);
       // (held tucked only through the landing: kept there past a third of a second, from behind the bent arm with its hand hidden
@@ -1726,7 +1734,7 @@ export class Figure {
           // (and swinging back, it stays out at the width of his shoulder, beside the hip, not drawn in toward his middle, where the
           // trunk is and it was sent forward again; its elbow goes straight back, not out. The trunk's margin for it is 3 cm, not 5: at
           // 1.2 the upper arm grazed his side at a sprint as the shoulders turned against the hips)
-          const rK = globalThis.__armSwingOld ? 0 : sm((speed - 2.6) / 2.0) * (1 - sm(sw / 0.3)), zMin = 0.22 - (globalThis.__flail2Old ? 0.30 : 0.22) * rK, xMax = -0.06 + 0.07 * rK; this.runSwingK = rK * band / Math.max(1e-6, zw);
+          const rK = sm((speed - 2.6) / 2.0) * (1 - sm(sw / 0.3)), zMin = 0.22 - 0.22 * rK, xMax = -0.06 + 0.07 * rK; this.runSwingK = rK * band / Math.max(1e-6, zw);
           tgt[off].addScaledVector(cF, soft(zMin - z) * band).addScaledVector(oU, -soft(x - xMax) * band); }
         if (this.dbgOn && this.dbg) { this.dbg.zw = zw; this.dbg.band = band; }
         // (and the racket hand, carried on a run, in front of the stomach toward the middle, as the racket is carried: left level
@@ -1780,7 +1788,7 @@ export class Figure {
     // A forehand's turn: the free hand, off the racket, comes up and forward with the shoulders to point across at the ball, at
     // about the chest. (Left low in front of the waist, as some of the tracked swings carry it, the forearm was hidden by the
     // body from behind and the elbow stood out at his side: a hand on the hip.)
-    if (st && st.wing === 'fh' && !/^(serve|smash|volley|block)$/.test(st.__dk || st.kind) && !this.posed && !globalThis.__noTurnArm) {
+    if (st && st.wing === 'fh' && !/^(serve|smash|volley|block)$/.test(st.__dk || st.kind) && !this.posed) {
       const wT = sm5((u + 0.98) / 0.16) * (1 - sm5((u + 0.32) / 0.14)) * swA * (1 - (this.gripW || 0));
       if (wT > 0.001) { const cU = _rc2.set(0, 1, 0).applyQuaternion(qChest), cF = _hu2.copy(cU).cross(cRight).normalize(), d = _rc1.copy(tgt[off]).sub(sh[off]), hy = d.dot(cU), hz = d.dot(cF);
         if (hy < -0.28) tgt[off].addScaledVector(cU, (-0.28 - hy) * wT);
@@ -1806,16 +1814,17 @@ export class Figure {
       // finish over the far shoulder in the keys and one beside the head in the clip (Agassi's), and the least change in
       // either swung the axis round and the racket with it, sixty degrees a frame. There the turn of the frame before is
       // carried on by how much each arm moved since, which can't spin; the shortest turn as before where they are closer.)
-      if (!globalThis.__carryPtOld) {
+      {
         const ang = Math.acos(clamp(kfa.dot(fa), -1, 1)), pt = this.carryPt || (this.carryPt = { q: new THREE.Quaternion(), kfa: V(), fa: V(), ok: false, st: null, pt: null });
         // (and the turn of the frame before goes over to the shortest one no faster than the arms themselves moved, and a few
         // degrees a frame besides: where the two agree that is at once, as before; where they had parted, near opposite, the
         // racket turns back round the arm over a few frames instead of flicking round it in one)
         if (pt.ok && pt.st === st && pt.pt === this.placedT) { const qt = _qPt.setFromUnitVectors(pt.fa, fa).multiply(pt.q).multiply(_qPt2.setFromUnitVectors(pt.kfa, kfa).invert());
-          const mxA = (globalThis.__carryRate ?? 0.14) * dt * 60 + Math.acos(clamp(pt.fa.dot(fa), -1, 1)) + Math.acos(clamp(pt.kfa.dot(kfa), -1, 1));
+          const mxA = 0.14 * dt * 60 + Math.acos(clamp(pt.fa.dot(fa), -1, 1)) + Math.acos(clamp(pt.kfa.dot(kfa), -1, 1));
           if (qt.angleTo(q) > mxA) q.copy(qt.rotateTowards(q, mxA)); }
         if (this.dbgOn) this.dbgCarry = { ang: +ang.toFixed(2), ok: pt.ok && pt.st === st, w: +armW.toFixed(2), kfa: kfa.clone(), fa: fa.clone() };
-        pt.q.copy(q); pt.kfa.copy(kfa); pt.fa.copy(fa); pt.ok = true; pt.st = st; pt.pt = this.placedT; }
+        pt.q.copy(q); pt.kfa.copy(kfa); pt.fa.copy(fa); pt.ok = true; pt.st = st; pt.pt = this.placedT;
+      }
       // (part of the turn, not a straight blend of each direction: blended straight, the face's normal passed through nothing
       // half way where the two faces were near opposite, and the racket, the hand round it, and both arms with it on a
       // two-hander, rolled over in a frame as a clip handed its finish back to the keys)
@@ -1827,12 +1836,7 @@ export class Figure {
       // (and so is a lob's, a slice's or a drop's as his own drive's take-back is let go of for the shot's keys: Djokovic's
       // drive drops the racket head behind him where a slice's keys hold it up, and the racket flipped over in six frames)
       const hu0 = this.ocHoldU, tb0 = this.ocTbU, wq = armW * carryK;
-      // (and as the clip is let go of after the hit for any reason, a player moving off to recover: carried on while the keys'
-      // arm went back to ready on its own, the racket turned twice as fast as either, sixty degrees a frame)
-      // (no longer held as a moving player's clip is let go of: the final turn limit below catches the loops this was for, and
-      // held, the racket pointed back while the arm came up and forward, and had to be wrenched round his head to catch up)
-      const letGo = !!globalThis.__letGoOn && st.tc != null && t - st.tc > 0.2 && wq < 0.97;
-      if (!globalThis.__holdRkOld && ((hu0 != null && u > hu0) || (tb0 != null && u > tb0) || letGo) && !(st.kind === 'serve' || st.kind === 'smash')) {
+      if (((hu0 != null && u > hu0) || (tb0 != null && u > tb0)) && !(st.kind === 'serve' || st.kind === 'smash')) {
         const hz = this.holdRk || (this.holdRk = { st: null, pt: null, d: V(), n: V() }), qi = _hzQ.copy(qYaw).invert();
         // (kept in the body's frame, so it turns with him if he turns while it is held)
         if (hz.st !== st || hz.pt !== this.placedT) { hz.d.copy(dir).applyQuaternion(q).applyQuaternion(qi).normalize(); hz.n.copy(nrm).applyQuaternion(q).applyQuaternion(qi).normalize(); hz.st = st; hz.pt = this.placedT; }
@@ -1841,11 +1845,13 @@ export class Figure {
         // (carried from the frame before as the two directions move, and eased onto the shortest turn as the carry above is:
         // a held finish wrapped round the neck and the keys' racket at ready are near opposite, and the shortest way between
         // swung round with every few degrees the keys moved, the racket swept over his head at forty degrees a frame)
-        if (!globalThis.__hzPtOld) { const hb = hz.tr || (hz.tr = { q: new THREE.Quaternion(), d0: V(), h0: V(), ok: false, st: null });
+        {
+          const hb = hz.tr || (hz.tr = { q: new THREE.Quaternion(), d0: V(), h0: V(), ok: false, st: null });
           if (hb.ok && hb.st === st && dt > 0) { const qt = _qT1.setFromUnitVectors(hb.h0, hd).multiply(hb.q).multiply(_qT2.setFromUnitVectors(hb.d0, dir).invert());
-            const mxA = (globalThis.__carryRate ?? 0.14) * dt * 60 + Math.acos(clamp(hb.h0.dot(hd), -1, 1)) + Math.acos(clamp(hb.d0.dot(dir), -1, 1));
+            const mxA = 0.14 * dt * 60 + Math.acos(clamp(hb.h0.dot(hd), -1, 1)) + Math.acos(clamp(hb.d0.dot(dir), -1, 1));
             if (qt.angleTo(rq) > mxA) rq.copy(qt.rotateTowards(rq, mxA)); }
-          hb.q.copy(rq); hb.d0.copy(dir); hb.h0.copy(hd); hb.ok = true; hb.st = st; }
+          hb.q.copy(rq); hb.d0.copy(dir); hb.h0.copy(hd); hb.ok = true; hb.st = st;
+        }
         const n1 = _hzN.copy(nrm).applyQuaternion(rq), ax = _hzK2.copy(dir).applyQuaternion(rq).normalize();
         const a1 = n1.addScaledVector(ax, -n1.dot(ax)), a2 = _hzM.copy(hn).addScaledVector(ax, -hn.dot(ax)); let tw = 0;
         if (a1.lengthSq() > 1e-8 && a2.lengthSq() > 1e-8) { a1.normalize(); a2.normalize(); tw = Math.atan2(_hzK.copy(a1).cross(a2).dot(ax), clamp(a1.dot(a2), -1, 1)); }
@@ -1859,13 +1865,13 @@ export class Figure {
     // A forehand finished over the head (the clip's `lasso`, motion.js): the racket hangs behind his head, pointing back and a
     // little across, as the footage has Nadal's. Carried by the forearm from the shared keys, made for a finish across the body,
     // it pointed straight out from the raised hand, away from his head.
-    if (OC && OC.lasso && armW > 0.001 && st && st.wing === 'fh' && !globalThis.__lassoOld) {
+    if (OC && OC.lasso && armW > 0.001 && st && st.wing === 'fh') {
       const x = Math.min(OC.n - 1, Math.max(0, (cu - OC.u0) * OC.fps)), i = Math.min(OC.n - 2, Math.floor(x)), lw = (OC.lasso[i] + (OC.lasso[i + 1] - OC.lasso[i]) * (x - i)) * armW;
       if (lw > 0.001) { const cf = _laF.set(0, 0, -1).applyQuaternion(qChest), tg = _laT.copy(cf).multiplyScalar(-0.85).addScaledVector(cRight, (hs > 0 ? 1 : -1) * -0.3).addScaledVector(UP, 0.2).normalize();
         const d0 = _laD.copy(dir); dir.lerp(tg, lw).normalize(); nrm.applyQuaternion(_laQ.setFromUnitVectors(d0, dir)).normalize(); } }
     // ...and a two-handed backhand's finish over the far shoulder: the racket behind his head, up and back over that shoulder (from
     // the shared keys' finish it stood straight up over his head, in front of his face)
-    if (OC && OC.wrap && armW > 0.001 && st && st.wing === 'bh' && !globalThis.__bhWrapOld) {
+    if (OC && OC.wrap && armW > 0.001 && st && st.wing === 'bh') {
       const x = Math.min(OC.n - 1, Math.max(0, (cu - OC.u0) * OC.fps)), i = Math.min(OC.n - 2, Math.floor(x)), lw = (OC.wrap[i] + (OC.wrap[i + 1] - OC.wrap[i]) * (x - i)) * armW;
       if (lw > 0.001) { const cf = _laF.set(0, 0, -1).applyQuaternion(qChest), tg = _laT.copy(cf).multiplyScalar(-0.62).addScaledVector(cRight, (hs > 0 ? 1 : -1) * 0.38).addScaledVector(UP, 0.55).normalize();
         const d0 = _laD.copy(dir); dir.lerp(tg, lw).normalize(); nrm.applyQuaternion(_laQ.setFromUnitVectors(d0, dir)).normalize(); } }
@@ -1925,7 +1931,7 @@ export class Figure {
         const shP = cShC || sh[hit], vA = _rv1.copy(nomHead).sub(shP), vl = vA.length(), vh = Math.hypot(vA.x, vA.z);
         let rotTh = 0;
         // (the height wanted is from his own shoulder as it is, lower when the legs have taken part of a low ball)
-        if (vl > 0.2 && vh > 0.05 && !globalThis.__noRot) { const e0 = Math.atan2(vA.y, vh), e1 = Math.asin(clamp((cpE.y - sh[hit].y) / vl, -0.95, 0.95)); rotTh = clamp(e1 - e0, -0.62, 0.35); }
+        if (vl > 0.2 && vh > 0.05) { const e0 = Math.atan2(vA.y, vh), e1 = Math.asin(clamp((cpE.y - sh[hit].y) / vl, -0.95, 0.95)); rotTh = clamp(e1 - e0, -0.62, 0.35); }
         // (through the forward swing, as the racket comes to the ball: begun with the take-back, the dropped racket was swung on
         // down to hang straight at the shins before every low ball)
         const wr = sm5((uu + lerp(0.3, 0.7, setK)) / lerp(0.26, 0.4, setK)) * (1 - sm5((uu - 0.05) / 0.32)) * sw, th = rotTh * wr;
@@ -1939,7 +1945,7 @@ export class Figure {
         // (the hand goes no more than 40 cm toward it, 35 up or down: a ball further off is met by tilting the racket at
         // the wrist and the legs taking the height, below; asked to go a metre, the hand was hauled down by the ankles and
         // both arms went straight through the body to follow it)
-        _v9.y = globalThis.__noRot ? clamp(_v9.y, -0.35, 0.3) : clamp(_v9.y, -0.2, 0.2); if (_v9.length() > 0.4) _v9.setLength(0.4);
+        _v9.y = clamp(_v9.y, -0.2, 0.2); if (_v9.length() > 0.4) _v9.setLength(0.4);
         // (down toward a low ball only as the racket comes forward to it: lowered through the whole take-back too, the bottom of
         // the loop was pushed into the court and the racket dragged along it before every low forehand)
         if (_v9.y < 0) _v9.y *= lerp(0.35, 1, sm5((uu + lerp(0.32, 0.7, setK)) / 0.24));
@@ -1949,15 +1955,15 @@ export class Figure {
         // stretch for one still out of reach, it reaches all the same)
         // (but not at a ball that goes by two metres and more off, swung at and missed: reached the whole forty centimetres toward
         // one passing thirteen metres away, a forehand's finish was dragged across and the arm folded into the chest)
-        const gH = Math.hypot(this.metGap.x, this.metGap.z), farK = globalThis.__farOld ? 1 : lerp(1 - sm((gH - 0.9) / 0.7), globalThis.__whiffOld ? 1 : 1 - sm((gH - 1.8) / 1.2), sm5((uu + 0.12) / 0.1));
+        const gH = Math.hypot(this.metGap.x, this.metGap.z), farK = lerp(1 - sm((gH - 0.9) / 0.7), 1 - sm((gH - 1.8) / 1.2), sm5((uu + 0.12) / 0.1));
         _v9.set(_v9.x * wh * farK, _v9.y * w, _v9.z * wh * farK);
         // (and after the ball, none of it back toward the body: the finish wraps the hands round close to the chest, and a swing moved
         // a fifth of a metre back for a ball met deep, kept moved through the finish, put a two-hander's arms into it)
-        if (!globalThis.__finShiftOld && uu > 0) { const fz = _v9.x * fwd.x + _v9.z * fwd.z; if (fz < 0) { const k = sm5(uu / 0.1); _v9.x -= fwd.x * fz * k; _v9.z -= fwd.z * fz * k; } }
+        if (uu > 0) { const fz = _v9.x * fwd.x + _v9.z * fwd.z; if (fz < 0) { const k = sm5(uu / 0.1); _v9.x -= fwd.x * fz * k; _v9.z -= fwd.z * fz * k; } }
         // (and back toward the body no further than leaves the hand a forearm in front of the chest: a ball taken at the body or
         // late, the swing moved back a third of a metre toward it, and the hands and forearms went into the chest; a volley at
         // the body is played with the racket in front and the elbows out, the ball met close to the strings' throat)
-        if (!globalThis.__backCapOld) backCap(_v9, tgt[hit]);
+        backCap(_v9, tgt[hit]);
         const sK = (st.tc != null ? 1 : 0) + (st.cp === cpE ? 0 : 2), sO = this.shOff;
         if (this.shK !== sK) { sO.copy(this.shPrev).sub(_v9); this.shOffT = t; this.shOffD = st.tc != null ? clamp((st.tc - t) * 0.8, 0.06, 0.15) : 0.15; }
         this.shK = sK; shRan = true;
@@ -1970,7 +1976,9 @@ export class Figure {
         // nearer the ball, not the racket arm alone)
         // (but not back toward the body, a hand that holds nothing: a ball met late behind him took the swing back a quarter of a
         // metre, and the free hand out in front of the chest was taken back into it)
-        { const sF = _shF.copy(_v9).multiplyScalar(0.5 + 0.5 * (this.gripW || 0)); if (!globalThis.__freeBackOld) { const fz = sF.x * fwd.x + sF.z * fwd.z, g = 1 - (this.gripW || 0); if (fz < 0) { sF.x -= fwd.x * fz * g; sF.z -= fwd.z * fz * g; } } tgt[off].add(sF); }
+        {
+          const sF = _shF.copy(_v9).multiplyScalar(0.5 + 0.5 * (this.gripW || 0)); { const fz = sF.x * fwd.x + sF.z * fwd.z, g = 1 - (this.gripW || 0); if (fz < 0) { sF.x -= fwd.x * fz * g; sF.z -= fwd.z * fz * g; } } tgt[off].add(sF);
+        }
         if (this.dbgOn && this.dbg && Math.abs(uu) < 0.009) this.dbg.shift = { kind: st.kind, wing: st.wing, x: _v9.dot(right), y: _v9.y, z: _v9.dot(fwd), clip: !!(OC && armW > 0.001) };
       }
     }
@@ -2013,8 +2021,8 @@ export class Figure {
       // (and the way it is carried goes round the front of the trunk, not through it: carried straight, in the frame of where he
       // faces while the trunk turned side-on for the take-back, a hand taken from the running arm's place by one hip to a slice's
       // set-up by the other shoulder went through the middle of his chest, ten centimetres deep)
-      if (k > 0.001) { for (let i = 0; i < 2; i++) { const o = this.inOff[i], ki = kk[i]; const e0 = globalThis.__inRoundOld ? 9 : trunkE(tgt[i]); tgt[i].addScaledVector(right, o.x * ki).addScaledVector(UP, o.y * ki).addScaledVector(fwd, o.z * ki);
-          if (!globalThis.__inRoundOld && ki > 0.001) { const need = Math.min(1, e0); if (trunkE(tgt[i]) < need - 1e-3) { const fwT = _inF.copy(_stF), T0 = _inT.copy(tgt[i]); let lo = 0, hi = 0.6; if (trunkE(_stQ.copy(T0).addScaledVector(fwT, hi)) < need - 1e-3) lo = hi; else for (let it = 0; it < 8; it++) { const mid = (lo + hi) / 2; if (trunkE(_stQ.copy(T0).addScaledVector(fwT, mid)) < need - 1e-3) lo = mid; else hi = mid; } tgt[i].addScaledVector(fwT, hi); } } }
+      if (k > 0.001) { for (let i = 0; i < 2; i++) { const o = this.inOff[i], ki = kk[i]; const e0 = trunkE(tgt[i]); tgt[i].addScaledVector(right, o.x * ki).addScaledVector(UP, o.y * ki).addScaledVector(fwd, o.z * ki);
+          if (ki > 0.001) { const need = Math.min(1, e0); if (trunkE(tgt[i]) < need - 1e-3) { const fwT = _inF.copy(_stF), T0 = _inT.copy(tgt[i]); let lo = 0, hi = 0.6; if (trunkE(_stQ.copy(T0).addScaledVector(fwT, hi)) < need - 1e-3) lo = hi; else for (let it = 0; it < 8; it++) { const mid = (lo + hi) / 2; if (trunkE(_stQ.copy(T0).addScaledVector(fwT, mid)) < need - 1e-3) lo = mid; else hi = mid; } tgt[i].addScaledVector(fwT, hi); } } }
         _iq2.identity().slerp(this.inQ, k); dir.applyQuaternion(_iq2).normalize(); nrm.applyQuaternion(_iq2).normalize(); }
     }
     // Last of all, wherever the targets came from (the keys, his clip, a stroke let go of and blended into the run by how much is
@@ -2023,18 +2031,20 @@ export class Figure {
     // racket hand blended from by the far shoulder to its running place by the near hip, straight through the middle of him, and
     // the forearm was drawn in his stomach for the tenth of a second the stroke took to fade.) Not in a serve, an overhead or a
     // reaction after the point, whose hands are on the body where they are meant to be.
-    if (!globalThis.__tgtClearOld && !(st && (st.kind === 'serve' || st.kind === 'smash')) && !((this.reactK || 0) > 0.01)) {
+    if (!(st && (st.kind === 'serve' || st.kind === 'smash')) && !((this.reactK || 0) > 0.01)) {
       const mz = _stM.copy(sh[0]).add(sh[1]).multiplyScalar(0.5), ax = _stA.copy(mz).sub(pelvis), L = ax.length();
       if (L > 1e-3) { ax.multiplyScalar(1 / L); const rt = _stX.copy(sh[1]).sub(sh[0]); rt.addScaledVector(ax, -rt.dot(ax)); const shW = rt.length();
-        if (shW > 1e-3) { rt.multiplyScalar(1 / shW); const fw = _stF.copy(ax).cross(rt), mg = globalThis.__tgtMg ?? 0.05;
+        if (shW > 1e-3) { rt.multiplyScalar(1 / shW); const fw = _stF.copy(ax).cross(rt), mg = 0.05;
           let mgI = mg; const eAt = q => { const rel = _stR.copy(q).sub(pelvis), al = rel.dot(ax); if (al < 0 || al > L * 1.05) return 9; const nk = al < 0.4 * L ? 0.75 + 0.25 * al / (0.4 * L) : al > 0.9 * L ? 0.75 : 1, dx = rel.dot(rt), dz = rel.dot(fw), mgq = dz < 0 ? mgI : mg; return Math.hypot(dx / (shW * 0.39 * nk + mgq), dz / ((dz > 0 ? shW * 0.25 : shW * 0.32) * nk + mgq)); };
           // (the free arm swinging back as he runs passes close beside the hip, not five centimetres clear of it: held to the margin,
           // the hand at the back of a runner's swing counted as inside him and was sent forward again)
-          for (let i = 0; i < 2; i++) { mgI = i === off && !globalThis.__armSwingOld ? mg + (0.03 - mg) * clamp(this.runSwingK || 0, 0, 1) : mg; if (eAt(tgt[i]) >= 1) continue; const T0 = _inT.copy(tgt[i]); let lo = 0, hi = 0.6; for (let it = 0; it < 9; it++) { const mid = (lo + hi) / 2; if (eAt(_stQ.copy(T0).addScaledVector(fw, mid)) < 1) lo = mid; else hi = mid; }
+          for (let i = 0; i < 2; i++) {
+            mgI = i === off ? mg + (0.03 - mg) * clamp(this.runSwingK || 0, 0, 1) : mg; if (eAt(tgt[i]) >= 1) continue; const T0 = _inT.copy(tgt[i]); let lo = 0, hi = 0.6; for (let it = 0; it < 9; it++) { const mid = (lo + hi) / 2; if (eAt(_stQ.copy(T0).addScaledVector(fw, mid)) < 1) lo = mid; else hi = mid; }
             // (globalThis.__tgtSideOn: a hand behind the middle of him goes out to its own side of the hip if that is the shorter way
             // clear; tried for the runner's backswing, it flared the elbow out behind him, the hand on the hip)
-            let ax2 = fw, hv = hi; if (globalThis.__tgtSideOn && _stR.copy(T0).sub(pelvis).dot(fw) < 0) { const sd = _stX2.copy(rt).multiplyScalar(i === 0 ? -1 : 1); let lo2 = 0, hi2 = 0.4; for (let it = 0; it < 9; it++) { const mid = (lo2 + hi2) / 2; if (eAt(_stQ.copy(T0).addScaledVector(sd, mid)) < 1) lo2 = mid; else hi2 = mid; } if (hi2 < hi) { ax2 = sd; hv = hi2; } }
-            tgt[i].addScaledVector(ax2, hv); if (this.dbgOn) (this.dbgTC || (this.dbgTC = [0, 0]))[i] = +hv.toFixed(3); } } } }
+            let ax2 = fw, hv = hi;
+            tgt[i].addScaledVector(ax2, hv); if (this.dbgOn) (this.dbgTC || (this.dbgTC = [0, 0]))[i] = +hv.toFixed(3);
+          } } } }
     if (this.dbgOn && this.dbg) this.dbg.tI = tgt.map(v => v.clone());
     if (this.dbgOn && this.dbgDir) this.dbgDir.c2 = dir.clone();
     const first = !this.handInit; this.handInit = true;
@@ -2051,7 +2061,7 @@ export class Figure {
     // (just after contact, as the swing slows into its finish, the smoothing follows the swing closely and carries little of
     // its own momentum: carried at the speed it had through the ball, the hand ran on at twice the swing's speed for a few
     // frames and the arms were flung into the finish)
-    const postK = globalThis.__noPost ? 0 : sm((ucF - 0.005) / 0.04) * (1 - sm((ucF - 0.35) / 0.15)) * sw, alF = lerp(0.6, 0.85, postK), beF = lerp(0.5, 0.15, postK);
+    const postK = sm((ucF - 0.005) / 0.04) * (1 - sm((ucF - 0.35) / 0.15)) * sw, alF = lerp(0.6, 0.85, postK), beF = lerp(0.5, 0.15, postK);
     follow(hF[0], tgt[0], this.fol[0], dt, 0.025 * H + 0.25 * thrK, first, alF, beF); follow(hF[1], tgt[1], this.fol[1], dt, 0.025 * H + 0.25 * thrK, first, alF, beF);
     if (this.dbgOn) { const r3 = v => [+(v.x - p.x).toFixed(3), +v.y.toFixed(3), +(v.z - p.z).toFixed(3)]; this.dbgTgt = [r3(tgt[0]), r3(tgt[1])]; this.dbgHF = [r3(hF[0]), r3(hF[1])]; }
     follow(rF.dir, dir, this.fol[2], dt, 0.12, first); rF.dir.normalize();
@@ -2064,7 +2074,7 @@ export class Figure {
     { const ucR = st && st.tc != null ? t - st.tc : null, srvR = st && (st.kind === 'serve' || st.kind === 'smash'),
         inWin = ucR != null && (srvR ? ucR > -0.75 && ucR < 0.5 : ucR > -0.4 && ucR < 0.35), qi = _rkQi.copy(qYaw).invert();
       const dL = _rkD.copy(this.rk.dir).applyQuaternion(qi).normalize(), nL = _rkN.copy(this.rk.nrm).applyQuaternion(qi), pv = this.rkLoc;
-      if (!globalThis.__rkRateOld && pv && pv.ok && pv.pt === this.placedT && !first && dt > 0 && !inWin) {
+      if (pv && pv.ok && pv.pt === this.placedT && !first && dt > 0 && !inWin) {
         const ang = Math.acos(clamp(dL.dot(pv.d), -1, 1)), mx = 0.35 * Math.min(2, dt * 60);
         if (ang > mx) { const q = _rkQ.setFromUnitVectors(pv.d, dL); const qs = _rkQ2.identity().slerp(q, mx / ang); dL.copy(pv.d).applyQuaternion(qs); nL.copy(pv.n).applyQuaternion(qs);
           this.rk.dir.copy(dL).applyQuaternion(qYaw); this.rk.nrm.copy(nL).applyQuaternion(qYaw); rF.dir.copy(this.rk.dir); rF.nrm.copy(this.rk.nrm); } }
@@ -2097,7 +2107,7 @@ export class Figure {
         const moved = _v8.copy(sh[hit]).add(toS).sub(hh);
         // (and, as the swing's own move toward the ball, never back into the body: the hand stays a forearm in front of the chest
         // and the wrist takes the rest, as for a ball beyond reach)
-        if (!globalThis.__backCapOld) backCap(moved, hh);
+        backCap(moved, hh);
         shiftClear(moved, hh);
         hh.add(moved);
         // the racket: angled at the wrist toward what is left, turning in the plane of its strings (the face keeps
@@ -2124,7 +2134,7 @@ export class Figure {
     // hand was flung off the handle and back on it in a third of a second)
     const fadingOut = this.cancelT != null && st === this.prevSt;
     const dKind = st ? (st.__dk || st.kind) : null;     // (the stroke being shown, which a change of kind at the release does not change)
-    const twoWant = !!st && !this.oneHand && st.wing === 'bh' && (st.__rush || !/^(slice|drop|volley|block|smash|serve)$/.test(dKind || '')) && (swA > 0.15 || fadingOut);   /* (a two-hander blocks a rushed backhand with both hands) */
+    const twoWant = !!st && !this.oneHand && st.wing === 'bh' && (st.__rush || !/^(slice|drop|volley|block|smash|serve)$/.test(dKind || '')) && (swA > 0.15 || fadingOut); /* (a two-hander blocks a rushed backhand with both hands) */
     // (taken over from how much the hand really was on the throat, not how much the ready position asked it to be: on the
     // run the arm swing had most of it, and the grip was taken at once from wherever the hand was swinging; and from
     // where on the racket it was, sliding down to the handle, not jumped the length of the throat)
@@ -2135,27 +2145,27 @@ export class Figure {
     // starts (a sixth of a second before contact); after that the free arm opens out behind him as the clip has it. (Taken
     // from the clip all the way, the free elbow came up level with the shoulder and out to the side: the tracker had lost
     // that hand on the racket.)
-    const oneWant = !!st && this.oneHand && st.wing === 'bh' && dKind !== 'volley' && dKind !== 'block' && dKind !== 'drop' && (swA > 0.15 || this.cancelT != null && st === this.prevSt) && (st.tc == null || t - st.tc < (dKind === 'lob' && !globalThis.__lobRelOld ? -0.2 : (globalThis.__oneRel ?? -0.15)));   /* (a lob's sooner: its racket drops lower and further back before it swings up, past where the free hand reaches) */
+    const oneWant = !!st && this.oneHand && st.wing === 'bh' && dKind !== 'volley' && dKind !== 'block' && dKind !== 'drop' && (swA > 0.15 || this.cancelT != null && st === this.prevSt) && (st.tc == null || t - st.tc < (dKind === 'lob' ? -0.2 : -0.15)); /* (a lob's sooner: its racket drops lower and further back before it swings up, past where the free hand reaches) */
     if (oneWant && (this.oneHW || 0) < lgPrev) { this.oneHW = lgPrev; this.oneHWV = 0; this.oneAt0 = this.lgAt != null ? this.lgAt : 0.30; this.oneAtT = t; }
-    this.oneHW = clamp(ease(this, 'oneHW', oneWant ? (globalThis.__reachOld ? 1 : (this.lgReachK ?? 1)) : 0, 30, dt), 0, 1);
+    this.oneHW = clamp(ease(this, 'oneHW', oneWant ? ((this.lgReachK ?? 1)) : 0, 30, dt), 0, 1);
     // (and as soon as the throat is out of that arm's reach, the hold is let go of then, not a frame or two later: the hand stays
     // where it was, at the end of its reach, and its arm is held to a free arm's pace; only how much it is said to hold goes,
     // where for those frames the hand counted as holding a throat six centimetres beyond it)
-    if (!globalThis.__oneOutOld && oneWant && (this.regripShort || 0) > 0.015 && dt > 0) { const tg = this.lgReachK ?? 1; if (tg < this.oneHW - 0.05) { this.oneHW = Math.max(tg, this.oneHW - 0.3 * dt * 60); this.oneHWV = 0; } }   /* (a one-hander's hold on the throat lets go too as the throat goes out of that arm's reach: held on in name through a lob's low take-back, the hand was left eight centimetres off it) */
+    if (oneWant && (this.regripShort || 0) > 0.015 && dt > 0) { const tg = this.lgReachK ?? 1; if (tg < this.oneHW - 0.05) { this.oneHW = Math.max(tg, this.oneHW - 0.3 * dt * 60); this.oneHWV = 0; } }/* (a one-hander's hold on the throat lets go too as the throat goes out of that arm's reach: held on in name through a lob's low take-back, the hand was left eight centimetres off it) */
     const twoH = this.twoH = this.twoHW > 0.5;
     // how much the off hand is on the handle, 0..1, changing smoothly: everything the grip does to that arm (where the hand
     // is, the wrist behind the palm, the hand's turn) goes on and off with it, so nothing about the arm jumps when it lets go
     // (never in the serve: once the toss starts that hand is the ball's)
     // (eased: the free arm's weight crosses the window that lets go of the handle in a few frames as he runs out of a finish,
     // and the hand left the racket for the running arm in one or two of them)
-    const lgW = clamp(ease(this, 'lgWE', srvOff ? 0 : sm(pose.lgrip / (globalThis.__lgOld ? 0.08 : 0.32)) * sm((0.72 - free) / 0.24) * sm(((globalThis.__lgOld ? 0.72 : 0.6) - armW) / (globalThis.__lgOld ? 0.24 : 0.2)), srvOff ? 60 : 18, dt), 0, 1);   /* (let go of a little sooner as his own arm comes in: half the clip's, half the keys', Nadal's free hand was held to the throat in name while it hung a fifth of a metre off it) */
+    const lgW = clamp(ease(this, 'lgWE', srvOff ? 0 : sm(pose.lgrip / 0.32) * sm((0.72 - free) / 0.24) * sm((0.6 - armW) / 0.2), srvOff ? 60 : 18, dt), 0, 1); /* (let go of a little sooner as his own arm comes in: half the clip's, half the keys', Nadal's free hand was held to the throat in name while it hung a fifth of a metre off it) */
     const gripW = this.gripW = Math.max(this.twoHW, lgW, this.oneHW || 0);
     const twoAt = this.twoAtT != null ? lerp(this.twoAt0, 0.105, sm5((t - this.twoAtT) / 0.16)) : 0.105, oneAt = this.oneAtT != null ? lerp(this.oneAt0, 0.30, sm5((t - this.oneAtT) / 0.16)) : 0.30;
     // (a racket held in two hands reaches no further than the other arm: the hitting hand is kept where the hand above it on the
     // handle can still get to. Left where one arm alone would take it, a two-handed backhand's racket hand was out up to a
     // quarter of a metre beyond the other arm's reach through the whole swing and finish, and that hand hung off the handle)
     { const wTwo = Math.max(this.twoHW, this.oneHW || 0);
-      if (wTwo > 0.001 && !globalThis.__noTwoReach) { const atR = this.twoHW >= (this.oneHW || 0) ? twoAt : oneAt, OS = off === 0 ? 'L' : 'R', sO = off === 0 ? shL : shR;
+      if (wTwo > 0.001) { const atR = this.twoHW >= (this.oneHW || 0) ? twoAt : oneAt, OS = off === 0 ? 'L' : 'R', sO = off === 0 ? shL : shR;
         const gp = _rg1.copy(this.hand[hit]).addScaledVector(this.rk.dir, atR * H), d = _rg2.copy(gp).sub(sO), dl = d.length();
         const reach = (D.upper + D.fore) * 0.95 + person.dir['palm' + OS].length() + PALM_OFF * H;
         if (dl > reach) this.hand[hit].addScaledVector(d, -(dl - reach) / dl * wTwo); } }
@@ -2163,11 +2173,11 @@ export class Figure {
     if ((this.oneHW || 0) > 0.001) this.hand[off].lerp(_v8.copy(this.hand[hit]).addScaledVector(this.rk.dir, oneAt * H), this.oneHW * (1 - this.twoHW));   // (the throat)
     // (and lets go as the throat goes out of the free arm's reach, as a hand does: held on in name, it hovered a hand's breadth
     // off the racket as a forehand's take-back carried it away)
-    this.lgReachK = globalThis.__reachOld ? 1 : clamp((this.lgReachK ?? 1) + clamp(1 - sm(((this.regripShort || 0) - (globalThis.__rsA ?? 0.004)) / (globalThis.__rsB ?? 0.035)) - (this.lgReachK ?? 1), -0.3, 0.08), 0, 1);
+    this.lgReachK = clamp((this.lgReachK ?? 1) + clamp(1 - sm(((this.regripShort || 0) - 0.004) / 0.035) - (this.lgReachK ?? 1), -0.3, 0.08), 0, 1);
     // (where on the racket the free hand holds it slides there, at most about two heights a second, not jumps there: a slice begun
     // late, its keys already at the take-back's hold up the throat, took the hand from the ready position's place to it, forty
     // centimetres along the racket, in a frame, the free arm thrown forty degrees)
-    { const lgT = pose.lgripAt != null ? pose.lgripAt : pose.lgrip * 0.6; this.lgAt = this.lgAt == null || !this.handInit || !(dt > 0) || globalThis.__lgAtOld ? lgT : this.lgAt + clamp(lgT - this.lgAt, -(globalThis.__lgAtRate ?? 2) * dt, (globalThis.__lgAtRate ?? 2) * dt); }
+    { const lgT = pose.lgripAt != null ? pose.lgripAt : pose.lgrip * 0.6; this.lgAt = this.lgAt == null || !this.handInit || !(dt > 0) ? lgT : this.lgAt + clamp(lgT - this.lgAt, -2 * dt, 2 * dt); }
     this.lgEff = clamp(pose.lgrip * 2.4, 0, 1) * (1 - free) * lgW * (this.twoHW > 0.5 ? 1 : this.lgReachK);
     if (lgW > 0.001 && this.twoHW < 0.999) { const g = _v8.copy(this.hand[hit]).addScaledVector(this.rk.dir, this.lgAt * H); this.hand[off].lerp(g, this.lgEff * (1 - this.twoHW)); }
     { const wT = this.twoHW, wO = (this.oneHW || 0) * (1 - wT), wL = lgW > 0.001 ? this.lgEff * (1 - wT) : 0;
@@ -2271,30 +2281,32 @@ export class Figure {
     // head, and the racket was thrown forty degrees in a frame. Turned at the hand, sideways across the body, by just what
     // takes the frame out of the head and a few centimetres more; nothing where it is clear.
     const headRound = (base, rk, nrm, L0, m, slot) => {
-      if (globalThis.__headRoundOld) return; const Rin = (globalThis.__headRR ?? 0.095) * H + m, Rout = Rin + (globalThis.__headZone ?? 0.005) * H, rgt = _hdR.set(cRight.x, 0, cRight.z); if (rgt.lengthSq() < 1e-6) return; rgt.normalize();
+      const Rin = 0.095 * H + m, Rout = Rin + 0.005 * H, rgt = _hdR.set(cRight.x, 0, cRight.z); if (rgt.lengthSq() < 1e-6) return; rgt.normalize();
       // (the side is the one it is already sweeping toward, chosen as it comes near and kept while it is near: held back on
       // the other, it was let go of in a frame as its own path came clear past the head)
       const pvA = this.headRkPrev || (this.headRkPrev = [V(), V()]), okA = this.headRkOk || (this.headRkOk = [false, false]), pv = pvA[slot];
       const pv0 = _hdV.copy(okA[slot] ? pv : rk); void rgt; pv.copy(rk); okA[slot] = true;
       // (the head from the jaw to the crown: a ball about the middle of the skull let the frame through the jaw)
-      const segOK = slot === 1 && this.headJOk && !globalThis.__headCapOld, cen = (q) => { if (!segOK) return headC0; const ab = _hdA.copy(headC0).sub(_hdJ), tt = clamp(_hdB.copy(q).sub(_hdJ).dot(ab) / Math.max(1e-6, ab.lengthSq()), 0, 1); return _hdC.copy(_hdJ).addScaledVector(ab, tt); };
+      const segOK = slot === 1 && this.headJOk, cen = (q) => { if (!segOK) return headC0; const ab = _hdA.copy(headC0).sub(_hdJ), tt = clamp(_hdB.copy(q).sub(_hdJ).dot(ab) / Math.max(1e-6, ab.lengthSq()), 0, 1); return _hdC.copy(_hdJ).addScaledVector(ab, tt); };
       let near = false; for (let k = 3; k <= 13; k++) { const q = _hdQ.copy(base).addScaledVector(rk, L0 * k / 10); if (q.distanceTo(cen(q)) < Rout) { near = true; break; } }
       const sideA = this.headSideA || (this.headSideA = [0, 0]), uA = this.headUA || (this.headUA = [V(), V()]), angA = this.headAngA || (this.headAngA = [0, 0]);
       // (and let go of no faster than seven degrees a frame: its own path comes clear of the head on the far side in a frame or
       // two, and dropped at once the racket was thrown back onto it thirty degrees)
-      const step = (globalThis.__headRel ?? 0.12) * dt * 60;
+      const step = 0.12 * dt * 60;
       // (never more than a third of a right angle, and never into the trunk: a turn added to frame after frame grew past a right
       // angle, the racket held a quarter turn off its own path and laid through his chest as it let go)
-      const mxA = globalThis.__headCap ?? 0.6, trunkAt = (ang) => { const u = _hdT.copy(uA[slot]); u.addScaledVector(rk, -u.dot(rk)); if (u.lengthSq() < 1e-4) return 0; u.normalize(); const ax = _hdN.copy(rk).cross(u); if (ax.lengthSq() < 1e-8) return 0; ax.normalize();
+      const mxA = 0.6, trunkAt = (ang) => { const u = _hdT.copy(uA[slot]); u.addScaledVector(rk, -u.dot(rk)); if (u.lengthSq() < 1e-4) return 0; u.normalize(); const ax = _hdN.copy(rk).cross(u); if (ax.lengthSq() < 1e-8) return 0; ax.normalize();
         const d = _hdD.copy(rk).applyAxisAngle(ax, ang); if (d.dot(u) < rk.dot(u)) d.copy(rk).applyAxisAngle(ax, -ang); let mx = 0; for (let k = 2; k <= 13; k++) mx = Math.max(mx, bodyPush(_hdQ.copy(base).addScaledVector(d, L0 * k / 10), 0.01 * H, _hdW, true).length()); return mx; };
-      const safe = (ang) => { ang = Math.min(ang, mxA); if (globalThis.__headTrunkOld || ang < 1e-4) return ang; const t0 = trunkAt(0); if (trunkAt(ang) <= t0 + 1e-4) return ang; let lo = 0, hi = ang; for (let it = 0; it < 7; it++) { const mid = (lo + hi) / 2; if (trunkAt(mid) <= t0 + 1e-4) lo = mid; else hi = mid; } return lo; };
-      const turn = (ang) => { if (ang < 1e-4) return; const u = _hdT.copy(uA[slot]); if (!globalThis.__headPerpOld) { u.addScaledVector(rk, -u.dot(rk)); if (u.lengthSq() < 1e-4) u.copy(uA[slot]); u.normalize(); } const ax = _hdN.copy(rk).cross(u); if (ax.lengthSq() < 1e-8) return; ax.normalize(); const q = _hdQq.setFromAxisAngle(ax, -ang); const t1 = _hdO.copy(rk).applyQuaternion(q); if (t1.dot(u) < rk.dot(u)) q.setFromAxisAngle(ax, ang); rk.applyQuaternion(q).normalize(); nrm.applyQuaternion(q).normalize(); };
+      const safe = (ang) => { ang = Math.min(ang, mxA); if (ang < 1e-4) return ang; const t0 = trunkAt(0); if (trunkAt(ang) <= t0 + 1e-4) return ang; let lo = 0, hi = ang; for (let it = 0; it < 7; it++) { const mid = (lo + hi) / 2; if (trunkAt(mid) <= t0 + 1e-4) lo = mid; else hi = mid; } return lo; };
+      const turn = (ang) => {
+        if (ang < 1e-4) return; const u = _hdT.copy(uA[slot]); u.addScaledVector(rk, -u.dot(rk)); if (u.lengthSq() < 1e-4) u.copy(uA[slot]); u.normalize(); const ax = _hdN.copy(rk).cross(u); if (ax.lengthSq() < 1e-8) return; ax.normalize(); const q = _hdQq.setFromAxisAngle(ax, -ang); const t1 = _hdO.copy(rk).applyQuaternion(q); if (t1.dot(u) < rk.dot(u)) q.setFromAxisAngle(ax, ang); rk.applyQuaternion(q).normalize(); nrm.applyQuaternion(q).normalize();
+      };
       // (and as it lets go, never back into the head: its own path past the head on the far side, the turn still held toward the
       // near side took the frame back through the jaw; what is left of the turn is cut to what keeps it out)
       const penAt = (ang) => { const u = _hdT.copy(uA[slot]); u.addScaledVector(rk, -u.dot(rk)); if (u.lengthSq() < 1e-4) return 0; u.normalize(); const ax = _hdN.copy(rk).cross(u); if (ax.lengthSq() < 1e-8) return 0; ax.normalize();
         const d = _hdD.copy(rk).applyAxisAngle(ax, ang); if (d.dot(u) < rk.dot(u)) d.copy(rk).applyAxisAngle(ax, -ang); let mx = -1; for (let k = 3; k <= 13; k++) { const q = _hdQ.copy(base).addScaledVector(d, L0 * k / 10); mx = Math.max(mx, Rin - q.distanceTo(cen(q))); } return mx; };
       if (!near) { if (this.dbgOn && slot === 1) this.dbgHead = { near: false, ang: +angA[slot].toFixed(3) };
-        if (angA[slot] > 1e-4) { let a2 = Math.max(0, Math.min(angA[slot], mxA) - step); if (!globalThis.__headRelSafeOld && a2 > 1e-4 && penAt(a2) > 0) { let lo = 0, hi = a2; for (let it = 0; it < 7; it++) { const mid = (lo + hi) / 2; if (penAt(mid) > 0) hi = mid; else lo = mid; } a2 = lo; } a2 = safe(a2); angA[slot] = a2; turn(a2); } else sideA[slot] = 0; return; }
+        if (angA[slot] > 1e-4) { let a2 = Math.max(0, Math.min(angA[slot], mxA) - step); if (a2 > 1e-4 && penAt(a2) > 0) { let lo = 0, hi = a2; for (let it = 0; it < 7; it++) { const mid = (lo + hi) / 2; if (penAt(mid) > 0) hi = mid; else lo = mid; } a2 = lo; } a2 = safe(a2); angA[slot] = a2; turn(a2); } else sideA[slot] = 0; return; }
       // (the way round is across its own motion, to whichever side of the head its path is passing: over the top, behind or in
       // front. Chosen as it comes near and kept; a path's offset from the head keeps its side however close it comes.)
       // (out from the head to the racket's line, square to the shaft, as the frame first comes near; kept while near. Judged
@@ -2304,7 +2316,7 @@ export class Figure {
         if (d.lengthSq() < 1e-6) { d.copy(rk).sub(pv0); d.addScaledVector(rk, -d.dot(rk)); }
         if (d.lengthSq() < 1e-6) d.copy(rgt);
         uA[slot].copy(d.normalize()); sideA[slot] = 1; }
-      const u = _hdU.copy(uA[slot]); if (!globalThis.__headPerpOld) { u.addScaledVector(rk, -u.dot(rk)); if (u.lengthSq() < 1e-4) u.copy(uA[slot]); u.normalize(); }
+      const u = _hdU.copy(uA[slot]); u.addScaledVector(rk, -u.dot(rk)); if (u.lengthSq() < 1e-4) u.copy(uA[slot]); u.normalize();
       // (turned at the hand, sideways, by as much as clears the wider zone, in proportion to how far into it the frame has
       // come: nothing at its edge, all of it at the head itself, so the turn grows and lets go with the swing, not in a frame)
       let ang = 0;
@@ -2313,9 +2325,10 @@ export class Figure {
       ang = Math.max(ang, Math.min(angA[slot], mxA) - step);
       // (then the least turn that takes the frame outside the head itself, found by trying: one estimate fell short for a frame
       // deep in the head, the jaw five centimetres inside the strings)
-      if (!globalThis.__headHardOld && penAt(ang) > 0.002) { let lo = ang, hi = mxA; if (penAt(hi) > 0.002) lo = hi; else for (let it = 0; it < 8; it++) { const mid = (lo + hi) / 2; if (penAt(mid) > 0.002) lo = mid; else hi = mid; } ang = Math.max(ang, hi); }
+      if (penAt(ang) > 0.002) { let lo = ang, hi = mxA; if (penAt(hi) > 0.002) lo = hi; else for (let it = 0; it < 8; it++) { const mid = (lo + hi) / 2; if (penAt(mid) > 0.002) lo = mid; else hi = mid; } ang = Math.max(ang, hi); }
       ang = safe(ang); angA[slot] = ang; void u; turn(ang);
-      if (this.dbgOn && slot === 1) { let mj = 9, mc = 9; for (let k = 3; k <= 13; k++) { const q = _hdQ.copy(base).addScaledVector(rk, L0 * k / 10); mc = Math.min(mc, q.distanceTo(cen(q))); if (this.headJOk) mj = Math.min(mj, q.distanceTo(_hdJ)); } this.dbgHead = { ang: +ang.toFixed(3), near, mc: +mc.toFixed(3), mj: +mj.toFixed(3), Rin: +Rin.toFixed(3), u: [u.x, u.y, u.z].map(x => +x.toFixed(2)) }; } };
+      if (this.dbgOn && slot === 1) { let mj = 9, mc = 9; for (let k = 3; k <= 13; k++) { const q = _hdQ.copy(base).addScaledVector(rk, L0 * k / 10); mc = Math.min(mc, q.distanceTo(cen(q))); if (this.headJOk) mj = Math.min(mj, q.distanceTo(_hdJ)); } this.dbgHead = { ang: +ang.toFixed(3), near, mc: +mc.toFixed(3), mj: +mj.toFixed(3), Rin: +Rin.toFixed(3), u: [u.x, u.y, u.z].map(x => +x.toFixed(2)) }; }
+    };
     if (this.dbgOn && this.dbg) { this.dbg.hand = this.hand.map(v => v.clone()); this.dbg.tgt2 = tgt.map(v => v.clone()); this.dbg.tFw = tFw.clone(); this.dbg.tRt = tRt.clone(); this.dbg.cRight = cRight.clone(); }
     { const pw = [_bp0, _bp1], want = this.bodyWant || (this.bodyWant = [V(), V()]), tmp = _cq;
       // what it takes to clear: the hand out of the trunk and the head, then the forearm (judged with the elbow where it
@@ -2336,44 +2349,45 @@ export class Figure {
         const ucF = st && st.tc != null ? t - st.tc : 9, foldK = st && st.wing === 'fh' && i === off && !/^(serve|smash|volley|block)$/.test(st.__dk || st.kind) ? sm5((ucF + 0.38) / 0.12) * (1 - sm5((ucF - 0.35) / 0.2)) : 0;
         // (a serve's or an overhead's finish too, the racket arm wrapping across to the far hip: left out with the rest of the
         // serve, McEnroe's finish laid that arm through his stomach)
-        const srvFin = st && (st.kind === 'serve' || st.kind === 'smash') && st.tc != null && t > st.tc + 0.05 && !globalThis.__srvFinOld;
+        const srvFin = st && (st.kind === 'serve' || st.kind === 'smash') && st.tc != null && t > st.tc + 0.05;
         if ((!(st && (st.kind === 'serve' || st.kind === 'smash')) || srvFin) && al > -0.1 * tLen && al < tLen * 1.3) { const x = rel.dot(tRt), z = rel.dot(tFw), cross = Math.max(clamp((-x * sx + 0.06) / 0.26, 0, 1), 0.7 * foldK);
           // (up by the other shoulder, a finish wrapping round, the arm crosses in front of the neck: less far forward there)
-          if (cross > 0 && Math.abs(x) < tA + LIMB_R + (globalThis.__frontWide ?? 0.22)) {   /* (to a hand a little further out by the other hip too: a two-hander's take-back with the hands just outside a tenth of a metre past the trunk had the upper arm across the inside of the chest) */ const need = ((tB + LIMB_R + 0.03) * sm(cross * 2.5) + 0.2 * cross) * (1 - 0.4 * sm((al / tLen - 0.85) / 0.25));
+          if (cross > 0 && Math.abs(x) < tA + LIMB_R + 0.22) {   /* (to a hand a little further out by the other hip too: a two-hander's take-back with the hands just outside a tenth of a metre past the trunk had the upper arm across the inside of the chest) */ const need = ((tB + LIMB_R + 0.03) * sm(cross * 2.5) + 0.2 * cross) * (1 - 0.4 * sm((al / tLen - 0.85) / 0.25));
             const uc = st && st.tc != null ? t - st.tc : 9, nearC = Math.exp(-(uc * uc) / 0.008);
             // (round contact only where the hand is in front already: a block reached late for a ball behind him on the far side had
             // the racket hand back by the other hip at contact, and eased off there the arm lay through his chest)
-            if (z < need) fp[i] = (need - z) * (1 - 0.75 * nearC * (globalThis.__nearZOld ? 1 : sm((z + 0.02) / 0.12))); } }
+            if (z < need) fp[i] = (need - z) * (1 - 0.75 * nearC * (sm((z + 0.02) / 0.12))); } }
         // (and wherever the arm itself, shoulder to hand, would pass through the trunk with the hand in front of the body, low across
         // the stomach in a take-back: the hand goes forward far enough that the line clears it, for the elbow to be round it. Left to
         // the rules above, which go by how far across the hand is, a one-hander's take-back with the hand at the middle of the waist
         // had the elbow in the middle of the chest, and no turn of it round the arm could get it out.)
         // (the toss arm too, pulled in to the chest as the racket goes up to the ball)
-        if (!globalThis.__lineOld && (!(st && (st.kind === 'serve' || st.kind === 'smash')) || srvFin || (i === off && st.tc != null && t > st.tc - 0.12 && !globalThis.__tossLineOld)) && rel.dot(tFw) > -0.02) {
+        if ((!(st && (st.kind === 'serve' || st.kind === 'smash')) || srvFin || i === off && st.tc != null && t > st.tc - 0.12) && rel.dot(tFw) > -0.02) {
           // (the reach up the chest and in near the shoulder is a stroke's: with both hands on the racket coming back to the ready
           // position it pushed the hands forward off the throat's place, the grip pulled the free hand back a hand's breadth, and
           // that arm's elbow was thrown up in a frame; it goes as the stroke does, where the hands share the handle)
-          const xK = globalThis.__lineTopOld ? 0 : gripW > 0.5 && !globalThis.__lineGateOld ? sm((sw - 0.3) / 0.4) : 1;
+          const xK = gripW > 0.5 ? sm((sw - 0.3) / 0.4) : 1;
           const lineNeed = ext => { let nd = 0; for (const f of (ext ? [0.35, 0.5, 0.65, 0.8] : [0.5, 0.65, 0.8])) { const q = _bm.copy(sh[i]).lerp(wrist[i], f), r = q.sub(pelvis), al2 = r.dot(tAx);
             // (up to the top of the chest, narrower there as the neck is: kept below the shoulders, a two-hander's top arm crossing the
             // upper chest to the hands up by the far shoulder in the finish went through it, and no turn of the elbow could clear it)
             if (al2 < 0.05 * tLen || al2 > tLen * (ext ? 1.05 : 0.95)) continue;
-            const nk2 = al2 < 0.4 * tLen ? 0.72 + 0.28 * al2 / (0.4 * tLen) : al2 > 0.9 * tLen && ext ? 0.75 : 1, lmg = LIMB_R * (globalThis.__lineMgOld ? 0.7 : (globalThis.__lineMg ?? 1)), a2 = tA * nk2 + lmg, b2 = tB * nk2 + lmg, dx2 = r.dot(tRt), dz2 = r.dot(tFw);
+            const nk2 = al2 < 0.4 * tLen ? 0.72 + 0.28 * al2 / (0.4 * tLen) : al2 > 0.9 * tLen && ext ? 0.75 : 1, lmg = LIMB_R * 1, a2 = tA * nk2 + lmg, b2 = tB * nk2 + lmg, dx2 = r.dot(tRt), dz2 = r.dot(tFw);
             if (Math.abs(dx2) < a2) { const zx = b2 * Math.sqrt(1 - (dx2 / a2) ** 2); if (dz2 < zx && dz2 > -zx) nd = Math.max(nd, (zx - dz2) / f); } } return nd; };
           const n0 = lineNeed(false), needL = xK > 0.001 ? n0 + (Math.max(n0, lineNeed(true)) - n0) * xK : n0;
-          if (needL > fp[i]) fp[i] = Math.min(needL, (globalThis.__lineCap ?? 0.4) * H); } }
+          if (needL > fp[i]) fp[i] = Math.min(needL, 0.4 * H); } }
       if (gripW > 0.5) { const big = pw[0].lengthSq() > pw[1].lengthSq() ? pw[0] : pw[1]; pw[0].copy(big); pw[1].copy(big); }
-      { const fp = this.frontWant, fg = this.frontGot || (this.frontGot = [0, 0]), fv = this.frontVel || (this.frontVel = [0, 0]), wf = globalThis.__frontW ?? 90, ef = Math.exp(-wf * dt);
+      { const fp = this.frontWant, fg = this.frontGot || (this.frontGot = [0, 0]), fv = this.frontVel || (this.frontVel = [0, 0]), wf = 90, ef = Math.exp(-wf * dt);
         if (gripW > 0.5) fp[0] = fp[1] = Math.max(fp[0], fp[1]);
-        for (let i = 0; i < 2; i++) { if (dt > 0 && this.handInit) { const f0 = fg[i], d = fg[i] - fp[i], k = (fv[i] + wf * d) * dt; fg[i] = fp[i] + (d + k) * ef; fv[i] = (fv[i] - wf * k) * ef;
-            /* (sooner than it was, but never more than three centimetres a frame: at its old pace a two-hander's hands crossed to the far hip a tenth of a second ahead of the push, and the arm lay through the stomach) */ const mxF = (globalThis.__frontCap ?? 0.09) * dt * 60; if (Math.abs(fg[i] - f0) > mxF) { fg[i] = f0 + Math.sign(fg[i] - f0) * mxF; fv[i] *= 0.5; } } else { fg[i] = fp[i]; fv[i] = 0; }
-          if (fg[i] > 1e-4 && globalThis.__frontOld) { const fw0 = pw[i].dot(tFw); if (fw0 < fg[i]) pw[i].addScaledVector(tFw, fg[i] - fw0); } } }
+        for (let i = 0; i < 2; i++) {
+          if (dt > 0 && this.handInit) { const f0 = fg[i], d = fg[i] - fp[i], k = (fv[i] + wf * d) * dt; fg[i] = fp[i] + (d + k) * ef; fv[i] = (fv[i] - wf * k) * ef;
+              /* (sooner than it was, but never more than three centimetres a frame: at its old pace a two-hander's hands crossed to the far hip a tenth of a second ahead of the push, and the arm lay through the stomach) */ const mxF = 0.09 * dt * 60; if (Math.abs(fg[i] - f0) > mxF) { fg[i] = f0 + Math.sign(fg[i] - f0) * mxF; fv[i] *= 0.5; } } else { fg[i] = fp[i]; fv[i] = 0; }
+        } }
       for (let i = 0; i < 2; i++) want[i].copy(pw[i]);
       // A forehand's free arm folds in across the front of the chest at contact and through the finish, at the height of the chest:
       // not up at the neck with the forearm across the throat and the elbow raised, which is where a drive shown for a late block
       // folded it, the forearm ten centimetres into his chest for five frames (del Potro). No higher than a little under the
       // shoulders, and at least a quarter of a metre out in front of the chest.
-      if (!globalThis.__foldCapOld && st && st.wing === 'fh' && !/^(serve|smash)$/.test(st.__dk || st.kind) && st.tc != null) {
+      if (st && st.wing === 'fh' && !/^(serve|smash)$/.test(st.__dk || st.kind) && st.tc != null) {
         const uc = t - st.tc, k = sm5((uc + 0.25) / 0.12) * (1 - sm5((uc - 0.6) / 0.25));
         if (k > 0.001) { const w = _fcW.copy(wrist[off]).add(want[off]), cap = sh[off].y - 0.06; if (w.y > cap) w.y += (cap - w.y) * k;
           const cz = _fcC.copy(sh[0]).add(sh[1]).multiplyScalar(0.5), z = _fcR.copy(w).sub(cz).dot(tFw); if (z < 0.24) w.addScaledVector(tFw, (0.24 - z) * k);
@@ -2395,47 +2409,51 @@ export class Figure {
       if (this.dbgOn && this.dbg) this.dbg.w2 = want.map(q => [q.dot(tRt), q.dot(tAx), q.dot(tFw)].map(x => +x.toFixed(2)));
       // ...eased in and out (a spring, so its speed never jumps): shoved out of the body the instant it touches, an arm
       // would jump; this way it slides round the body
-      const got = this.bodyGot || (this.bodyGot = [V(), V()]), gv = this.bodyVel || (this.bodyVel = [V(), V()]), w = globalThis.__pushW || 40, e = Math.exp(-w * dt);
+      const got = this.bodyGot || (this.bodyGot = [V(), V()]), gv = this.bodyVel || (this.bodyVel = [V(), V()]), w = 40, e = Math.exp(-w * dt);
       // (and no more than ten centimetres a frame: where what it takes to clear changes all at once, a stroke changed for another
       // dropping the hand inside the trunk, or the nearest way out turning from one side of the body to the other, the spring
       // alone threw the arm sixty centimetres in two frames)
-      for (let i = 0; i < 2; i++) { const g0 = _gp0.copy(got[i]);
+      for (let i = 0; i < 2; i++) {
+        const g0 = _gp0.copy(got[i]);
         for (const c of ['x', 'y', 'z']) { const d = got[i][c] - want[i][c], k = (gv[i][c] + w * d) * dt; got[i][c] = want[i][c] + (d + k) * e; gv[i][c] = (gv[i][c] - w * k) * e; }
-        { const st0 = g0.distanceTo(got[i]), mxS = (globalThis.__pushCap || 0.05) * H * dt * 60; if (dt > 0 && st0 > mxS) { const k = mxS / st0; got[i].sub(g0).multiplyScalar(k).add(g0); gv[i].multiplyScalar(k); } }
+        { const st0 = g0.distanceTo(got[i]), mxS = 0.05 * H * dt * 60; if (dt > 0 && st0 > mxS) { const k = mxS / st0; got[i].sub(g0).multiplyScalar(k).add(g0); gv[i].multiplyScalar(k); } }
         if (dt <= 0 || this.inited === false) { got[i].copy(want[i]); gv[i].set(0, 0, 0); }
         wrist[i].add(got[i]); this.hand[i].add(got[i]);
         // (the forward offset for a hand across the body goes on straight from its own easing: run through this spring as well,
         // two easings one after the other, it came a tenth of a second behind the hands crossing, and through that tenth a
         // two-hander's take-back laid the bottom arm through his stomach)
-        if (!globalThis.__frontOld) { const fgi = this.frontGot ? this.frontGot[i] : 0, gz = got[i].dot(tFw); if (fgi > gz + 1e-4) { wrist[i].addScaledVector(tFw, fgi - gz); this.hand[i].addScaledVector(tFw, fgi - gz); } }
+        {
+          const fgi = this.frontGot ? this.frontGot[i] : 0, gz = got[i].dot(tFw); if (fgi > gz + 1e-4) { wrist[i].addScaledVector(tFw, fgi - gz); this.hand[i].addScaledVector(tFw, fgi - gz); }
+        }
         // (and never into its own shoulder: with both hands on the racket the push that takes the racket hand out of the chest is
         // given to both, and in a backhand volley's take-back it drove the hand on the throat in to within a hand's breadth of its
         // shoulder, the arm folded shut and its elbow swung from behind him to in front in two frames)
         { const dW = _gp0.copy(wrist[i]).sub(sh[i]), dl = dW.length(), mn = (D.upper + D.fore) * (i === hit ? 0.53 : 0.42) * 0.95;
-          if (dl > 1e-4 && dl < mn) { dW.multiplyScalar((mn - dl) / dl); wrist[i].add(dW); this.hand[i].add(dW); } } }
+          if (dl > 1e-4 && dl < mn) { dW.multiplyScalar((mn - dl) / dl); wrist[i].add(dW); this.hand[i].add(dW); } }
+      }
       if (this.dbgOn && this.dbg) { this.dbg.got = got.map(q => q.clone()); this.dbg.wrB = wrist.map(q => q.clone()); }
       // (and once more after those pushes, with both hands on the handle: they move the racket hand, and in a two-hander's
       // finish, wrapped round and pushed out in front of the chest, they put it a hand's breadth beyond where the top hand
       // could follow; the top hand hung off the handle there)
-      if (this.twoHW > 0.001 && !globalThis.__reachOld) { const OS = off === 0 ? 'L' : 'R', sO = off === 0 ? shL : shR, gp = _rg1.copy(this.hand[hit]).addScaledVector(this.rk.dir, 0.105 * H), d = _rg2.copy(gp).sub(sO), dl = d.length();
-        const reach = (D.upper + D.fore) * (globalThis.__twoReachK ?? 0.9) + PALM_OFF * H;   /* (the arm's own length to the handle: with the palm's length added as if it lay straight along the arm, which it does not round a handle, the top arm still fell short by most of a hand) */
+      if (this.twoHW > 0.001) { const OS = off === 0 ? 'L' : 'R', sO = off === 0 ? shL : shR, gp = _rg1.copy(this.hand[hit]).addScaledVector(this.rk.dir, 0.105 * H), d = _rg2.copy(gp).sub(sO), dl = d.length();
+        const reach = (D.upper + D.fore) * 0.9 + PALM_OFF * H;   /* (the arm's own length to the handle: with the palm's length added as if it lay straight along the arm, which it does not round a handle, the top arm still fell short by most of a hand) */
         if (dl > reach) { d.multiplyScalar(-(dl - reach) / dl * this.twoHW); this.hand[hit].add(d); wrist[hit].add(d); } }
       // the racket: any part of it inside the trunk or the head, it is tipped at the wrist until it clears
       { const L = (B.headC + GRIP_UP) * H, hh = this.hand[hit], rk = this.rk.dir; let worst = null, wk = 0;
         // (out to the top of the frame, not only the middle of the strings: the upper half of the head swept through his face)
-        const kMax = globalThis.__tipOld ? 10 : 13;
-        for (let k = 3; k <= kMax; k++) { const q = _bm.copy(hh).addScaledVector(rk, L * k / 10), ps = bodyPush(q, 0.035 * H, _be, !globalThis.__headRoundOld); if (ps.lengthSq() > wk) { wk = ps.lengthSq(); worst = { k, ps: ps.clone() }; } }
+        const kMax = 13;
+        for (let k = 3; k <= kMax; k++) { const q = _bm.copy(hh).addScaledVector(rk, L * k / 10), ps = bodyPush(q, 0.035 * H, _be, true); if (ps.lengthSq() > wk) { wk = ps.lengthSq(); worst = { k, ps: ps.clone() }; } }
         if (worst) { const nd = _bm.copy(rk).multiplyScalar(L * worst.k / 10).add(worst.ps).normalize(); rk.copy(nd); const nn = this.rk.nrm; nn.addScaledVector(rk, -nn.dot(rk)).normalize(); }
         if (this.dbgOn && this.dbgDir) this.dbgDir.c4 = rk.clone(); } }
-      // and never into the court: the lowest point of the frame is kept a few centimetres off it, the hand (and the hand on the
-      // handle with it) lifted by what is missing, as a player's racket skims over the court at the bottom of a low swing and
-      // does not drag along it
-      { const rk = this.rk.dir, nn = this.rk.nrm, sd = _bm.copy(rk).cross(nn).normalize(), a = 0.165 * H, b = 0.128 * H, hh = this.hand[hit];
-        const cy = hh.y + rk.y * (B.headC + GRIP_UP) * H, low = cy - Math.sqrt((a * rk.y) ** 2 + (b * sd.y) ** 2), def = 0.035 - low;
-        this.rkLow = low;
-        // (the lift taken up as a spring: put on in a frame, both hands jumped half a metre when the racket swung low)
-        const lf = this.rkLift = clamp(ease(this, 'rkLiftE', Math.min(Math.max(def, 0), 0.3), 40, dt), 0, 0.3), d = Math.max(lf, Math.min(Math.max(def, 0), 0.05));
-        if (d > 1e-4) { hh.y += d; wrist[hit].y += d; if (gripW > 0.001) { this.hand[off].y += d * gripW; wrist[off].y += d * gripW; } } }
+    // and never into the court: the lowest point of the frame is kept a few centimetres off it, the hand (and the hand on the
+    // handle with it) lifted by what is missing, as a player's racket skims over the court at the bottom of a low swing and
+    // does not drag along it
+    { const rk = this.rk.dir, nn = this.rk.nrm, sd = _bm.copy(rk).cross(nn).normalize(), a = 0.165 * H, b = 0.128 * H, hh = this.hand[hit];
+      const cy = hh.y + rk.y * (B.headC + GRIP_UP) * H, low = cy - Math.sqrt((a * rk.y) ** 2 + (b * sd.y) ** 2), def = 0.035 - low;
+      this.rkLow = low;
+      // (the lift taken up as a spring: put on in a frame, both hands jumped half a metre when the racket swung low)
+      const lf = this.rkLift = clamp(ease(this, 'rkLiftE', Math.min(Math.max(def, 0), 0.3), 40, dt), 0, 0.3), d = Math.max(lf, Math.min(Math.max(def, 0), 0.05));
+      if (d > 1e-4) { hh.y += d; wrist[hit].y += d; if (gripW > 0.001) { this.hand[off].y += d * gripW; wrist[off].y += d * gripW; } } }
 
     // ---- solve the limbs and pose the skeleton ----
     const P = this.parts, LJ = LEG_J;
@@ -2453,7 +2471,7 @@ export class Figure {
       // a celebration that puts the free hand to the head says where its elbow goes (Wawrinka's finger to the temple: elbow low
       // and in front, the forearm pointing up at the temple; the tracked arms' elbow for a hand there is out at the side, which
       // laid the forearm across his face and put the finger in his eye)
-      if (i === off && !globalThis.__rPoleOld && this.reactPole && (this.reactK || 0) > 0.001) { const rp = this.reactPole;
+      if (i === off && this.reactPole && (this.reactK || 0) > 0.001) { const rp = this.reactPole;
         pole.lerp(_rpV.set(0, 0, 0).addScaledVector(cRight, rp[0] * sx).addScaledVector(cUpW, rp[1]).addScaledVector(cFwdW, rp[2]).normalize(), clamp(this.reactK, 0, 1)).normalize(); }
       // eased over a few frames: the table's answer may move faster than an elbow does
       // the clip's own elbow, as far as the clip's arm is bent: a nearly straight tracked arm says nothing about which way
@@ -2464,12 +2482,14 @@ export class Figure {
         // (toward where the clip's elbow is, from the middle of this arm, not the clip's: where the stroke has put the hand
         // somewhere else (a wide forehand's hand brought in to the front of the stomach, the clip's still out at the side), the
         // clip's elbow taken against its own arm's line lay on the inside of this one, and the elbow went through his stomach)
-        if (fw > 0.001) { const mid = _a.copy(sh[i]).add(cWr[i]).multiplyScalar(0.5), off2 = _v9.copy(cEl[i]).sub(mid), ext = off2.length() / Math.max(1e-3, D.upper), bent = sm((ext - 0.06) / 0.22);
+        if (fw > 0.001) {
+          const mid = _a.copy(sh[i]).add(cWr[i]).multiplyScalar(0.5), off2 = _v9.copy(cEl[i]).sub(mid), ext = off2.length() / Math.max(1e-3, D.upper), bent = sm((ext - 0.06) / 0.22);
           // (and only as far as that elbow stands off this arm's line: lying on it, the way to it is noise, and a clip elbow a few
           // centimetres inside the line turned Becker's elbow inward a frame before the swing brought the hand in, through his chest)
-          let bentU = bent; if (!globalThis.__elClipOld) { mid.copy(sh[i]).add(wrist[i]).multiplyScalar(0.5); off2.copy(cEl[i]).sub(mid);
-            if (!globalThis.__elOffOld) { const dA = _bp0.copy(wrist[i]).sub(sh[i]).normalize(), perp = Math.sqrt(Math.max(0, off2.lengthSq() - off2.dot(dA) ** 2)); bentU = Math.min(bent, sm((perp / Math.max(1e-3, D.upper) - 0.06) / 0.22)); } }
-          if (bentU > 0.001 && off2.lengthSq() > 1e-8) pole.lerp(off2.normalize(), fw * bentU).normalize(); } } if (this.dbgOn) { const DP = this.dbgPole || (this.dbgPole = [{}, {}]); DP[i].p2 = pole.clone(); }
+          let bentU = bent; mid.copy(sh[i]).add(wrist[i]).multiplyScalar(0.5); off2.copy(cEl[i]).sub(mid);
+          { const dA = _bp0.copy(wrist[i]).sub(sh[i]).normalize(), perp = Math.sqrt(Math.max(0, off2.lengthSq() - off2.dot(dA) ** 2)); bentU = Math.min(bent, sm((perp / Math.max(1e-3, D.upper) - 0.06) / 0.22)); }
+          if (bentU > 0.001 && off2.lengthSq() > 1e-8) pole.lerp(off2.normalize(), fw * bentU).normalize();
+        } } if (this.dbgOn) { const DP = this.dbgPole || (this.dbgPole = [{}, {}]); DP[i].p2 = pole.clone(); }
       // a pole lying along the arm says nothing about where the elbow goes, and the least change in it would spin the elbow
       // round the arm: as it comes into line, the elbow is let hang down and a little out instead
       { const dS = _b.copy(wrist[i]).sub(sh[i]).normalize(), pd = pole.dot(dS), perp = Math.sqrt(Math.max(0, 1 - pd * pd));
@@ -2486,7 +2506,7 @@ export class Figure {
         return sm((hy + 0.62) / 0.1) * (1 - sm((hy + 0.18) / 0.1)) * (1 - sm((hz - 0.05) / 0.12)) * sm((hx + 0.02) / 0.08); })();
       // (and walking between points, both elbows go back as the players' do, the arms bent forty degrees: let stand out to the
       // side, from behind the free arm, its hand at the waist, was a hand on the hip at every step)
-      const strollE = !globalThis.__strollElbOld && strolling && !inPlayE ? Math.min(1, speed / 0.5) : 0;
+      const strollE = strolling && !inPlayE ? Math.min(1, speed / 0.5) : 0;
       { const runE = Math.max((i === off ? freeOf(off) : carry) * (1 - sm(swA / 0.4)) * sm((speed - 2.5) / 1.5) * (inPlayE ? 1 : 0), hipZone, strollE);
         if (runE > 0.001) { const oU = _rc1.copy(cRight).multiplyScalar(sx), xo = pole.dot(oU);
           if (xo > 0.2) { const pn = _rc2.copy(pole).addScaledVector(oU, (0.2 - xo) * runE), dS = _b.copy(wrist[i]).sub(sh[i]).normalize(); pn.addScaledVector(dS, -pn.dot(dS));
@@ -2494,7 +2514,7 @@ export class Figure {
       // (walking back between points the elbows point back, a little out, as a walker's do: the walk's arms are nearly straight,
       // so which way they bend was left to the rules for a stroke's arms, and as the hand swung behind the hip the elbow came
       // round in front of it, the forearm bent the wrong way, at every step)
-      { const sK = globalThis.__strollElbBackOld ? 0 : (this.strollK || 0); if (sK > 0.001) { const dS = _b.copy(wrist[i]).sub(sh[i]).normalize(), bk = _rc2.copy(cFwdW).multiplyScalar(-0.9).addScaledVector(cRight, sx * 0.3).addScaledVector(cUpW, -0.15);
+      { const sK = (this.strollK || 0); if (sK > 0.001) { const dS = _b.copy(wrist[i]).sub(sh[i]).normalize(), bk = _rc2.copy(cFwdW).multiplyScalar(-0.9).addScaledVector(cRight, sx * 0.3).addScaledVector(cUpW, -0.15);
           bk.addScaledVector(dS, -bk.dot(dS)); if (bk.lengthSq() > 1e-4) { bk.normalize(); pole.lerp(bk, sK).normalize(); } } }
       if (this.dbgOn) { const DP = this.dbgPole || (this.dbgPole = [{}, {}]); DP[i].p5 = pole.clone(); }
       // No chicken wing. An elbow can turn round the line from shoulder to hand, and with the hand at or below the shoulder
@@ -2548,7 +2568,7 @@ export class Figure {
               // (real passing through only: an arm let hang rests against the ribs, and asked to clear them by a whole limb's
               // thickness the elbow of every relaxed arm was swung out round it, both arms akimbo after each point; the push
               // to the surface below still keeps it outside)
-              const cm = LIMB_R * (globalThis.__clrM ?? 0.45);
+              const cm = LIMB_R * 0.45;
               for (const f of [0.75, 1]) { if (bodyPush(_cq.copy(sh[i]).lerp(e, f), cm, _bq2).lengthSq() > 1e-6) return false; }
               for (const f of [0.25, 0.5, 0.75]) { if (bodyPush(_cq.copy(e).lerp(wrist[i], f), cm, _bq2).lengthSq() > 1e-6) return false; }
               return true; };
@@ -2567,7 +2587,7 @@ export class Figure {
             // (and where the elbow is now, eased, is inside though the place asked for is clear, it gets out at the same pace: an
             // elbow still turned in from a finish behind the hip, the hand come round to the front, lagged inside the side of the
             // chest for a tenth of a second, the arm through the body, at the leisurely turn kept for everything else)
-            else { let escS = 0; if (!globalThis.__escSOld && this.poleInit) { const cur = this.poleS[i], aC = Math.atan2(cur.dot(p1), cur.dot(p0)); if (!clear(aC)) escS = 1; } (this.clrB || (this.clrB = [0, 0]))[i] = escS; } } } }
+            else { let escS = 0; if (this.poleInit) { const cur = this.poleS[i], aC = Math.atan2(cur.dot(p1), cur.dot(p0)); if (!clear(aC)) escS = 1; } (this.clrB || (this.clrB = [0, 0]))[i] = escS; } } } }
       // An elbow can only swing round the line from shoulder to wrist, so that is how it is eased: as an angle about that
       // line, never straight across it (eased straight across, a pole that has to go half way round passes through
       // nothing and the elbow jumps to the other side of the arm in one frame), and no faster than an arm turns.
@@ -2578,7 +2598,7 @@ export class Figure {
           // (carried round with the arm as the arm swings, keeping its side of it, before it is eased: kept pointing the same way
           // in the world and only laid flat again across the arm's new line, an arm swung from out to the side to down by the hip
           // in a few frames had its elbow come out pointing in, into the side of the chest)
-          if (!globalThis.__poleTpOld && dl2 > 1e-4) { const pa = this.poleArm || (this.poleArm = [V(), V()]), dn = _ptD.copy(dA).multiplyScalar(1 / dl2);
+          if (dl2 > 1e-4) { const pa = this.poleArm || (this.poleArm = [V(), V()]), dn = _ptD.copy(dA).multiplyScalar(1 / dl2);
             if (this.poleArmOk && this.poleArmOk[i] && pa[i].lengthSq() > 0.5) ps.applyQuaternion(_ptQ.setFromUnitVectors(pa[i], dn));
             pa[i].copy(dn); (this.poleArmOk || (this.poleArmOk = [false, false]))[i] = true; }
           const a0 = _pb.copy(ps), b0 = _pc.copy(pole);
@@ -2588,7 +2608,7 @@ export class Figure {
             let ang = Math.atan2(_v9.copy(a0).cross(b0).dot(dA), clamp(a0.dot(b0), -1, 1));
             // (the long way round the outside where the short way goes through the body: an elbow with its new place on the far
             // side of the arm, more than a quarter turn away, was swung round through the inside of the arm and into the chest)
-            if (!globalThis.__poleWayOld && Math.abs(ang) > 1.6) { const inw = _ptI.copy(pelvis).addScaledVector(tAx, 0.5 * tLen).sub(sh[i]); inw.addScaledVector(dA, -inw.dot(dA));
+            if (Math.abs(ang) > 1.6) { const inw = _ptI.copy(pelvis).addScaledVector(tAx, 0.5 * tLen).sub(sh[i]); inw.addScaledVector(dA, -inw.dot(dA));
               if (inw.lengthSq() > 1e-6) { inw.normalize(); if (_ptM.copy(a0).applyAxisAngle(dA, ang / 2).dot(inw) > 0.3) ang -= Math.sign(ang) * 2 * Math.PI; } }
             // (an elbow that would pass through the body gets out of it at an arm's pace, not at the leisurely turn kept for
             // everything else: in the fastest part of a swing it otherwise lagged inside the chest for several frames)
@@ -2599,13 +2619,13 @@ export class Figure {
         pole.copy(ps); }
       // (and strolling, last of all, the elbow behind the line from shoulder to hand: with the arm hanging nearly straight the rules
       // after the first one left it free to come round in front, and the racket arm folded backwards at the elbow mid-stride)
-      { const sK = globalThis.__strollElbBackOld ? 0 : (this.strollK || 0); if (sK > 0.001) { const dS = _b.copy(wrist[i]).sub(sh[i]).normalize(), bk = _rc2.copy(cFwdW).multiplyScalar(-0.9).addScaledVector(cRight, sx * 0.3).addScaledVector(cUpW, -0.15);
+      { const sK = (this.strollK || 0); if (sK > 0.001) { const dS = _b.copy(wrist[i]).sub(sh[i]).normalize(), bk = _rc2.copy(cFwdW).multiplyScalar(-0.9).addScaledVector(cRight, sx * 0.3).addScaledVector(cUpW, -0.15);
           bk.addScaledVector(dS, -bk.dot(dS)); if (bk.lengthSq() > 1e-4) { bk.normalize(); pole.lerp(bk, sK).normalize(); this.poleS[i].copy(pole); } } }
       // (and the free arm swinging back as he runs, its elbow goes back, by his side, as a runner's does: left to the rules made for
       // strokes, it came out to the side with the hand at the waist, and from behind he ran in with a hand on his hip;
       // applied last, as the stroll's is, and only away from a stroke (none, or over half a second past contact): in a take-back or
       // a recovery on the run, tucked, the forearm went into the hip)
-      if (!globalThis.__runElbOld && i === off && (live || m.phase === 'over') && !((this.strollK || 0) > 0.5) && !((this.reactK || 0) > 0.01) && !this.posed && !(st && (st.kind === 'serve' || st.kind === 'smash'))) {   /* (and running on after the point is over) */ const rK = sm((speed - 2.3) / 0.8) * (!st ? 1 : st.tc != null ? sm((t - st.tc - 0.5) / 0.15) : 0);   /* (in a stroke's recovery too, running off after it) */
+      if (i === off && (live || m.phase === 'over') && !((this.strollK || 0) > 0.5) && !((this.reactK || 0) > 0.01) && !this.posed && !(st && (st.kind === 'serve' || st.kind === 'smash'))) {   /* (and running on after the point is over) */ const rK = sm((speed - 2.3) / 0.8) * (!st ? 1 : st.tc != null ? sm((t - st.tc - 0.5) / 0.15) : 0);   /* (in a stroke's recovery too, running off after it) */
         if (rK > 0.001) { const hy = sh[i].y - wrist[i].y, wB = rK * sm((hy - 0.32) / 0.12);   /* (whenever the hand is down at the waist, in front of the hip or behind it: there an elbow out to the side is a hand on the hip) */
           if (wB > 0.001) { const dS = _b.copy(wrist[i]).sub(sh[i]).normalize(), bk = _rc2.copy(cFwdW).multiplyScalar(-1).addScaledVector(cRight, sx * 0.12).addScaledVector(cUpW, 0.15);
             bk.addScaledVector(dS, -bk.dot(dS)); if (bk.lengthSq() > 1e-4) { bk.normalize(); pole.lerp(bk, wB).normalize(); this.poleS[i].copy(pole); } } } }
@@ -2635,15 +2655,16 @@ export class Figure {
       // (taken on as the other hand lets go, not all at once as its hold passes a half, and the move it makes eased in and out over
       // a few frames: a one-hander's lob, the free hand leaving the throat, had the racket hand thrown twenty centimetres across in
       // the frame the hold went under a half, and back a few frames later)
-      const acNew = !globalThis.__acrossGripOld, acW0 = acNew ? _acA.copy(wrist[i]) : null, acK = acNew ? 1 - sm((gripW - 0.15) / 0.5) : 1;
-      if (!globalThis.__acrossOld && (acNew ? acK > 0.001 : !(gripW > 0.5))) { const r = _bp0.copy(wrist[i]).sub(sh[i]), mx = (D.upper + D.fore) * 0.995, sxA = i === 0 ? -1 : 1;   /* (not with both hands on a handle: moved alone, the bottom hand left the top one a hand's breadth up the throat) */
+      const acW0 = _acA.copy(wrist[i]), acK = 1 - sm((gripW - 0.15) / 0.5);
+      if (acK > 0.001) { const r = _bp0.copy(wrist[i]).sub(sh[i]), mx = (D.upper + D.fore) * 0.995, sxA = i === 0 ? -1 : 1;   /* (not with both hands on a handle: moved alone, the bottom hand left the top one a hand's breadth up the throat) */
         if (r.length() > mx && _bp1.copy(wrist[i]).sub(pelvis).dot(tRt) * sxA < 0) { const side = r.dot(tRt), rest = r.addScaledVector(tRt, -side), rl = rest.length();
           if (rl < mx * 0.98) { const ns = Math.sign(side) * Math.sqrt(mx * mx - rl * rl); if (Math.abs(ns) < Math.abs(side)) wrist[i].copy(sh[i]).add(rest).addScaledVector(tRt, ns); }
           // (and if even straight down and forward it is out of reach, it keeps how far forward it is and gives up height: pulled
           // back along the arm instead, a left-hander's serve finish lost its place in front of him and that arm lay across his chest)
-          else if (!globalThis.__acrossOld2) { const fz = rest.dot(tFw), tg = mx * 0.97; if (fz > 0 && fz < tg) { const up = rest.addScaledVector(tFw, -fz), ul = up.length(); if (ul > 1e-4) { up.multiplyScalar(Math.sqrt(tg * tg - fz * fz) / ul); wrist[i].copy(sh[i]).addScaledVector(tFw, fz).add(up); } } } } }
-      if (acNew && !globalThis.__acrossOld) { const ao = this.acrossOff || (this.acrossOff = [V(), V()]), want = _acB.copy(wrist[i]).sub(acW0).multiplyScalar(acK);
-        if (dt > 0 && this.handInit) { const d = _acC.copy(want).sub(ao[i]), mxA = (globalThis.__acrossRate ?? 0.06) * dt * 60; if (d.length() > mxA) d.setLength(mxA); ao[i].add(d); } else ao[i].copy(want);
+          else
+            { const fz = rest.dot(tFw), tg = mx * 0.97; if (fz > 0 && fz < tg) { const up = rest.addScaledVector(tFw, -fz), ul = up.length(); if (ul > 1e-4) { up.multiplyScalar(Math.sqrt(tg * tg - fz * fz) / ul); wrist[i].copy(sh[i]).addScaledVector(tFw, fz).add(up); } } } } }
+      { const ao = this.acrossOff || (this.acrossOff = [V(), V()]), want = _acB.copy(wrist[i]).sub(acW0).multiplyScalar(acK);
+        if (dt > 0 && this.handInit) { const d = _acC.copy(want).sub(ao[i]), mxA = 0.06 * dt * 60; if (d.length() > mxA) d.setLength(mxA); ao[i].add(d); } else ao[i].copy(want);
         wrist[i].copy(acW0).add(ao[i]); }
       let el = ik(sh[i], wrist[i], D.upper, D.fore, pole, _el[i], true);
       // an elbow inside the trunk, or a forearm through it: the elbow swings out round the arm to the trunk's surface
@@ -2652,7 +2673,7 @@ export class Figure {
         // (eased like the hands: the elbow slides round the body rather than being knocked out of it)
         // (quicker round contact, where the arm is moving at twenty metres a second and an elbow eased in a hundredth of a second
         // behind it went through the side of the chest on the swing at the ball)
-        const ucE = st && st.tc != null ? t - st.tc : 9, eg = this.elGot || (this.elGot = [V(), V()]), ev = this.elVel || (this.elVel = [V(), V()]), w = globalThis.__elbowFastOld ? 50 : lerp(50, globalThis.__elbowFastW ?? 140, Math.exp(-(ucE * ucE) / 0.012)), ex = Math.exp(-w * dt);
+        const ucE = st && st.tc != null ? t - st.tc : 9, eg = this.elGot || (this.elGot = [V(), V()]), ev = this.elVel || (this.elVel = [V(), V()]), w = lerp(50, 140, Math.exp(-(ucE * ucE) / 0.012)), ex = Math.exp(-w * dt);
         if (dt > 0) for (const c of ['x', 'y', 'z']) { const d = eg[i][c] - pe[c], k = (ev[i][c] + w * d) * dt; eg[i][c] = pe[c] + (d + k) * ex; ev[i][c] = (ev[i][c] - w * k) * ex; } else eg[i].copy(pe);
         if (eg[i].lengthSq() > 1e-8) { const mid2 = _bp1.copy(sh[i]).add(wrist[i]).multiplyScalar(0.5), np = _bq.copy(el).add(eg[i]).sub(mid2); if (np.lengthSq() > 1e-8) el = ik(sh[i], wrist[i], D.upper, D.fore, np.normalize(), _el[i], true); } }
       // Last, the elbow moves no faster than an elbow does: relative to the chest, about nine centimetres a frame away from the
@@ -2661,7 +2682,7 @@ export class Figure {
       // where it was as that allows, and goes on from there.
       { const cU2 = _axV.set(0, 1, 0).applyQuaternion(qChest), cF2 = _bq.copy(cU2).cross(cRight).normalize(), ep = this.elRel || (this.elRel = [V(), V()]), eok = this.elRelOk || (this.elRelOk = [false, false]);
         const rel = _bp0.copy(el).sub(sh[i]), lx = rel.dot(cRight), ly = rel.dot(cU2), lz = rel.dot(cF2);
-        if (eok[i] && this.handInit && dt > 0) { const uc = st && st.tc != null ? t - st.tc : 9, near = Math.exp(-(uc * uc) / (globalThis.__elW || 0.007)), lim = (0.09 + (i === hit ? 0.22 : 0.09) * near) * dt * 60;   /* (the fast elbow only right at the ball: allowed a tenth of a second either side, a late, rushed take-back swung the upper arm half a turn a second faster than a shoulder turns) */   /* (the free elbow less: it is not swung at the ball) */
+        if (eok[i] && this.handInit && dt > 0) { const uc = st && st.tc != null ? t - st.tc : 9, near = Math.exp(-(uc * uc) / 0.007), lim = (0.09 + (i === hit ? 0.22 : 0.09) * near) * dt * 60;   /* (the fast elbow only right at the ball: allowed a tenth of a second either side, a late, rushed take-back swung the upper arm half a turn a second faster than a shoulder turns) */   /* (the free elbow less: it is not swung at the ball) */
           const dx = lx - ep[i].x, dy = ly - ep[i].y, dz = lz - ep[i].z, dd = Math.hypot(dx, dy, dz);
           if (dd > lim) { const k = lim / dd, tg = _bp1.copy(sh[i]).addScaledVector(cRight, ep[i].x + dx * k).addScaledVector(cU2, ep[i].y + dy * k).addScaledVector(cF2, ep[i].z + dz * k);
             const mid = _bq2.copy(sh[i]).add(wrist[i]).multiplyScalar(0.5), np = tg.sub(mid); if (np.lengthSq() > 1e-8) el = ik(sh[i], wrist[i], D.upper, D.fore, np.normalize(), _el[i], true); } }
@@ -2671,7 +2692,8 @@ export class Figure {
       // measured against the chest, as the audit measures it. (Every limit before this one works on where the hand and the elbow
       // are, and where two of them hand over in the same frame, a stroke begun a fifth of a second before the ball, a two-hander's
       // grip let go, the upper arm could still swing forty-five degrees in one frame.)
-      if (!globalThis.__noSegLim) { const sl = this.segL || (this.segL = [null, null]), cR = _sgR, cU = _sgU, cF = _sgF; if (globalThis.__segChest) { cR.copy(cRight); cU.set(0, 1, 0).applyQuaternion(qChest); cF.copy(cU).cross(cR).normalize(); } else bodyFrame(person, pelvis, cR, cU, cF);
+      {
+        const sl = this.segL || (this.segL = [null, null]), cR = _sgR, cU = _sgU, cF = _sgF; bodyFrame(person, pelvis, cR, cU, cF);
         const loc = (v, o) => o.set(v.dot(cR), v.dot(cU), v.dot(cF)), wld = (l, o) => o.set(0, 0, 0).addScaledVector(cR, l.x).addScaledVector(cU, l.y).addScaledVector(cF, l.z);
         const ua = loc(_sgA.copy(el).sub(sh[i]).normalize(), _sgA2), fa = loc(_sgB.copy(wrist[i]).sub(el).normalize(), _sgB2);
         const ucS = st && st.tc != null ? t - st.tc : 9, srvS = st && (st.kind === 'serve' || st.kind === 'smash'), hitWin = srvS ? (ucS > -0.22 && ucS < 0.17) : (ucS > -0.11 && ucS < 0.09);
@@ -2683,19 +2705,20 @@ export class Figure {
         // about fifteen degrees a frame, nine hundred a second: at the full limit a take-back begun late at a sprint swung the racket
         // across the body and over the far shoulder in a tenth of a second, and the arms looked to flail - he said "the arms still
         // flail a lot on running and strokes". Not a rushed stroke's, nor a serve's or a smash's, which are fast.)
-        const calm = !globalThis.__flailOld && !srvS && (!st || (st.tc == null ? true : ((ucS < -0.3 && st.tc - (st.t0 ?? -9) > 0.45) || ucS > 0.4)));
-        if (ok && !hitWin) { const mx = Math.min(calm ? (globalThis.__calmLim ?? 0.26) : 9, (i === off && !((this.gripOn || 0) > (globalThis.__freeLimG ?? 0.8)) && !globalThis.__freeLimOld ? ((this.gripOn || 0) > 0.01 && !globalThis.__relLimOld ? (globalThis.__relLim ?? 0.35) : 0.52) : 0.63)) * Math.min(2, dt * 60), lim = (cur, pv) => { const ang = Math.acos(clamp(cur.dot(pv), -1, 1)); if (ang > mx) { const ax = _sgC.copy(pv).cross(cur); if (ax.lengthSq() < 1e-10) return false; cur.copy(pv).applyAxisAngle(ax.normalize(), mx); return true; } return false; };
+        const calm = !srvS && (!st || (st.tc == null ? true : ((ucS < -0.3 && st.tc - (st.t0 ?? -9) > 0.45) || ucS > 0.4)));
+        if (ok && !hitWin) { const mx = Math.min(calm ? 0.26 : 9, (i === off && !((this.gripOn || 0) > 0.8) ? ((this.gripOn || 0) > 0.01 ? 0.35 : 0.52) : 0.63)) * Math.min(2, dt * 60), lim = (cur, pv) => { const ang = Math.acos(clamp(cur.dot(pv), -1, 1)); if (ang > mx) { const ax = _sgC.copy(pv).cross(cur); if (ax.lengthSq() < 1e-10) return false; cur.copy(pv).applyAxisAngle(ax.normalize(), mx); return true; } return false; };
           const c1 = lim(ua, prev.ua), c2 = lim(fa, prev.fa);
           if (c1 || c2) { const e2 = wld(ua, _sgC).multiplyScalar(D.upper).add(sh[i]); const w2 = wld(fa, _sgA).multiplyScalar(D.fore).add(e2); const dW = _sgB.copy(w2).sub(wrist[i]);
             el.copy(e2); wrist[i].copy(w2); this.hand[i].add(dW); } }
-        if (!prev) sl[i] = { ua: V(), fa: V(), nua: V(), nfa: V(), pt: null, npt: null }; sl[i].nua.copy(ua); sl[i].nfa.copy(fa); sl[i].npt = this.placedT; }
+        if (!prev) sl[i] = { ua: V(), fa: V(), nua: V(), nfa: V(), pt: null, npt: null }; sl[i].nua.copy(ua); sl[i].nfa.copy(fa); sl[i].npt = this.placedT;
+      }
       const Ff = person.setLimb(S, 'arm', el, wrist[i], qChest, sh[i], _qa, _qb);
       // the hand turns at the wrist so the handle lies across the palm
       const Fh = this.Fhand[i];
       // (the handshake: the right hand out, its palm to his left and the fingers forward and a little down; and a right-hander's
       // racket held in his left hand, hanging, the hand closed round the handle)
       const shK = this.shake && i === 1 && person.dir['palmN' + S] ? clamp(this.shake.k || 0, 0, 1) : 0, swapHold = this.shakeSwap && i === off;
-      const tH = this.trophyHold && !globalThis.__trophyOld && person.dir['palmN' + S] ? this.trophyHold : null;
+      const tH = this.trophyHold && person.dir['palmN' + S] ? this.trophyHold : null;
       const shF = shK > 0.001 || this.shakeSwap || tH ? (this._shF || (this._shF = V())).set(0, 0, -1).applyQuaternion(this.frame.quaternion) : null, shR = shF ? (this._shR || (this._shR = V())).set(1, 0, 0).applyQuaternion(this.frame.quaternion) : null;
       if (tH) {
         // (the trophy: each palm turned in to face the other across it, the fingers forward round a handle, and up as it goes up)
@@ -2751,7 +2774,7 @@ export class Figure {
       if (tH) person.setFingers(S, tH.curl ?? 0.8, 0); else
       if (i === off && (this.upOpen || 0) > 0.001 && !this.shakeSwap) person.setFingers(S, lerp(0.3, 0.12, this.upOpen), 0); else
       if (shK > 0.001 || swapHold || (this.shakeSwap && i === hit)) person.setFingers(S, swapHold ? 1.02 : 0.3 + 0.32 * shK, 0); else
-      person.setFingers(S, i === hit ? 1.02 : m.ball && m.ball.held === p.i ? 0.45 : Math.max(0.3 + 0.65 * gripW, globalThis.__reactAnimOld ? 0 : (this.reactK || 0) * (this.reactFist || 0) * 1.05), i !== hit && !globalThis.__pointOld ? (this.reactK || 0) * (this.reactPoint || 0) : 0, i !== hit && !(m.ball && m.ball.held === p.i) && !globalThis.__fistOld ? (this.reactK || 0) * (this.reactFist || 0) * (1 - clamp(gripW * 2, 0, 1)) : 0);   /* (the free hand clenched for a fist pump, the vamos; its index finger out for Wawrinka's tap to the temple) */
+      person.setFingers(S, i === hit ? 1.02 : m.ball && m.ball.held === p.i ? 0.45 : Math.max(0.3 + 0.65 * gripW, (this.reactK || 0) * (this.reactFist || 0) * 1.05), i !== hit ? (this.reactK || 0) * (this.reactPoint || 0) : 0, i !== hit && !(m.ball && m.ball.held === p.i) ? (this.reactK || 0) * (this.reactFist || 0) * (1 - clamp(gripW * 2, 0, 1)) : 0); /* (the free hand clenched for a fist pump, the vamos; its index finger out for Wawrinka's tap to the temple) */
       // legs: the ankle where the clip puts it over the ground, the knee bent the way the clip's is
       const hip = i === 0 ? hipL : hipR, ft = this.feet[i], jh = LJ[i][0], jk = LJ[i][1], ja = LJ[i][2], jt = LJ[i][3];
       const ankle = _an[i];
@@ -2765,14 +2788,14 @@ export class Figure {
       // (the leg that turns its knee out is the one in the air, or the right one when both are down or both up; the other's
       // knee is where it is or, not yet solved, where it will be)
       const sepMe = meAir && !othAir ? true : !meAir && othAir ? false : i === 1;
-      if (sepMe && !globalThis.__legSepOld) { const o = 1 - i, hip0 = o === 0 ? hipL : hipR, a0 = _an[o], k0 = o < i ? _kn[o] : ik(hip0, a0, D.thigh, D.shank, kpFor(o, _kpO), _kpK), mn = (globalThis.__legSep ?? 0.115) * H;
+      if (sepMe) { const o = 1 - i, hip0 = o === 0 ? hipL : hipR, a0 = _an[o], k0 = o < i ? _kn[o] : ik(hip0, a0, D.thigh, D.shank, kpFor(o, _kpO), _kpK), mn = 0.115 * H;
         const segD = (p0, p1, q0, q1) => { let best = 9; for (let k = 0; k <= 6; k++) { const q = _lsA.copy(p0).lerp(p1, k / 6), ab = _lsB.copy(q1).sub(q0), tt = clamp(_lsC.copy(q).sub(q0).dot(ab) / Math.max(1e-6, ab.lengthSq()), 0, 1); best = Math.min(best, q.distanceTo(_lsC.copy(q0).addScaledVector(ab, tt))); } return best; };
         const legD = (kk) => Math.min(segD(kk, ankle, k0, a0), segD(_lsD.copy(hip).lerp(kk, 0.55), kk, _lsE.copy(hip0).lerp(k0, 0.55), k0), segD(kk, ankle, _lsE.copy(hip0).lerp(k0, 0.55), k0), segD(_lsD.copy(hip).lerp(kk, 0.55), kk, k0, a0));
         const ax = _lsF.copy(ankle).sub(hip); const al = ax.length();
         let want = 0;
         if (al > 1e-3) { ax.multiplyScalar(1 / al); const rel = _lsG.copy(kn).sub(hip), rot = th => _lsH.copy(rel).applyAxisAngle(ax, th).add(hip);
-          if (legD(kn) < mn) { let best = 0, bd = legD(kn); for (const th of (globalThis.__legSepNarrowOld ? [0.15, -0.15, 0.3, -0.3, 0.45, -0.45, 0.6, -0.6] : [0.15, -0.15, 0.3, -0.3, 0.45, -0.45, 0.6, -0.6, 0.75, -0.75, 0.9, -0.9])) {   /* (as far as ninety degrees out, at up to nine degrees a frame: at sixty and six, a stroke's finish with both feet off the court still brought the shins together) */ const dd = legD(rot(th)); if (dd >= mn) { best = th; bd = dd; break; } if (dd > bd + 0.005) { bd = dd; best = th; } } want = best; }
-          const LS = this.legSepA || (this.legSepA = [0, 0]), cur = LS[i], mxS = (globalThis.__legSepNarrowOld ? 0.1 : 0.16) * Math.max(dt * 60, 0.5); LS[i] = cur + clamp(want - cur, -mxS, mxS);
+          if (legD(kn) < mn) { let best = 0, bd = legD(kn); for (const th of ([0.15, -0.15, 0.3, -0.3, 0.45, -0.45, 0.6, -0.6, 0.75, -0.75, 0.9, -0.9])) {   /* (as far as ninety degrees out, at up to nine degrees a frame: at sixty and six, a stroke's finish with both feet off the court still brought the shins together) */ const dd = legD(rot(th)); if (dd >= mn) { best = th; bd = dd; break; } if (dd > bd + 0.005) { bd = dd; best = th; } } want = best; }
+          const LS = this.legSepA || (this.legSepA = [0, 0]), cur = LS[i], mxS = 0.16 * Math.max(dt * 60, 0.5); LS[i] = cur + clamp(want - cur, -mxS, mxS);
           if (Math.abs(LS[i]) > 1e-4) kn.copy(rot(LS[i])); if (this.dbgOn) this.dbgLegSep = LS.map(x => +x.toFixed(2)); } }
       else if (this.legSepA && this.legSepA[i]) { const LS = this.legSepA, mxS = 0.1 * Math.max(dt * 60, 0.5); LS[i] -= clamp(LS[i], -mxS, mxS); const ax = _lsF.copy(ankle).sub(hip), al = ax.length(); if (al > 1e-3 && Math.abs(LS[i]) > 1e-4) { ax.multiplyScalar(1 / al); kn.copy(_lsG.copy(kn).sub(hip).applyAxisAngle(ax, LS[i]).add(hip)); } }
       const Fs = person.setLimb(S, 'leg', kn, ankle, qPel, hip, _qa, _qb);
@@ -2781,7 +2804,7 @@ export class Figure {
       // (strolling, the foot is pitched as the walker's was, against his own flat foot: laid flat whenever it was near the court, the
       // walker's heel coming down still travelling was drawn as a flat shoe sliding along the court a hand's length at every step,
       // where he lands on his heel with the toes up and rolls onto the sole)
-      { const stK = this.strollK || 0, sp = this.loco.stPitch; if (stK > 0.001 && sp && !globalThis.__strollPitchOld) { const rest = _v9.copy(person.dir['foot' + S]).applyQuaternion(qYaw), rp = Math.asin(clamp(rest.y, -1, 1)), wy = Math.sin(clamp(rp + sp[i], -1.5, 1.5));
+      { const stK = this.strollK || 0, sp = this.loco.stPitch; if (stK > 0.001 && sp) { const rest = _v9.copy(person.dir['foot' + S]).applyQuaternion(qYaw), rp = Math.asin(clamp(rest.y, -1, 1)), wy = Math.sin(clamp(rp + sp[i], -1.5, 1.5));
         fd.y = lerp(fd.y, wy, stK); const hz = Math.hypot(fd.x, fd.z) || 1, k = Math.sqrt(Math.max(0, 1 - fd.y * fd.y)) / hz; fd.x *= k; fd.z *= k; } }
       // (and never tipped into the court: a heel up on its toes, the toes stay on the surface, the foot no steeper than
       // that; tilted further, the front of the shoe went down through the court a few centimetres)
@@ -2861,16 +2884,19 @@ export class Figure {
     // passes, so tipping it off one side of the trunk does not put it through another)
     // (and the head where it really is now, not straight over the middle of the chest, where it was guessed before the body
     // was posed: leaning back as he ran, a backhand's recovery swung the racket head through his own, round the guessed one)
-    if (!globalThis.__headRealOld) { const hj = person.jointPos('Head', _hrA), nj = person.jointPos('Neck', _hrB), dv = _hrC.copy(hj).sub(nj); if (dv.lengthSq() > 1e-6) { dv.normalize(); headC0.copy(hj).addScaledVector(dv, 0.08 * H); _hdJ.copy(hj); this.headJOk = true; } }
-    { const Lr = (B.headC + GRIP_UP) * H, rk = this.rk.dir;
-      if (globalThis.__headFirst) headRound(_grip, rk, this.rk.nrm, Lr, (globalThis.__headM ?? 0.005) * H, 1);
+    {
+      const hj = person.jointPos('Head', _hrA), nj = person.jointPos('Neck', _hrB), dv = _hrC.copy(hj).sub(nj); if (dv.lengthSq() > 1e-6) { dv.normalize(); headC0.copy(hj).addScaledVector(dv, 0.08 * H); _hdJ.copy(hj); this.headJOk = true; }
+    }
+    {
+      const Lr = (B.headC + GRIP_UP) * H, rk = this.rk.dir;
       for (let it = 0; it < 3; it++) { let wk = 1e-6, best = -1; const bp = _bp0;
-        for (let k = 2; k <= (globalThis.__tipOld ? 10 : 13); k++) { const ps = bodyPush(_bm.copy(_grip).addScaledVector(rk, Lr * k / 10), 0.03 * H, _be, !globalThis.__headRoundOld); if (ps.lengthSq() > wk) { wk = ps.lengthSq(); best = k; bp.copy(ps); } }
+        for (let k = 2; k <= 13; k++) { const ps = bodyPush(_bm.copy(_grip).addScaledVector(rk, Lr * k / 10), 0.03 * H, _be, true); if (ps.lengthSq() > wk) { wk = ps.lengthSq(); best = k; bp.copy(ps); } }
         if (best < 0) break;
         rk.copy(_bm.copy(rk).multiplyScalar(Lr * best / 10).add(bp)).normalize(); }
       const nn = this.rk.nrm; nn.addScaledVector(rk, -nn.dot(rk)).normalize();
       // (the head last: the trunk's push, after it, put the frame back into the jaw)
-      if (!globalThis.__headFirst) headRound(_grip, rk, this.rk.nrm, Lr, (globalThis.__headM ?? 0.005) * H, 1); }
+      headRound(_grip, rk, this.rk.nrm, Lr, 0.005 * H, 1);
+    }
     const z = _v8.copy(this.rk.nrm).addScaledVector(this.rk.dir, -this.rk.nrm.dot(this.rk.dir)).normalize(), x = _v9.copy(this.rk.dir).cross(z).normalize();
     // Last, the racket as drawn turns no faster than a racket does away from the swing at the ball: twenty-two degrees a frame,
     // unless keeping to that would leave it more than two centimetres inside the body or the head. (Each pass before this
@@ -2878,16 +2904,18 @@ export class Figure {
     // chest in a frame, keeping out took a third of a right angle in one.)
     { const rd = this.rkDrawn || (this.rkDrawn = { d: V(), n: V(), ok: false, pt: null }), ucR = st && st.tc != null ? t - st.tc : (st && st.tcPlan != null ? t - st.tcPlan : 9), srvR = st && (st.kind === 'serve' || st.kind === 'smash');
       const swingWin = st && (srvR ? (ucR > -0.75 && ucR < 0.45) : (ucR > -0.38 && ucR < 0.3));
-      if (!globalThis.__rkLimOld && rd.ok && rd.pt === this.placedT && !swingWin && dt > 0) {
-        const cur = this.rk.dir, ang = Math.acos(clamp(cur.dot(rd.d), -1, 1)), mx = (globalThis.__rkLim ?? 0.38) * dt * 60;
-        if (ang > mx) { const Lr = (B.headC + GRIP_UP) * H, ax = _rlA.copy(rd.d).cross(cur); if (ax.lengthSq() > 1e-10) { ax.normalize();
+      if (rd.ok && rd.pt === this.placedT && !swingWin && dt > 0) {
+        const cur = this.rk.dir, ang = Math.acos(clamp(cur.dot(rd.d), -1, 1)), mx = 0.38 * dt * 60;
+        if (ang > mx) { const Lr = (B.headC + GRIP_UP) * H, ax = _rlA.copy(rd.d).cross(cur); if (ax.lengthSq() > 1e-10) {
+          ax.normalize();
           const pen = (a) => { const d = _rlD.copy(rd.d).applyAxisAngle(ax, a); let p = 0; for (let k = 2; k <= 13; k++) { const q = _rlQ.copy(_grip).addScaledVector(d, Lr * k / 10); p = Math.max(p, bodyPush(q, 0, _rlP, true).length()); if (this.headJOk) { const ab = _rlB.copy(headC0).sub(_hdJ), tt = clamp(_rlC.copy(q).sub(_hdJ).dot(ab) / Math.max(1e-6, ab.lengthSq()), 0, 1); p = Math.max(p, 0.095 * H - q.distanceTo(_rlC.copy(_hdJ).addScaledVector(ab, tt))); } } return p; };
           let a = mx; const lim = 0.02; if (pen(a) > lim) { let lo = a, hi = ang; if (pen(hi) > lim) a = hi; else { for (let it = 0; it < 7; it++) { const mid = (lo + hi) / 2; if (pen(mid) > lim) lo = mid; else hi = mid; } a = hi; } }
           // (and even getting out of the body or the head, no more than about twenty-eight degrees a frame: let go entirely there, a
           // racket brought down past the head after Nadal's finish over it was flicked thirty-eight degrees in a frame; a frame or two
           // with the frame a little in the hair shows less than that)
-          if (!globalThis.__rkEscOld) a = Math.min(a, Math.max(mx, (globalThis.__rkEsc ?? 0.49) * dt * 60));
-          if (a < ang - 1e-4) { const q = _rlR.setFromAxisAngle(ax, a), d = _rlD.copy(rd.d).applyQuaternion(q).normalize(), qq = _rlS.setFromUnitVectors(_rlE.copy(cur), d); this.rk.dir.copy(d); this.rk.nrm.applyQuaternion(qq).normalize(); } } } }
+          a = Math.min(a, Math.max(mx, 0.49 * dt * 60));
+          if (a < ang - 1e-4) { const q = _rlR.setFromAxisAngle(ax, a), d = _rlD.copy(rd.d).applyQuaternion(q).normalize(), qq = _rlS.setFromUnitVectors(_rlE.copy(cur), d); this.rk.dir.copy(d); this.rk.nrm.applyQuaternion(qq).normalize(); }
+        } } }
       rd.d.copy(this.rk.dir); rd.ok = true; rd.pt = this.placedT; }
     { const z2 = _v8.copy(this.rk.nrm).addScaledVector(this.rk.dir, -this.rk.nrm.dot(this.rk.dir)).normalize(); z.copy(z2); x.copy(this.rk.dir).cross(z).normalize(); }
     if (this.dbgOn && this.dbgDir) this.dbgDir.c5 = this.rk.dir.clone();
@@ -2897,17 +2925,17 @@ export class Figure {
     if (this.shakeSwap) { const OS = off === 0 ? 'L' : 'R', d = this.swapDir(this._swF, this._swR); person.arm.updateWorldMatrix(false, true); person.jointPos(OS + '_Hand', _rg2);
       const g2 = _rg1.copy(person.dir['palm' + OS]).applyQuaternion(this.Fhand[off]).add(_rg2); if (person.dir['palmN' + OS]) g2.addScaledVector(_rg3.copy(person.dir['palmN' + OS]).applyQuaternion(this.Fhand[off]), PALM_OFF * H);
       const zz = _rg4.copy(this._swR).addScaledVector(d, -this._swR.dot(d)).normalize(), xx = _rgE.copy(d).cross(zz).normalize();
-      _m.makeBasis(xx, d, zz); R.quaternion.setFromRotationMatrix(_m); R.position.copy(g2).addScaledVector(d, (GRIP_UP - (this.handover && this.swapFrom ? 0.085 * (1 - sm((this.handover.u - 0.35) / 0.5)) : 0)) * H); }   /* (taken where the left hand closed on it, just above the right, and let slide down to the handle's end) */
+      _m.makeBasis(xx, d, zz); R.quaternion.setFromRotationMatrix(_m); R.position.copy(g2).addScaledVector(d, (GRIP_UP - (this.handover && this.swapFrom ? 0.085 * (1 - sm((this.handover.u - 0.35) / 0.5)) : 0)) * H); }/* (taken where the left hand closed on it, just above the right, and let slide down to the handle's end) */
     // The free hand on the racket, last. It was aimed at the handle (or the throat) before the arms were solved, but each arm is
     // then kept within its reach, off its own shoulder, out of the body and to an arm's speed on its own, and the racket goes
     // where the hitting hand ends up: the hand meant to be holding it was left up to a third of a metre off it, through a
     // two-hander's swing and in the ready position. So now that the racket is placed, that arm is solved again to put the palm
     // where it grips, and the hand closed round it.
-    if (!((this.gripOn || 0) > 0.01) || (m.ball && m.ball.held === p.i)) { this.rgOk = false; this.rgElOk = false; if (this.rgCor) this.rgCor.set(0, 0, 0); this.regripShort = 0; }   /* (and nothing out of reach while not holding it: kept from the last frame it held on, the hold that lets go as the throat goes out of reach never took the racket again, the free hand left off it in the ready position) */
-    if ((this.gripOn || 0) > 0.01 && !(m.ball && m.ball.held === p.i) && !globalThis.__noRegrip && !this.shakeSwap) {
+    if (!((this.gripOn || 0) > 0.01) || (m.ball && m.ball.held === p.i)) { this.rgOk = false; this.rgElOk = false; if (this.rgCor) this.rgCor.set(0, 0, 0); this.regripShort = 0; }/* (and nothing out of reach while not holding it: kept from the last frame it held on, the hold that lets go as the throat goes out of reach never took the racket again, the free hand left off it in the ready position) */
+    if ((this.gripOn || 0) > 0.01 && !(m.ball && m.ball.held === p.i) && !this.shakeSwap) {
       // (all the way on the handle until the grip is mostly let go of, then off it quickly: in proportion to the grip, the hand
       // was left hovering a hand's breadth off the throat through the first tenth of a second of every forehand take-back)
-      const OS = off === 0 ? 'L' : 'R', HS = hit === 0 ? 'L' : 'R', wOn = globalThis.__rgOld ? this.gripOn : sm((this.gripOn - 0.3) / 0.45), sO = globalThis.__rgShOld ? (off === 0 ? shL : shR) : person.jointPos(OS + '_UpperArm', _rgSh);   /* (from the shoulder joint where the skeleton has it now: solved from the one worked out for the arms earlier, a few centimetres off it as the trunk turns and bobs at a run, the arm was laid in the right directions from the wrong place and the hand landed that far off the handle, the same however often it was solved again) */
+      const OS = off === 0 ? 'L' : 'R', HS = hit === 0 ? 'L' : 'R', wOn = sm((this.gripOn - 0.3) / 0.45), sO = person.jointPos(OS + '_UpperArm', _rgSh);   /* (from the shoulder joint where the skeleton has it now: solved from the one worked out for the arms earlier, a few centimetres off it as the trunk turns and bobs at a run, the arm was laid in the right directions from the wrong place and the hand landed that far off the handle, the same however often it was solved again) */
       const want = _rg1.copy(_grip).addScaledVector(this.rk.dir, (this.gripAtE != null ? this.gripAtE : 0.105) * H);
       const w0 = person.jointPos(OS + '_Hand', _rg2), pNow = _rg3.copy(person.dir['palm' + OS]).applyQuaternion(this.Fhand[off]).add(w0);
       if (person.dir['palmN' + OS]) pNow.addScaledVector(_rg4.copy(person.dir['palmN' + OS]).applyQuaternion(this.Fhand[off]), PALM_OFF * H);
@@ -2915,7 +2943,7 @@ export class Figure {
       if (this.dbgOn) this.regripGap = +gap.length().toFixed(3);
       // (the correction applied changes by no more than a few centimetres a frame: where the arm's own solution jumps, as a
       // limit lets go, the hand is carried over it rather than jumping with it)
-      const cor = gap.multiplyScalar(wOn), prv = this.rgCor || (this.rgCor = V()), mxC = (globalThis.__rgRate ?? 0.05) * H * (dt * 60);
+      const cor = gap.multiplyScalar(wOn), prv = this.rgCor || (this.rgCor = V()), mxC = 0.05 * H * (dt * 60);
       if (this.rgOk && dt > 0) { const dc = _rgM.copy(cor).sub(prv), dl = dc.length(); if (dl > mxC) cor.copy(prv).addScaledVector(dc, mxC / dl); }
       prv.copy(cor); this.rgOk = true; if (this.dbgOn) this.dbgRg = { cor: +cor.length().toFixed(3), wOn: +wOn.toFixed(2), w0: w0.clone() };
       if (!(cor.lengthSq() > 1e-6)) this.rgElOk = false;
@@ -2925,21 +2953,13 @@ export class Figure {
         const elNow = person.jointPos(OS + '_Forearm', _rgP), mid0 = _rgM.copy(sO).add(w0).multiplyScalar(0.5), pole2 = elNow.sub(mid0);
         if (pole2.lengthSq() < 1e-8) pole2.copy(this.poleS[off]); else pole2.normalize();
         const nw = w0.add(cor);
-        // (and held to where that elbow was the frame before, in the chest's frame: taken from the arm's own solution each frame,
-        // with the hands pushed off the handle and pulled back to it every frame of a two-hander's take-back, that solution put
-        // the elbow on the far side of the arm for one frame and the top elbow was thrown out and back, forty degrees)
-        if (globalThis.__rgPoleOn && this.rgElOk && this.rgEl) { const mid2 = _rpB.copy(sO).add(nw).multiplyScalar(0.5), ax = _rpC.copy(nw).sub(sO).normalize(), pw = _rpA.copy(this.rgEl).applyQuaternion(qChest).add(sO).sub(mid2);
-          pw.addScaledVector(ax, -pw.dot(ax)); const pc = _rpD.copy(pole2).addScaledVector(ax, -pole2.dot(ax));
-          // (only where the arm's own answer has jumped round the arm, more than a sixth of a turn from where the elbow was: held to it
-          // always, an elbow the body push was taking out of the chest was kept in it)
-          if (pw.lengthSq() > 1e-6 && pc.lengthSq() > 1e-6 && pw.normalize().dot(pc.normalize()) < (globalThis.__rgPoleCos ?? 0.5)) pole2.copy(pw); }
-        const dd = _rgE.copy(nw).sub(sO), mx = (D.upper + D.fore) * 0.995; this.regripShort = Math.max(0, dd.length() - mx); if (!globalThis.__oneOutOld && this.regripShort > 0.015 && (this.oneHW || 0) > 0.5 && !(this.twoHW > 0.5) && this.gripOn > 0.78) { this.gripOn = 0.78; this.oneHW = Math.min(this.oneHW, 0.78); this.oneHWV = 0; }   /* (a hand that cannot reach the throat is not holding it: said to, that frame) */ if (dd.length() > mx) nw.copy(sO).addScaledVector(dd.normalize(), mx);
+        const dd = _rgE.copy(nw).sub(sO), mx = (D.upper + D.fore) * 0.995; this.regripShort = Math.max(0, dd.length() - mx); if (this.regripShort > 0.015 && (this.oneHW || 0) > 0.5 && !(this.twoHW > 0.5) && this.gripOn > 0.78) { this.gripOn = 0.78; this.oneHW = Math.min(this.oneHW, 0.78); this.oneHWV = 0; }/* (a hand that cannot reach the throat is not holding it: said to, that frame) */ if (dd.length() > mx) nw.copy(sO).addScaledVector(dd.normalize(), mx);
         const el2 = ik(sO, nw, D.upper, D.fore, pole2, _rgE, true);
         // (and turned no faster than an arm turns, as above: this pass comes after that limit)
-        { const sl = this.segL && this.segL[off], ucG = st && st.tc != null ? t - st.tc : 9, srvG = st && (st.kind === 'serve' || st.kind === 'smash'), winG = srvG ? (ucG > -0.22 && ucG < 0.17) : (ucG > -0.11 && ucG < (this.twoHW > 0.5 && !globalThis.__rgOld ? 0.3 : 0.09));   /* (a two-hander's top hand stays on the handle through the whipped finish: held to an arm's turn per frame there, it trailed the racket by a hand's breadth) */
-          if (sl && sl.pt === this.placedT && dt > 0 && !globalThis.__noSegLim && !winG) {
-            const calmG = !globalThis.__flailOld && !srvG && (!st || (st.tc == null ? true : ((ucG < -0.3 && st.tc - (st.t0 ?? -9) > 0.45) || ucG > 0.4)));   /* (as the arms above: no flailing away from the swing) */
-            const cU = _sgU, cR = _sgR, cF = _sgF, mx = Math.min(calmG ? (globalThis.__calmLim ?? 0.26) : 9, ((this.gripOn || 0) <= (globalThis.__freeLimG ?? 0.8) && !globalThis.__freeLimOld ? ((this.gripOn || 0) > 0.01 && !globalThis.__relLimOld ? (globalThis.__relLim ?? 0.35) : 0.52) : 0.63)) * Math.min(2, dt * 60); if (globalThis.__segChest) { cR.copy(cRight); cU.set(0, 1, 0).applyQuaternion(qChest); cF.copy(cU).cross(cR).normalize(); } else bodyFrame(person, pelvis, cR, cU, cF);
+        { const sl = this.segL && this.segL[off], ucG = st && st.tc != null ? t - st.tc : 9, srvG = st && (st.kind === 'serve' || st.kind === 'smash'), winG = srvG ? (ucG > -0.22 && ucG < 0.17) : (ucG > -0.11 && ucG < (this.twoHW > 0.5 ? 0.3 : 0.09));   /* (a two-hander's top hand stays on the handle through the whipped finish: held to an arm's turn per frame there, it trailed the racket by a hand's breadth) */
+          if (sl && sl.pt === this.placedT && dt > 0 && !winG) {
+            const calmG = !srvG && (!st || (st.tc == null ? true : ((ucG < -0.3 && st.tc - (st.t0 ?? -9) > 0.45) || ucG > 0.4))); /* (as the arms above: no flailing away from the swing) */
+            const cU = _sgU, cR = _sgR, cF = _sgF, mx = Math.min(calmG ? 0.26 : 9, ((this.gripOn || 0) <= 0.8 ? ((this.gripOn || 0) > 0.01 ? 0.35 : 0.52) : 0.63)) * Math.min(2, dt * 60); bodyFrame(person, pelvis, cR, cU, cF);
             const loc = (v, o) => o.set(v.dot(cR), v.dot(cU), v.dot(cF)), wld = (l, o) => o.set(0, 0, 0).addScaledVector(cR, l.x).addScaledVector(cU, l.y).addScaledVector(cF, l.z);
             const ua = loc(_sgA.copy(el2).sub(sO).normalize(), _sgA2), fa = loc(_sgB.copy(nw).sub(el2).normalize(), _sgB2);
             const lim = (cur, pv) => { const ang = Math.acos(clamp(cur.dot(pv), -1, 1)); if (ang > mx) { const ax = _sgC.copy(pv).cross(cur); if (ax.lengthSq() > 1e-10) cur.copy(pv).applyAxisAngle(ax.normalize(), mx); } };
@@ -2947,7 +2967,8 @@ export class Figure {
             if (this.dbgOn && this.dbgRg) this.dbgRg.nwPre = nw.clone();
             el2.copy(wld(ua, _sgC)).multiplyScalar(D.upper).add(sO); nw.copy(wld(fa, _sgC)).multiplyScalar(D.fore).add(el2);
             if (this.dbgOn && this.dbgRg) { this.dbgRg.nwLim = nw.clone(); this.dbgRg.elLim = el2.clone(); }
-            sl.nua.copy(ua); sl.nfa.copy(fa); } }
+            sl.nua.copy(ua); sl.nfa.copy(fa);
+          } }
         const Ff = person.setLimb(OS, 'arm', el2, nw, qChest, sO, _rgA, _rgB);
         (this.rgEl || (this.rgEl = V())).copy(el2).sub(sO).applyQuaternion(_rpQ.copy(qChest).invert()); this.rgElOk = true;
         swing(Ff, person.dir['grip' + OS], this.rk.dir, _rgQ);
@@ -2960,7 +2981,7 @@ export class Figure {
         // (and once more, measured with the hand as it is now turned onto the handle: where the palm is depends on how the hand is
         // turned, and judged from its turn of the frame before, a one-hander's hand on the throat of a slice set high by the far
         // shoulder was left six centimetres off it)
-        if (!globalThis.__rg2Old) {
+        {
           const w1 = person.jointPos(OS + '_Hand', _rr1), p1 = _rr2.copy(person.dir['palm' + OS]).applyQuaternion(Fh).add(w1);
           if (person.dir['palmN' + OS]) p1.addScaledVector(_rr3.copy(person.dir['palmN' + OS]).applyQuaternion(Fh), PALM_OFF * H);
           const want2 = _rr3.copy(_grip).addScaledVector(this.rk.dir, (this.gripAtE != null ? this.gripAtE : 0.105) * H), res = want2.sub(p1).multiplyScalar(wOn);
@@ -2970,7 +2991,8 @@ export class Figure {
             if (pole3.lengthSq() > 1e-8) { pole3.normalize(); const el3 = ik(sO, nw2, D.upper, D.fore, pole3, _rr6, true);
               person.setLimb(OS, 'arm', el3, nw2, qChest, sO, _rgA, _rgB); person.drive(OS + '_Hand', Fh); person.arm.updateWorldMatrix(false, true); } }
           if (this.dbgOn && this.dbgRg) { const w3 = person.jointPos(OS + '_Hand', _rr1), p3 = _rr2.copy(person.dir['palm' + OS]).applyQuaternion(Fh).add(w3); if (person.dir['palmN' + OS]) p3.addScaledVector(_rr3.copy(person.dir['palmN' + OS]).applyQuaternion(Fh), PALM_OFF * H);
-            this.dbgRg.res2 = +_rr4.copy(_grip).addScaledVector(this.rk.dir, (this.gripAtE != null ? this.gripAtE : 0.105) * H).sub(p3).length().toFixed(3); this.dbgRg.short2 = +Math.max(0, _rr5.copy(_rr4.copy(_grip)).sub(sO).length() - (D.upper + D.fore)).toFixed(3); } }
+            this.dbgRg.res2 = +_rr4.copy(_grip).addScaledVector(this.rk.dir, (this.gripAtE != null ? this.gripAtE : 0.105) * H).sub(p3).length().toFixed(3); this.dbgRg.short2 = +Math.max(0, _rr5.copy(_rr4.copy(_grip)).sub(sO).length() - (D.upper + D.fore)).toFixed(3); }
+        }
       }
     }
     // ---- last, no elbow in the body ----
@@ -2981,7 +3003,7 @@ export class Figure {
     // comes on fast and goes off slowly. (Those late passes put the elbow back in the chest after the body push had cleared
     // it: a two-hander's top elbow sat a dozen centimetres inside it through the finish of a backhand hit on the run, and a
     // forehand's upper arm went through the ribs at the ball.)
-    if (!globalThis.__noElbowClear && this.handInit) {
+    if (this.handInit) {
       const pel = person.jointPos('Pelvis', _ecP), up = person.jointPos('Neck', _ecU).sub(pel), tLen = up.length(); up.normalize();
       const lS = person.jointPos('L_UpperArm', _ecA), rt = person.jointPos('R_UpperArm', _ecB).sub(lS), shW = rt.length(); rt.addScaledVector(up, -rt.dot(up)).normalize(); const fw = _ecF.copy(up).cross(rt);
       const ins = q => { const rx = q.x - pel.x, ry = q.y - pel.y, rz = q.z - pel.z, al = rx * up.x + ry * up.y + rz * up.z; if (al < 0 || al > tLen * 1.05) return 0;
@@ -3001,15 +3023,15 @@ export class Figure {
           // (already turned one way, the way it is turned is kept while a turn that way, no more than a third of a turn past where it
           // is, still clears it: the least turn found on either side, a little less the other way, was a flip, refused, and the turn
           // went back to none for the frames it took, the free elbow of a two-hander's finish five centimetres in the chest)
-          if (ecA[i] !== 0 && !globalThis.__ecSideOld) for (let k = 1; k <= 12; k++) { const a = sg * k * 0.17; if (Math.abs(a) > Math.abs(ecA[i]) + 0.6) break; if (pen(a) <= 0.004) { want = a; break; } }
+          if (ecA[i] !== 0) for (let k = 1; k <= 12; k++) { const a = sg * k * 0.17; if (Math.abs(a) > Math.abs(ecA[i]) + 0.6) break; if (pen(a) <= 0.004) { want = a; break; } }
           for (let k = 1; k <= 12 && !want; k++) for (const sd of [sg, -sg]) { const a = sd * k * 0.17; if (pen(a) <= 0.004) { want = a; break; } } }
         // (out fast, back slowly, and over to the other side only by way of none: switched straight across, the elbow was swung
         // from one side of the arm to the other at twenty degrees a frame)
-        const grow = Math.abs(want) > Math.abs(ecA[i]) && (ecA[i] === 0 || Math.sign(want) === Math.sign(ecA[i])), ucE = st && st.tc != null && st.kind !== 'serve' && st.kind !== 'smash' ? t - st.tc : 9, nearE = i === (hs > 0 ? 1 : 0) && !globalThis.__ecNearOld ? Math.exp(-(ucE * ucE) / 0.0144) : 0, mx = (grow ? 0.15 * (1 + nearE) : 0.06) * (dt * 60);   /* (twice as fast out for the racket arm in the tenth of a second round the ball, where the arm itself turns twenty to forty degrees a frame: at nine degrees a frame the turn fell behind a late forehand's elbow, in the stomach for three frames) */   /* (nine degrees a frame at most: turned out at twenty, the turn itself was the jolt, the arm thrown thirty degrees in a frame as a volley's free hand came back to the racket) */
+        const grow = Math.abs(want) > Math.abs(ecA[i]) && (ecA[i] === 0 || Math.sign(want) === Math.sign(ecA[i])), ucE = st && st.tc != null && st.kind !== 'serve' && st.kind !== 'smash' ? t - st.tc : 9, nearE = i === (hs > 0 ? 1 : 0) ? Math.exp(-(ucE * ucE) / 0.0144) : 0, mx = (grow ? 0.15 * (1 + nearE) : 0.06) * (dt * 60);   /* (twice as fast out for the racket arm in the tenth of a second round the ball, where the arm itself turns twenty to forty degrees a frame: at nine degrees a frame the turn fell behind a late forehand's elbow, in the stomach for three frames) */   /* (nine degrees a frame at most: turned out at twenty, the turn itself was the jolt, the arm thrown thirty degrees in a frame as a volley's free hand came back to the racket) */
         const flip = ecA[i] !== 0 && want !== 0 && Math.sign(want) !== Math.sign(ecA[i]);
         // (but turned only a little that way, under a fifth of a right angle, it goes over at the faster pace straight away: refused,
         // the turn went back to none over the frames it took, and a late forehand's elbow sat in the stomach for four of them)
-        const flipOk = flip && (globalThis.__ecFlip || (!globalThis.__ecFlipSmallOld && Math.abs(ecA[i]) < 0.35));
+        const flipOk = flip && (Math.abs(ecA[i]) < 0.35);
         if (flip && !flipOk) want = 0;
         // (over to the other side by way of none, at twice the easy pace: held to one side, a finish whose elbow needed turning the
         // other way out of the body was left in it, twelve centimetres, for a frame)
@@ -3149,7 +3171,7 @@ const RACKET_OVR = {
   // (the first key from the back-fence footage, youtube XJ7fWm1gPtY at 5.34 s: by 0.7 s before contact his racket is already up beside his head,
   // tip up; the side-on swing these keys were first solved on had it out flat to his side, and with that key the game held it out flat
   // until half a second before contact. __nadOvrOld for that one.)
-  'Nadal/fh': [{ u: -0.70, dir: globalThis.__nadOvrOld ? [0.82, 0.10, 0.56] : [0.45, 0.80, 0.40] }, { u: -0.54, dir: [0.30, 0.90, 0.31] }, { u: -0.40, dir: [-0.15, 0.95, -0.27] }],
+  'Nadal/fh': [{ u: -0.70, dir: [0.45, 0.80, 0.40] }, { u: -0.54, dir: [0.30, 0.90, 0.31] }, { u: -0.40, dir: [-0.15, 0.95, -0.27] }],
   // (Djokovic had keys here too, for both wings, solved against his tracked arm while the tracker had the forehand's forearm
   // folded flat into the shoulder in the turn, and against the backhand clip he now plays least. Once the clip's arm was
   // made whole (bridgeFoldedArm in motion.js) the forehand's keys swung the racket round over his head to point back past
@@ -3212,7 +3234,7 @@ const PARTIAL = {};
 // first clips that come out worse than the alternates tracked since (2026-11-14, share of two-hander frames with an arm
 // more than 4 cm inside the trunk: Djokovic's 70% against 24-45% for his others, Nadal's 75% in the finish against 0%)
 // (Nadal's forehand left it on 2026-11-22: re-tracked across the court from a camera behind him; __nadFhWeak puts it back)
-const MAIN_WEAK = new Set(['Djokovic/bh', 'Nadal/bh', ...(globalThis.__nadFhWeak ? ['Nadal/fh'] : [])]);
+const MAIN_WEAK = new Set(['Djokovic/bh', 'Nadal/bh', ...([])]);
 // How high (up, as a part of the arm's direction) and how far forward at least a forehand's free arm points through the
 // take-back, in the chest's frame. Djokovic's straightens out toward the ball at the height of his shoulder, mostly forward
 // (his footage, from behind and from the side): his tracked arm, lost against his face, is across in front of the face and
@@ -3226,7 +3248,7 @@ const HEAD_UP = { 'Djokovic/fh': [-0.86, -0.5, 0.6] };
 // Djokovic's forehand: from contact on, the tracker took his shoulders round the wrong way, through his back, while his hips
 // opened toward the net, a twist of 150 degrees between them a twentieth of a second after the ball; from behind, his chest and
 // face were seen turned to the camera through the finish (his two other passed forehands are played)
-const MAIN_BAD = new Set(globalThis.__djFhOld ? ['McEnroe/bh'] : ['McEnroe/bh', 'Djokovic/fh']);
+const MAIN_BAD = new Set(['McEnroe/bh', 'Djokovic/fh']);
 // alternative clips that passed their check against the footage but look wrong played in a match: Federer's knee-high forehand
 // holds the racket straight up through the take-back and digs the ball out with the head dropped, and on court it read as a
 // scoop slice rather than a forehand
@@ -3254,7 +3276,7 @@ const CLIP_END = { 'Agassi/fh': 0.24 };
 // his side-camera clips: from in front the tracker cannot see how far they turn away. Number 4 was his set forehand, the most played.
 // Number 2, his attacking forehand, is a ball run in to: the feet close to 23 cm at contact and the wrist peaks at 9.4 m/s against
 // 13.7 in his first clip; played for three in four of his forehands, standing still too. His first clip now takes those.)
-const ALT_BAD = new Set(['Federer/fh/0', 'Federer/fh/1', 'Alcaraz/fh/1', 'Djokovic/fh/0', 'Sinner/bh/3', 'Djokovic/bh/4', ...(globalThis.__djBh1Old ? [] : ['Djokovic/bh/1']), ...(globalThis.__nadFh34On ? [] : ['Nadal/fh/2', 'Nadal/fh/3', 'Nadal/fh/4'])]);
+const ALT_BAD = new Set(['Federer/fh/0', 'Federer/fh/1', 'Alcaraz/fh/1', 'Djokovic/fh/0', 'Sinner/bh/3', 'Djokovic/bh/4', ...(['Djokovic/bh/1']), ...(['Nadal/fh/2', 'Nadal/fh/3', 'Nadal/fh/4'])]);
 const DONORS = (key, lefty, oneHand) => key === 'serve' ? (lefty ? ['Nadal', 'Federer'] : ['Federer', 'Djokovic', 'Sinner', 'Alcaraz', 'Nadal'])
   : key === 'fh' ? (lefty ? ['Federer', 'Nadal'] : ['Federer', 'Djokovic', 'Sinner', 'Alcaraz', 'Nadal'])   /* (a left-hander with none of his own borrows Federer's classic forehand mirrored, not Nadal's lasso finish over the head, which is Nadal's alone) */
   : key === 'bh' ? (oneHand ? ['Federer'] : lefty ? ['Nadal', 'Djokovic', 'Sinner', 'Alcaraz', 'Agassi'] : ['Djokovic', 'Sinner', 'Alcaraz', 'Nadal', 'Agassi']) : [];
@@ -3303,7 +3325,7 @@ function blendPose(a, b, w) {
 // Poses in the strokes' terms (hitting hand R, free hand L, for a right-hander; mirrored for a left-hander).
 const REACT = {
   // won
-  fist:    { adur: 1.55, R: [0.26, 1.38, 0.22], L: [-0.22, 1.0, 0.18], dir: [0.3, 0.3, -0.9], nrm: [1, 0, 0], twist: 0.2, lean: 0.12, crouch: 0.06, stance: 0.24, lgrip: 0, head: 0.1, fist: 1, shout: 0.22, ...(globalThis.__fistOld ? {} : { poleL: [0.35, -0.92, 0.0], in: 0.12 }) },
+  fist:    { adur: 1.55, R: [0.26, 1.38, 0.22], L: [-0.22, 1.0, 0.18], dir: [0.3, 0.3, -0.9], nrm: [1, 0, 0], twist: 0.2, lean: 0.12, crouch: 0.06, stance: 0.24, lgrip: 0, head: 0.1, fist: 1, shout: 0.22, ...({ poleL: [0.35, -0.92, 0.0], in: 0.12 }) },
   vamos:   { adur: 1.35, R: [0.24, 1.00, 0.30], L: [-0.22, 0.98, 0.32], dir: [0.4, -0.2, 0.9], nrm: [1, 0, 0], twist: 0.1, lean: 0.36, crouch: 0.20, stance: 0.38, lgrip: 0, head: 0.2, fist: 1, shout: 0.32, in: 0.15, dur: 1.2 },
   free:    { adur: 1.55, R: [0.26, 0.92, 0.12], L: [-0.30, 1.42, 0.10], dir: [0.15, -0.9, 0.35], nrm: [1, 0, 0], twist: -0.45, lean: 0.10, crouch: 0.06, stance: 0.26, lgrip: 0, head: 0.12, fist: 1, shout: 0.26 },
   raise:   { adur: 1.75, R: [0.18, 1.86, 0.18], L: [-0.24, 1.00, 0.10], dir: [0.1, 0.95, 0.2], nrm: [1, 0, 0], twist: 0.1, lean: 0.04, crouch: 0.02, stance: 0.26, lgrip: 0, head: 0.3, shout: 0.18, dur: 1.3 },
@@ -3503,7 +3525,7 @@ const FH_SLICE = track([
 // (the racket hand in a celebration hangs relaxed, the racket nearly upright down the leg, its head a little forward: it was held
 // out from the leg and half way to level, forty-five degrees forward and tipped out, the wrist cocked to hold it there, as
 // nobody holds a racket while pumping the other fist. `__hangOld` before load.)
-const HANG = globalThis.__hangOld ? { R: [0.27, 0.92, 0.12], dir: [0.15, -0.70, 0.70], nrm: [1, 0, 0] } : { R: [0.27, 0.91, 0.12], dir: [0.04, -0.90, 0.43], nrm: [1, 0, 0] };   /* (the hand where it was, out from the hip: drawn in to it, McEnroe's forearm went into his side) */
+const HANG = { R: [0.27, 0.91, 0.12], dir: [0.04, -0.90, 0.43], nrm: [1, 0, 0] };   /* (the hand where it was, out from the hip: drawn in to it, McEnroe's forearm went into his side) */
 // The end of a match. Winning: both arms up in a V and held (the racket in the hand, pointing up), a crouched double fist pump and the
 // roar into the arms up, or the arms spread out to the crowd and a hand on the heart; losing, head down, hands hanging. The trophy:
 // held in both hands at the chest, lifted over the head and held there, brought down to the chest again. (Hand places as everywhere
@@ -3565,15 +3587,7 @@ const REACT_ANIM = {
   // (the fist pump as players do it: the fist up to the chin with the elbow tucked down by the ribs, then pulled hard down to
   // the hip, the trunk crunching forward into it, twice. It was a fist held out at the stomach, the forearm level, moving a
   // hand's breadth up and down: a man holding a cup. `__fistOld` for it.)
-  fist: globalThis.__fistOld ? track([
-    { u: 0.00, ...HANG, L: [-0.22, 1.18, 0.32], twist: 0.1, lean: 0.10, crouch: 0.05, stance: 0.26, lgrip: 0, head: 0.05 },
-    { u: 0.16, ...HANG, L: [-0.24, 1.40, 0.34], twist: 0.12, lean: 0.08, crouch: 0.05, stance: 0.26, lgrip: 0, head: 0.12 },
-    { u: 0.30, ...HANG, L: [-0.26, 1.10, 0.18], twist: 0.18, lean: 0.18, crouch: 0.10, stance: 0.27, lgrip: 0, head: 0.22 },
-    { u: 0.46, ...HANG, L: [-0.24, 1.36, 0.33], twist: 0.12, lean: 0.12, crouch: 0.07, stance: 0.27, lgrip: 0, head: 0.15 },
-    { u: 0.62, ...HANG, L: [-0.26, 1.08, 0.17], twist: 0.18, lean: 0.18, crouch: 0.10, stance: 0.27, lgrip: 0, head: 0.22 },
-    { u: 0.95, ...HANG, L: [-0.24, 1.16, 0.24], twist: 0.12, lean: 0.12, crouch: 0.06, stance: 0.26, lgrip: 0, head: 0.10 },
-    { u: 1.40, ...HANG, L: [-0.22, 0.95, 0.14], twist: 0.05, lean: 0.08, crouch: 0.03, stance: 0.24, lgrip: 0, head: 0.00 },
-  ]) : track([
+  fist: track([
     { u: 0.00, ...HANG, L: [-0.22, 1.20, 0.20], twist: 0.10, lean: 0.06, crouch: 0.04, stance: 0.27, lgrip: 0, head: 0.10 },
     { u: 0.18, ...HANG, L: [-0.16, 1.43, 0.26], twist: 0.06, lean: 0.02, crouch: 0.03, stance: 0.27, lgrip: 0, head: 0.18 },
     { u: 0.33, ...HANG, L: [-0.19, 1.01, 0.15], twist: 0.20, lean: 0.24, crouch: 0.12, stance: 0.29, lgrip: 0, head: 0.06 },
@@ -3603,14 +3617,7 @@ const REACT_ANIM = {
   // (the racket held up to the crowd: the arm up almost straight over his shoulder, the strings toward them, swayed once side
   // to side, the other arm hanging loose. It was the forearm folded up in front of his face, the racket out of sight above it,
   // and the free hand on his hip with the elbow out. `__raiseOld` for it.)
-  raise: globalThis.__raiseOld ? track([
-    { u: 0.00, R: [0.24, 1.40, 0.32], L: [-0.22, 0.98, 0.14], dir: [0.20, 0.90, 0.30], nrm: [1, 0, 0], twist: 0.1, lean: 0.06, crouch: 0.03, stance: 0.26, lgrip: 0, head: 0.15 },
-    { u: 0.30, R: [0.20, 1.98, 0.16], L: [-0.22, 0.98, 0.14], dir: [0.05, 0.98, 0.15], nrm: [1, 0, 0], twist: 0.1, lean: 0.04, crouch: 0.02, stance: 0.26, lgrip: 0, head: 0.30 },
-    { u: 0.70, R: [0.24, 1.95, 0.18], L: [-0.22, 0.98, 0.14], dir: [0.18, 0.97, 0.10], nrm: [1, 0, 0], twist: 0.12, lean: 0.04, crouch: 0.02, stance: 0.26, lgrip: 0, head: 0.30 },
-    { u: 1.00, R: [0.17, 1.98, 0.14], L: [-0.22, 0.98, 0.14], dir: [-0.06, 0.98, 0.15], nrm: [1, 0, 0], twist: 0.08, lean: 0.04, crouch: 0.02, stance: 0.26, lgrip: 0, head: 0.28 },
-    { u: 1.35, R: [0.25, 1.45, 0.30], L: [-0.22, 0.98, 0.14], dir: [0.20, 0.60, 0.75], nrm: [1, 0, 0], twist: 0.05, lean: 0.06, crouch: 0.02, stance: 0.26, lgrip: 0, head: 0.10 },
-    { u: 1.65, ...HANG, L: [-0.22, 0.96, 0.14], twist: 0, lean: 0.08, crouch: 0.02, stance: 0.24, lgrip: 0, head: 0.00 },
-  ]) : track([
+  raise: track([
     { u: 0.00, R: [0.24, 1.42, 0.30], L: [-0.25, 0.88, 0.07], dir: [0.12, 0.90, 0.42], nrm: [0, -0.4, 0.92], twist: 0.06, lean: 0.04, crouch: 0.02, stance: 0.26, lgrip: 0, head: 0.15 },
     { u: 0.30, R: [0.20, 2.16, 0.10], L: [-0.25, 0.87, 0.06], dir: [0.04, 0.99, 0.10], nrm: [0, -0.1, 1], twist: 0.04, lean: -0.02, crouch: 0.01, stance: 0.26, lgrip: 0, head: 0.30 },
     { u: 0.65, R: [0.24, 2.15, 0.10], L: [-0.25, 0.87, 0.06], dir: [0.22, 0.97, 0.08], nrm: [-0.2, -0.1, 0.97], twist: 0.08, lean: -0.02, crouch: 0.01, stance: 0.26, lgrip: 0, head: 0.30 },
@@ -3747,7 +3754,7 @@ const DROP_BH = track([
 // Volleys: no backswing, a short punch out in front.
 // (the free hand on the throat where the ready position holds it: left to follow from how much it holds, it was taken a quarter of
 // his height up the racket, and as a volley began from the ready position that hand slid thirty centimetres up it in a frame or two)
-const VOL_AT = globalThis.__volGripOld ? {} : { lgripAt: 0.092 };
+const VOL_AT = { lgripAt: 0.092 };
 const FH_VOLLEY = track([
   { u: -0.45, R: [0.14, 1.02, 0.36], L: [-0.08, 1.08, 0.42], dir: [-0.3, 0.75, 0.6], nrm: [0.75, 0, 0.66], twist: 0, lean: 0.3, crouch: 0.2, stance: 0.36, lgrip: 0.42, ...VOL_AT },
   // a short turn of the shoulders, the racket head up in front of the hitting shoulder (no further back than that: a volley

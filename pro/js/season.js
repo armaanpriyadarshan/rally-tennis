@@ -13,7 +13,7 @@ function gameProb(a, b, surface, key) {
   const A = PLAYERS[a], B = PLAYERS[b];
   // his record at this event where there is one, on its surface where not
   const adv = id => eventRate(id, key, surface).rate - PLAYERS[id].overall;
-  const el = id => isElite(id) ? (globalThis.__eliteSim ?? ELITE_SIM) : 0;   // (the five above the rest, data.js ELITE_K)
+  const el = id => isElite(id) ? ELITE_SIM : 0;   // (the five above the rest, data.js ELITE_K)
   const hold = A.hold + adv(a) * 0.35 + el(a), brk = B.brk + adv(b) * 0.35 + el(b);
   // tour average: 81 % of service games held, 19 % broken
   return clamp((hold + (100 - brk)) / 2 + (hold - 81) * 0.25 - (brk - 19) * 0.25, 45, 97) / 100;
@@ -128,7 +128,7 @@ export class Season {
     const rank = this.ranking();
     if (T.level === 'finals') return rank.slice(0, 8);
     if (T.draw >= rank.length) return rank;
-    if (!globalThis.__fieldOld) return pickField(rank, T, this.r, this.human);   // (data.js: everyone gets to play; the five at the big ones)
+    return pickField(rank, T, this.r, this.human);
     // smaller events: the top players pick and choose; the human always enters
     const e = []; for (const id of rank) { if (id === this.human) { e.push(id); continue; } if (e.length < T.draw && this.r() < 0.74) e.push(id); }
     for (const id of rank) if (e.length < T.draw && !e.includes(id)) e.push(id);

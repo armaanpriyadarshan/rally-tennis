@@ -168,16 +168,18 @@ export class Gfx {
     // little soft. (expect is the screen's refresh, app.js: it was the average gap between frames, which grew with the late frames
     // themselves, and the resolution never came down.)
     if (this.auto && this.measure && dt > 0) {
-      const want = this.expect || 16.7, old = globalThis.__autoOld, base = QUALITY[this.q].scale, now = this.time;
-      this.frameMs += (dt * 1000 - this.frameMs) * (old ? 0.05 : 0.1);
-      if (this.frameMs > want * (old ? 1.3 : 1.2)) { this.slow++; this.calm = 0; } else { this.slow = Math.max(0, this.slow - 1); this.calm = (this.calm || 0) + (dt * 1000 < want * 1.25 ? dt : -this.calm); }
-      const floor = base * (old ? 0.8 : 0.67);
-      if (this.slow > (old ? 90 : 40) && this.scale > floor + 1e-3) {
+      const want = this.expect || 16.7, base = QUALITY[this.q].scale, now = this.time;
+      this.frameMs += (dt * 1000 - this.frameMs) * 0.1;
+      if (this.frameMs > want * 1.2) { this.slow++; this.calm = 0; } else { this.slow = Math.max(0, this.slow - 1); this.calm = (this.calm || 0) + (dt * 1000 < want * 1.25 ? dt : -this.calm); }
+      const floor = base * 0.67;
+      if (this.slow > 40 && this.scale > floor + 1e-3) {
         if (this.probeT != null && now - this.probeT < 6) this.ceil = { s: this.scale, t: now };       // the step up came late: not again for a while
-        const ns = Math.max(floor, +(this.scale - 0.1).toFixed(2)); if (globalThis.__flashOld) { this.scale = ns; this.resize(); } else this.pendScale = ns; this.slow = 0; this.calm = 0; this.probeT = null; this.frameMs = want;
-      } else if (!old && this.calm > 20 && this.scale < base - 1e-3) {
+        const ns = Math.max(floor, +(this.scale - 0.1).toFixed(2)); this.pendScale = ns; this.slow = 0; this.calm = 0; this.probeT = null; this.frameMs = want;
+      } else if (this.calm > 20 && this.scale < base - 1e-3) {
         const up = Math.min(base, +(this.scale + 0.1).toFixed(2));
-        if (!(this.ceil && up >= this.ceil.s - 1e-3 && now - this.ceil.t < 120)) { if (globalThis.__flashOld) { this.scale = up; this.resize(); } else this.pendScale = up; this.calm = 0; this.probeT = now; this.frameMs = want; }
+        if (!(this.ceil && up >= this.ceil.s - 1e-3 && now - this.ceil.t < 120)) {
+          this.pendScale = up; this.calm = 0; this.probeT = now; this.frameMs = want;
+        }
         else this.calm = 0;
       }
     }

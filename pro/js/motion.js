@@ -10,14 +10,6 @@ export const ANKLE_H = 0.095;                       // an ankle's height in thes
 
 const CL = {};
 for (const k in LOCO) { const c = LOCO[k], sp = Math.hypot(c.v[0], c.v[1]), dur = c.n / LOCO_FPS; CL[k] = { n: c.n, v: c.v, speed: sp, dur, stride: sp * dur, F: c.J.map(f => Float32Array.from(f)) }; }
-// (the stroll's stride is the ground its planted foot covers, not its hips: the hips rock forward and back within each step, and
-// timed by their average speed the cycle ran a twelfth slow for the feet, the planted foot drifting forward under him until the
-// game's lock let go of it and a catch-up step of its own took over from the walker's)
-if (CL.stroll && globalThis.__strollFootTimeOn) { const c = CL.stroll, n = c.n, sp = [];   /* (not since the stroll keeps its root motion: timed by its own steady speed, its planted foot is still) */
-  for (const j of [5, 6]) { let mn = 9; for (const f of c.F) mn = Math.min(mn, f[j * 3 + 1]); const T = [], Z = [];
-    for (let q = 0; q < n; q++) if (c.F[q][j * 3 + 1] < mn + 0.012) { T.push(q / LOCO_FPS); Z.push(c.F[q][j * 3 + 2]); }
-    if (T.length > 4) { const mt = T.reduce((a, b) => a + b) / T.length, mz = Z.reduce((a, b) => a + b) / Z.length; let nu = 0, de = 0; for (let q = 0; q < T.length; q++) { nu += (T[q] - mt) * (Z[q] - mz); de += (T[q] - mt) ** 2; } sp.push(-nu / de); } }
-  if (sp.length === 2 && !globalThis.__walkFootStrideOld) { c.footSpeed = (sp[0] + sp[1]) / 2; c.stride = c.footSpeed * c.dur; c.speed = c.footSpeed; } }
 // A tennis player's side shuffle, not the captured one: that was a sideways gallop, the feet clicked together to thirteen
 // centimetres and then both left the court together, the hips riding higher than in his ready stance, so every step to a
 // ball a metre or two away was a skip on straight legs, the feet slapped together under him. Here, in each frame of the two
@@ -25,7 +17,7 @@ if (CL.stroll && globalThis.__strollFootTimeOn) { const c = CL.stroll, n = c.n, 
 // third of a metre apart (each moved out from their middle), and the hips and everything above them sat lower, into the
 // athletic stance he moves in. (globalThis.__shuffleOld before load: the captured gallop.)
 const SHUF = (globalThis.location && new URLSearchParams(globalThis.location.search).get('shuf')) || '';   // (tools: ?shuf=old|drop|nolow|nosep picks a variant)
-if (!globalThis.__shuffleOld && SHUF !== 'old') for (const k of ['shuffleR', 'shuffleL']) { const c = CL[k]; if (!c) continue;
+if (SHUF !== 'old') for (const k of ['shuffleR', 'shuffleL']) { const c = CL[k]; if (!c) continue;
   const legL = ['lknee', 'lankle', 'ltoe'], legR = ['rknee', 'rankle', 'rtoe'], low = new Set(['lknee', 'lankle', 'ltoe', 'rknee', 'rankle', 'rtoe']);
   for (const a of c.F) {
     const ly = a[J.lankle * 3 + 1], ry = a[J.rankle * 3 + 1], drop = SHUF !== 'drop' ? 0 : Math.max(0, Math.min(ly, ry) - ANKLE_H);   /* (the flight kept: let down onto the lower foot every frame, the swinging foot passed the planted one low, shin against shin, four times as often) */
@@ -292,7 +284,7 @@ function twoHandWrap(F, n, fps, u0, lefty) {
   const side = lefty ? -1 : 1;
   for (let f = 0; f < n; f++) { const w = Q[f]; if (w < 1e-3) continue; const a = F[f], fr = CF[f], out = fr.rt.map(x => x * side);
     const mid = [0, 1, 2].map(c => (a[J.lsho * 3 + c] + a[J.rsho * 3 + c]) / 2), hm = [0, 1, 2].map(c => (a[J.lwri * 3 + c] + a[J.rwri * 3 + c]) / 2);
-    const T = [0, 1, 2].map(c => mid[c] + out[c] * 0.2 + fr.up[c] * 0.16 + fr.fw[c] * (globalThis.__bhWrapFwOld ? 0.08 : 0.22)), d = [0, 1, 2].map(c => (T[c] - hm[c]) * w);   /* (22 cm in front of the shoulders: at eight, the top arm crossed his throat inside the chest, Djokovic running out of a backhand) */
+    const T = [0, 1, 2].map(c => mid[c] + out[c] * 0.2 + fr.up[c] * 0.16 + fr.fw[c] * 0.22), d = [0, 1, 2].map(c => (T[c] - hm[c]) * w);   /* (22 cm in front of the shoulders: at eight, the top arm crossed his throat inside the chest, Djokovic running out of a backhand) */
     for (const j of [J.lwri, J.rwri, J.lhand, J.rhand]) for (let c = 0; c < 3; c++) a[j * 3 + c] += d[c];
     for (const j of [J.lelb, J.relb]) for (let c = 0; c < 3; c++) a[j * 3 + c] += d[c] * 0.6 + fr.up[c] * 0.06 * w; }
   void sg; return Q;
@@ -496,9 +488,14 @@ export function strokeClip(lib, name, key, lefty) {
     // two passes: rebuilding one joint can show up the next glitch along the arm
     for (let pass = 0; pass < 2; pass++) if (!repairClip(F, n, c.fps || 60, key === 'serve' || key === 'smash')) break;
     if (key !== 'serve' && key !== 'smash') { uprightClip(F, n, c.fps || 60); bridgeFoldedArm(F, n, c.fps || 60, c.u0 || 0, lefty); }
-    if (key === 'serve' && !globalThis.__srvPaceOld) evenServeArm(F, n, c.fps || 60, c.u0 || 0, lefty);
-    if (key === 'fh') { frontOffArm(F, n, c.fps || 60, c.u0 || 0, lefty); freeHandInFront(F, n, c.fps || 60, c.u0 || 0, lefty); hitHandFinish(F, n, c.fps || 60, c.u0 || 0, lefty); const own = String(name).split('#')[0]; if (!globalThis.__lassoOld && (globalThis.__lassoAllOld || LASSO_OWN.has(own))) lasso = lassoFinish(F, n, c.fps || 60, c.u0 || 0, lefty); else if (!globalThis.__crossFinOld) crossFinish(F, n, c.fps || 60, c.u0 || 0, lefty); }
-    if (key === 'bh') { if (!frontTwoHands(F, n, c.fps || 60, c.u0 || 0)) frontOneHand(F, n, c.fps || 60, c.u0 || 0, lefty); else { twoHandsInFront(F, n, c.fps || 60, c.u0 || 0); if (!globalThis.__bhWrapOld) wrap = twoHandWrap(F, n, c.fps || 60, c.u0 || 0, lefty); } }
+    if (key === 'serve') evenServeArm(F, n, c.fps || 60, c.u0 || 0, lefty);
+    if (key === 'fh') { frontOffArm(F, n, c.fps || 60, c.u0 || 0, lefty); freeHandInFront(F, n, c.fps || 60, c.u0 || 0, lefty); hitHandFinish(F, n, c.fps || 60, c.u0 || 0, lefty); const own = String(name).split('#')[0]; if (LASSO_OWN.has(own))
+      lasso = lassoFinish(F, n, c.fps || 60, c.u0 || 0, lefty);
+    else
+      crossFinish(F, n, c.fps || 60, c.u0 || 0, lefty); }
+    if (key === 'bh') { if (!frontTwoHands(F, n, c.fps || 60, c.u0 || 0)) frontOneHand(F, n, c.fps || 60, c.u0 || 0, lefty); else {
+      twoHandsInFront(F, n, c.fps || 60, c.u0 || 0); wrap = twoHandWrap(F, n, c.fps || 60, c.u0 || 0, lefty);
+    } }
     if (key !== 'serve' && key !== 'smash') { despikeArms(F, n); bridgeArmJumps(F, n, c.fps || 60); }
     // A groundstroke is played from the ground: where the tracking has him hanging in the air (a hop into
     // the ball, or a ground line misjudged behind the net), the whole body is brought down onto its lower foot.
@@ -541,7 +538,7 @@ function gaitOff(c) {
   for (let i = 0; i < 200; i++) { sampleLoop(c, i / 200, out); const y = out[J.lankle * 3 + 1]; if (y < best) { best = y; at = i / 200; } }
   GAIT_OFF.set(c, at); return at;
 }
-const at = (c, ph) => globalThis.__noSync ? ph : ((ph + gaitOff(c) - gaitOff(CL.run)) % 1 + 1) % 1;
+const at = (c, ph) => ((ph + gaitOff(c) - gaitOff(CL.run)) % 1 + 1) % 1;
 // (and the backwards gait stands on its own ground: tracked, its planted ankle is six centimetres below where every other
 // gait's is, so most of its swing was taken for a foot still on the court, the foot never lifted of itself, and every
 // step was a catch-up step forced on it, arced high as for a long stride: from the side he kicked each foot up behind him to
@@ -551,7 +548,7 @@ let BACK_MIN = null;
 function lowLift(P, k) {
   if (!BACK_MIN) { const o = new Float32Array(N3); BACK_MIN = [9, 9]; for (let i = 0; i < 200; i++) { sampleLoop(CL.back, i / 200, o); BACK_MIN[0] = Math.min(BACK_MIN[0], o[J.lankle * 3 + 1]); BACK_MIN[1] = Math.min(BACK_MIN[1], o[J.rankle * 3 + 1]); } }
   for (const [ja, jt, i] of [[J.lankle, J.ltoe, 0], [J.rankle, J.rtoe, 1]]) {
-    const y0 = P[ja * 3 + 1], off = globalThis.__noSync ? 0 : ANKLE_H - BACK_MIN[i], sT = c01((y0 - BACK_MIN[i]) / 0.04);
+    const y0 = P[ja * 3 + 1], off = ANKLE_H - BACK_MIN[i], sT = c01((y0 - BACK_MIN[i]) / 0.04);
     const ya = y0 + off, d = Math.max(0, ya - ANKLE_H) * (1 - k);
     P[ja * 3 + 1] = ya - d; P[jt * 3 + 1] += off * sT - d;
   }
@@ -574,7 +571,8 @@ export class Loco {
     this.w = { go: 0, f: 1, b: 0, r: 0, l: 0, up: 0 };
   }
   // vR, vF: velocity to the body's right and the way it faces (m/s, for a 1.85 m body); upright: strolling between points
-  update(dt, vR, vF, speed, upright, walkScale, strollW) {   // walkScale: the figure's legs against the stroll clip's; strollW: how much he is strolling between points
+  update(dt, vR, vF, speed, upright, walkScale, strollW) {
+    // walkScale: the figure's legs against the stroll clip's; strollW: how much he is strolling between points
     const w = this.w;
     const a = Math.atan2(vR, vF), c = Math.cos(a), s = Math.sin(a), mv = speed > 0.12 ? 1 : 0;
     // (springs, not first-order lags: a split step's burst or a sudden change of direction changes what the legs should
@@ -582,18 +580,18 @@ export class Loco {
     w.go = c01(ease(w, 'go', sm((speed - 0.15) / 0.75), 30, dt));
     // (quicker at a run: the body turns to run in a sixth of a second, and eased at the walking rate the legs went on shuffling
     // sideways under a body already turned, three or four frames of a gallop at five metres a second)
-    const wr = globalThis.__gaitRateOld ? 19 : 19 + 14 * c01((speed - 2.6) / 1.2);
+    const wr = 19 + 14 * c01((speed - 2.6) / 1.2);
     w.f = c01(ease(w, 'f', mv ? Math.max(0, c) ** 2 : w.f, wr, dt)); w.b = c01(ease(w, 'b', mv ? Math.max(0, -c) ** 2 : w.b, wr, dt));
     w.r = c01(ease(w, 'r', mv ? Math.max(0, s) ** 2 : w.r, wr, dt)); w.l = c01(ease(w, 'l', mv ? Math.max(0, -s) ** 2 : w.l, wr, dt));
     // into the athletic stance quickly when a point starts; out of it slowly, as a player relaxes after one
-    w.up = c01(ease(w, 'up', upright ? 1 : 0, upright ? 7 : 15, dt));   /* (up out of the crouch in about half a second once the point is over: at the slower rate he walked back to the line still half in his ready stance) */
+    w.up = c01(ease(w, 'up', upright ? 1 : 0, upright ? 7 : 15, dt)); /* (up out of the crouch in about half a second once the point is over: at the slower rate he walked back to the line still half in his ready stance) */
     // the forward gait for this speed: the two measured gaits either side of it
     let i = 0; while (i < FWD.length - 2 && speed > FWD[i + 1].speed) i++;
-    const fa = FWD[i], fb = FWD[i + 1], SR0 = CL.stroll && !globalThis.__strollClipOld2 ? CL.stroll : null, uS0 = SR0 && fa === CL.walk ? c01(strollW || 0) : 0, faSp = uS0 > 0 ? fa.speed + (SR0.speed - fa.speed) * uS0 : fa.speed, t = sm((speed - faSp) / (fb.speed - faSp));   /* (from the stroll's own speed when strolling: from the play walk's slower one, a fourteenth of the jog's longer stride came in at the stroll's own pace and the cycle ran slow for its feet) */
+    const fa = FWD[i], fb = FWD[i + 1], SR0 = CL.stroll ? CL.stroll : null, uS0 = SR0 && fa === CL.walk ? c01(strollW || 0) : 0, faSp = uS0 > 0 ? fa.speed + (SR0.speed - fa.speed) * uS0 : fa.speed, t = sm((speed - faSp) / (fb.speed - faSp)); /* (from the stroll's own speed when strolling: from the play walk's slower one, a fourteenth of the jog's longer stride came in at the stroll's own pace and the cycle ran slow for its feet) */
     // (upright, between points, the slowest gait is the stroll, an ordinary walk played as it is (see figure.js), timed by its own
     // planted foot and at the figure's size; in play it stays the walk the play's footwork was tuned on)
-    const SR = CL.stroll && !globalThis.__strollClipOld2 ? CL.stroll : null, uS = SR && fa === CL.walk ? c01(strollW || 0) : 0;   /* (by the stroll itself, not by being upright: upright also covers waiting to serve and serving, and the stroll's clip under play's footwork there made the feet jump) */
-    const sA = uS > 0 ? fa.stride + (SR.stride * (walkScale && !globalThis.__walkScaleOld ? walkScale : 1) - fa.stride) * uS : fa.stride, strideF = sA + (fb.stride - sA) * t;
+    const SR = CL.stroll ? CL.stroll : null, uS = SR && fa === CL.walk ? c01(strollW || 0) : 0; /* (by the stroll itself, not by being upright: upright also covers waiting to serve and serving, and the stroll's clip under play's footwork there made the feet jump) */
+    const sA = uS > 0 ? fa.stride + (SR.stride * (walkScale ? walkScale : 1) - fa.stride) * uS : fa.stride, strideF = sA + (fb.stride - sA) * t;
     const sum = w.f + w.b + w.r + w.l + 1e-6, side = (w.r + w.l) / sum;
     // the one cycle runs at the rate that covers the ground he is really covering: the blended pose's feet travel, in a cycle,
     // the gaits' strides averaged by how much each is played, so that is the stride (by their rates averaged instead, the short
@@ -603,22 +601,18 @@ export class Loco {
     // pace is a quick shuffle of quarter-metre steps, the legs reaching for a full stride and caught by the planted feet. The
     // stride shortens with the pace (to about four-fifths at 0.8 m/s, at a person's one and a half steps a second) and the
     // legs' reach is drawn in to match it (below), so the feet still cover the ground they stand on.
-    const upF = globalThis.__walkStrideOld ? 0 : c01(w.up) * w.f * (fa === CL.walk ? 1 - t : 0), kSa = globalThis.__walkKSa ?? 1;
+    const upF = c01(w.up) * w.f * (fa === CL.walk ? 1 - t : 0), kSa = 1;
     let kS = 1 + (Math.min(1, Math.max(0.5, kSa + (1 - kSa) * speed / CL.walk.speed)) - 1) * upF
       // (and faster than the filmed walkers walk, longer steps, not quicker ones, as a person's are: their stride, a little over a
       // metre and a fifth at a metre and a seventh a second, played at the game's walk of nearly a metre and a half a second was a
       // march of a hundred and thirty steps a minute)
-      + (globalThis.__walkLongOld ? 0 : (Math.min(1.25, Math.pow(Math.max(1, speed / (SR ? CL.walk.speed + (SR.speed - CL.walk.speed) * uS : CL.walk.speed)), 0.6)) - 1) * upF);
+      + ((Math.min(1.25, Math.pow(Math.max(1, speed / (SR ? CL.walk.speed + (SR.speed - CL.walk.speed) * uS : CL.walk.speed)), 0.6)) - 1) * upF);
     // (strolling slower than the walk was filmed, a person takes shorter steps, not the same ones slower: at the half-speed walk
     // along the line to serve, the filmed stride played at its own length took most of a second a step, a slow-motion walk)
-    if (uS > 0.001 && !globalThis.__strollShortOld) kS *= 1 + (Math.max(0.6, Math.min(1, Math.sqrt(speed / SR.speed))) - 1) * uS;
+    if (uS > 0.001) kS *= 1 + (Math.max(0.6, Math.min(1, Math.sqrt(speed / SR.speed))) - 1) * uS;
     const strideM = (w.f * strideF * kS + w.b * CL.back.stride + (w.r + w.l) * CL.shuffleR.stride) / sum, rateF = speed / Math.max(0.3, strideM);
     this.dbgRate = { speed: +speed.toFixed(3), strideF: +strideF.toFixed(3), kS: +kS.toFixed(3), strideM: +strideM.toFixed(3), rateF: +rateF.toFixed(3), walkScale: walkScale ? +walkScale.toFixed(3) : null };
-    if (globalThis.__noSync) { this.phF = (this.phF + dt * Math.min(3.2, speed * ((w.f / strideF) + (w.b / CL.back.stride)) / Math.max(1e-6, w.f + w.b))) % 1; this.phS = (this.phS + dt * Math.min(3.4, speed / CL.shuffleR.stride)) % 1; }
-    // (and never slower than a little over three steps a second while he is moving at all: slowing in proportion to his speed,
-    // the cycle all but stopped as he pulled up, with a foot caught in the air half way through a step, held there floating
-    // while he stopped under it; a player pulling up takes quick short steps)
-    else { const rMin = globalThis.__noMinRate ? 0 : 1.6 * c01((speed - 0.3) / 0.5) * (1 - upF) + 0.6 * c01((speed - 0.1) / 0.3) * upF, rate = Math.min(3.3, Math.max(rateF, rMin)); this.lastRate = rate; this.lastFa = fa; this.phF = (this.phF + dt * rate * (this.rateMul || 1)) % 1; this.phS = this.phF; }   /* (rateMul: the figure times the last steps into a shot, below) */
+    { const rMin = 1.6 * c01((speed - 0.3) / 0.5) * (1 - upF) + 0.6 * c01((speed - 0.1) / 0.3) * upF, rate = Math.min(3.3, Math.max(rateF, rMin)); this.lastRate = rate; this.lastFa = fa; this.phF = (this.phF + dt * rate * (this.rateMul || 1)) % 1; this.phS = this.phF; }/* (rateMul: the figure times the last steps into a shot, below) */
     const P = this.P, A = this.A, B = this.B;
     // standing: low and ready in a point, upright between points
     sampleLoop(CL.ready, 0, P); if (w.up > 0.001) mix(P, sampleLoop(CL.stand, 0, B), w.up);
@@ -628,10 +622,10 @@ export class Loco {
       if (w.up > 0.001 && fa !== CL.walk) mix(A, sampleLoop(CL.walk, at(CL.walk, ph), B), w.up * 0.7);
       if (kS < 0.999 || kS > 1.001) for (const j of [J.lknee, J.rknee, J.lankle, J.rankle, J.ltoe, J.rtoe]) A[j * 3 + 2] *= kS;
       this.FW.set(A);
-      if (!globalThis.__strollClipOld && w.up > 0.3) { const p2 = (ph + 0.5) % 1; sampleLoop(fa, at(fa, p2), this.FW2); if (uS > 0.001) mix(this.FW2, sampleLoop(SR, at(SR, p2), B), uS); if (t > 0.001) mix(this.FW2, sampleLoop(fb, at(fb, p2), B), t); }
+      if (w.up > 0.3) { const p2 = (ph + 0.5) % 1; sampleLoop(fa, at(fa, p2), this.FW2); if (uS > 0.001) mix(this.FW2, sampleLoop(SR, at(SR, p2), B), uS); if (t > 0.001) mix(this.FW2, sampleLoop(fb, at(fb, p2), B), t); }
       let acc = w.f;
-      if (w.b > 0.001) { acc += w.b; mix(A, lowLift(sampleLoop(CL.back, at(CL.back, ph), B), globalThis.__backLift ?? 0.7), w.b / acc); }
-      const phS = globalThis.__noSync ? this.phS : ph;
+      if (w.b > 0.001) { acc += w.b; mix(A, lowLift(sampleLoop(CL.back, at(CL.back, ph), B), 0.7), w.b / acc); }
+      const phS = ph;
       if (w.r > 0.001) { acc += w.r; mix(A, sampleLoop(CL.shuffleR, at(CL.shuffleR, phS), B), w.r / acc); }
       if (w.l > 0.001) { acc += w.l; mix(A, sampleLoop(CL.shuffleL, at(CL.shuffleL, phS), B), w.l / acc); }
       mix(P, A, w.go);
@@ -640,7 +634,7 @@ export class Loco {
       // down averaged with one in the air was down in neither. Below about three metres a second the feet are lifted less,
       // to under half at a walk, so one of them is always on the court.
       // (but not the walk itself, filmed at a walk: lowered, the stroll to the line was a shuffle with the feet scraping the court)
-      const kL = globalThis.__noLow ? 1 : 1 - (1 - c01(0.45 + 0.55 * (speed - 0.8) / 2.4)) * w.go * (1 - upF);
+      const kL = 1 - (1 - c01(0.45 + 0.55 * (speed - 0.8) / 2.4)) * w.go * (1 - upF);
       if (kL < 0.999) for (const [ja, jt] of [[J.lankle, J.ltoe], [J.rankle, J.rtoe]]) { const y = P[ja * 3 + 1]; if (y > ANKLE_H) { const d = (y - ANKLE_H) * (1 - kL); P[ja * 3 + 1] -= d; P[jt * 3 + 1] -= d; } }
     }
     this.side = side;

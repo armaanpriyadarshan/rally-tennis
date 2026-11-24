@@ -204,14 +204,14 @@ export function profileFor(id, surface, key) {
   // rest"): steadier, quicker to the ball and off the mark, and a little more pace, on top of their own numbers. Their numbers alone
   // put Federer and Alcaraz behind Medvedev, Zverev and Agassi (the bot at Tour won 48% and 51% of points from them, 42-43% from
   // those three). `__eliteOld`; ELITE_K scales each man's edge so that all five come out hardest.
-  const eK = !globalThis.__eliteOld ? (globalThis.__eliteK ?? ELITE_K)[P.facts.name] : null;
+  const eK = ELITE_K[P.facts.name];
   if (eK) { b.cons = clamp(b.cons + 0.07 * eK, 0.1, 0.98); b.speed *= 1 + 0.03 * eK; b.accel *= 1 + 0.04 * eK; b.react *= 1 - 0.06 * eK;
     b.fhKmh *= 1 + 0.025 * eK; b.bhKmh *= 1 + 0.025 * eK; b.s1Kmh *= 1 + 0.015 * eK; b.firstIn = clamp(b.firstIn + 0.02 * eK, 0.45, 0.8); }
   return b;
 }
 const ELITE_K = { Alcaraz: 1, Sinner: 1.6, Djokovic: 1.3, Nadal: 2.2, Federer: 2.5 };   // (the bot at Tour then wins 33-37% of points from them, 42% from Medvedev, the hardest of the rest)
 // and in simulated matches and seeding (season.js gameProb, eventSeeding): percentage points more service games held and broken
-export const isElite = id => !globalThis.__eliteOld && PLAYERS[id] && ELITE_K[PLAYERS[id].facts.name] != null;
+export const isElite = id => PLAYERS[id] && ELITE_K[PLAYERS[id].facts.name] != null;
 export const ELITE_SIM = 4;
 // Who plays an event (he said "rn for some reason some players never enter tournaments": the field was the twelve strongest at each
 // event, and Wawrinka, Ivanisevic, Monfils and Kyrgios were in 2-4% of the fields, Thiem 6%, Kuerten 10%). `order`: everyone, best
@@ -220,7 +220,7 @@ export const ELITE_SIM = 4;
 // likely, every man with a real chance. The Finals are the top eight. `__fieldOld`: the strongest twelve.
 export function pickField(order, T, rnd, me) {
   const n = T.draw;
-  if (T.level === 'finals' || globalThis.__fieldOld) { const f = order.slice(0, n); if (me != null && !f.includes(me)) f[n - 1] = me; return order.filter(id => f.includes(id)); }
+  if (T.level === 'finals') { const f = order.slice(0, n); if (me != null && !f.includes(me)) f[n - 1] = me; return order.filter(id => f.includes(id)); }
   const f = new Set(me != null ? [me] : []), big = T.level === 'slam' || T.level === 'm1000';
   for (const id of order) if (f.size < n && isElite(id) && (big || rnd() < 0.5)) f.add(id);
   // (drawn by weight without putting back: each man's key is u^(1/w), the highest keys play; w falls from 1 for the strongest left
@@ -238,7 +238,7 @@ export function eventSeeding(ids, T, rnd, form = 0.35) {
   const g = () => { let u = 0; while (u === 0) u = rnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * rnd()); };
   // (his win rate here as it is, up to 98.5%: the match model caps it at 93%, which would rank Nadal at Roland Garros, 112-4,
   // level with anyone else above 93)
-  const lo = id => { const w = clamp(eventRate(id, T.key, T.surface).rate / 100, 0.3, 0.985); return Math.log(w / (1 - w)) + (isElite(id) ? (globalThis.__eliteSeed ?? 0.8) : 0); };
+  const lo = id => { const w = clamp(eventRate(id, T.key, T.surface).rate / 100, 0.3, 0.985); return Math.log(w / (1 - w)) + (isElite(id) ? 0.8 : 0); };
   return ids.map(id => ({ id, s: lo(id) + form * g() })).sort((a, b) => b.s - a.s).map(x => x.id);
 }
 export function winProb(a, b, surface, key) { const sa = strength(a, surface, key), sb = strength(b, surface, key); return sa / (sa + sb); }

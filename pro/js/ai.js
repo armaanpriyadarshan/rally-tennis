@@ -103,8 +103,8 @@ export class AI {
       // it), some only as the ball floats over the net, the best hands hiding it longest. Read like any other ball, a drop
       // shot from the baseline came back 84% of the time; on the tour (Match Charting Project, 41,400 of them since 2015)
       // about half do, a third are winners or force the error, and the rest are the dropper's own misses.
-      if (!serve && (globalThis.__dropRead ?? 0.12) > 0 && m.contactInfo && m.contactInfo.kind === 'drop' && m.contactInfo.who !== i) {
-        const dt0 = globalThis.__dropRead ?? 0.12, by = m.players[m.contactInfo.who].prof;
+      if (!serve && 0.12 > 0 && m.contactInfo && m.contactInfo.kind === 'drop' && m.contactInfo.who !== i) {
+        const dt0 = 0.12, by = m.players[m.contactInfo.who].prof;
         this.reactAt += dt0 * (0.2 + 1.6 * m.rng.u()) * lerp(0.75, 1.25, clamp(by.touch ?? 0.5, 0, 1));
       }
       m.splitStep(i);
@@ -197,7 +197,7 @@ export class AI {
         // (a person's legs set him up for the overhead on a lob as deep as his baseline, and prefer it: he said "it doesnt setup
         // overheads on the lobs" - a lob landing past 10.5 m was always let bounce and played as a ball off the bounce, or volleyed
         // as a drive)
-        const lobAir = this.eagerPre && !globalThis.__lobAirOld, lobbed = by > 2.0 && by < REACH.jump - 0.15 && D < (lobAir ? 12.6 : 10.5) && myD < (lobAir ? 13.5 : 11.5);
+        const lobAir = !!this.eagerPre, lobbed = by > 2.0 && by < REACH.jump - 0.15 && D < (lobAir ? 12.6 : 10.5) && myD < (lobAir ? 13.5 : 11.5);
         if (!allowPre && !lobbed) continue;
         if (by < 0.45 || by > REACH.jump - 0.15) continue;
       } else {
@@ -221,7 +221,7 @@ export class AI {
       // rising or falling?
       const vy = k + 9 < path.length ? (path[k + 9] - by) * 15 : -1;
       let hc;
-      if (pre) hc = by > 1.95 ? Math.abs(by - 2.45) * 0.5 - (this.eagerPre && !globalThis.__lobAirOld && (inc.apex || 0) > 4 ? 0.6 : 0) : eager ? Math.abs(by - 1.3) * 0.4 - 0.25 + (D > 9.8 ? 0.5 : 0) : Math.abs(by - 1.15) * 0.7 + (D > 6.5 ? 0.6 : 0);
+      if (pre) hc = by > 1.95 ? Math.abs(by - 2.45) * 0.5 - (this.eagerPre && (inc.apex || 0) > 4 ? 0.6 : 0) : eager ? Math.abs(by - 1.3) * 0.4 - 0.25 + (D > 9.8 ? 0.5 : 0) : Math.abs(by - 1.15) * 0.7 + (D > 6.5 ? 0.6 : 0);
       // a person's legs set him to take the ball near the top of its bounce, where he can hit through it;
       // the computer lets it drop to the waist as its plan prefers
       // Anywhere from the knee to the shoulder a pro hits through the ball; he does not back off a high one and wait for it
@@ -259,7 +259,7 @@ export class AI {
     const oppBh = opp.hs;                               // X sign of the opponent's backhand wing
     // (a man whose forehand is his weapon plays it as one, whatever his aggression overall: Nadal's measured aggression is the
     // tour's lowest, 0.19, and taken for his forehand too it looped back most balls, a quarter of them two metres over the net)
-    const agg = pl.wing === 'fh' && prof.fhAgg != null && !globalThis.__fhAggOld ? prof.fhAgg : prof.agg;
+    const agg = pl.wing === 'fh' && prof.fhAgg != null ? prof.fhAgg : prof.agg;
     const T = (X, D, kind, power) => ({ kind, power, tx: X * sgn, tz: D * sgn });
     let goNet = this.goNet;
 

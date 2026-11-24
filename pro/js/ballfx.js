@@ -172,7 +172,7 @@ export class BallFx {
     // thread: from behind the baseline the far service box is seen at four or five degrees, and the ring was a smudge beyond the net.
     // Its width, the precision he asked for, is as it was.)
     let k = 1; const c = this.cam;
-    if (c && !globalThis.__mineFlat) { const dx = x - c.position.x, dz = z - c.position.z, dh = Math.hypot(dx, dz), e = Math.atan2(Math.max(0.3, c.position.y), dh);
+    if (c) { const dx = x - c.position.x, dz = z - c.position.z, dh = Math.hypot(dx, dz), e = Math.atan2(Math.max(0.3, c.position.y), dh);
       k = Math.min(3.2, Math.max(1, 0.55 / Math.sin(e))); this.mine.rotation.set(-Math.PI / 2, 0, dh > 0.01 ? Math.atan2(-dx, -dz) : 0); }
     else this.mine.rotation.set(-Math.PI / 2, 0, 0);
     this.mine.scale.set(s, s * k, 1);   /* (tight, and still: 'circle should be more precise' - at 2.1 x and pulsing it covered half a metre either side of the spot) */
