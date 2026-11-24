@@ -1611,3 +1611,32 @@ still in the air, both in a stroke's finish, for two or three frames.
   own game's choice too. human.js: ↓ held on a ball too quick or too high to drop is a short angle (crosscourt, or to the side an
   arrow holds); the game's short angle aimed the other way is a deep ball that way. Measured (300 points, Nadal v Djokovic, Tour):
   short angles 4% → 7% of rally balls on both sides, points won 61% → 60%.
+- **Realistic tour** (he said "all the big 5 players shouldnt have to play in every tournament, make the schedules more realistic",
+  "there should be rounds preceding the ones in the tournaments, i swear some players i just never even see their names", and asked
+  for injuries, form, difficulty by surface, round and form, and realistic simulations). Numbers from a research pass over
+  Sackmann's ATP match data (2015-25), the Roi & Zambelli injury study of the ATP top 50 (2018-22) and Tennis Abstract.
+  - **Draws:** a major or a Masters is a draw of 32 (R32 to the final; the top eight seeded, byes to the best where the field is
+    short), a 500 one of 16 (a smaller one if fewer than nine play), the Finals two round-robin groups of four (1-4-5-8, 2-3-6-7;
+    top two to crossed semi-finals; 200 a group win, 400 the semi, 500 the final). Real points by round (R32 100 at a major, 50 at a
+    Masters). The draw screen shows every round, empty until reached, byes, w/o and ret.; the Finals their group tables.
+  - **Schedules:** each man plans his year (data.js planSeason): the majors (98.5%), most Masters (by how the surface suits him;
+    Monte-Carlo mostly by the clay men), five to seven 500s drawn by how much he likes each - his career matches there (Sackmann's
+    event records), the surface, home. 20 simulated seasons: fields of 27 at the majors, 23 at the Masters, 11 at the 500s; each man
+    plays 15-18 events and misses 1-3 of the 13 big ones (the tour's top 30 miss about two of twelve).
+  - **Injuries:** each man's proneness and usual places from his history (data.js INJURY: Nadal 1.7 - foot, knees, wrist; del
+    Potro 2.1 - wrists, knee; Edberg 0.45). Late withdrawals before an event, walkovers (0.3% a man a match) and retirements (1.24%,
+    1.9% in best of five), and wear after an event; how long by the study's medians per body part (a back 8 days, a wrist 27,
+    surgery 6% of the time, 1.5-6 months). Back from injury he is rusty (form down). Measured: walkovers 0.55% and retirements
+    2.3% of matches. The season screen has the week's news (who is out of this event and why, injuries, returns, titles) and an
+    INJ tag with the events he still misses in the rankings.
+  - **Form and freshness:** each man starts the season a little hot or cold and moves with every result by how unexpected it was;
+    a long match costs him in the next (4 h+: 7.5% less often a winner at the majors). Both go into simulated matches, and into
+    the match he plays against the computer (game.js oppForm, with the round: a little quicker, surer and harder hitting the
+    deeper the round and the better the man's form).
+  - **Simulated matches:** the court moves every hold (clay -2.6, grass +6.6, indoors +1.3, Madrid's altitude +4.5), and each man
+    has his day (season.js DAY; smaller over five sets, where the better man's level shows). Before: tiebreaks one set in five on
+    every surface, 45% of best-of-three matches to a third set, a third of best-of-five to a fifth. After: tiebreaks clay 15%,
+    hard 17%, grass 22% of sets (tour 16/20/25), 34% to a third set (37%), best of five 3/4/5 sets 47/31/22% (47/33/20), set
+    scores 6-4 25%, 6-3 23%, 7-6 17%, 6-2 15% (25/23/19/13). The five above the rest a point more (ELITE_SIM 5) for the new
+    day-to-day swing: 54% of titles, 68% of majors, 19 of 20 year-end No. 1s.
+  - The season's save is new (rallypro.season.v3): a season begun before this starts again.

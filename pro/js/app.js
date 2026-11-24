@@ -23,7 +23,7 @@ const full = id => { const f = PLAYERS[id].facts, first = (f.full || '').replace
 const MARK = 'Rally<small><em style="font-style:normal;font-weight:700">Pro</em> Tour</small>';
 const clockText = t => { const m = Math.floor(t / 60); return `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`; };
 const SFC = { hard: 'var(--hard)', clay: 'var(--clay)', grass: 'var(--grass)' };
-const RND = { R16: 'Round 1', QF: 'Quarter-final', SF: 'Semi-final', F: 'Final' };
+const RND = { R32: 'Round of 32', R16: 'Round of 16', QF: 'Quarter-final', SF: 'Semi-final', F: 'Final', RR: 'Round robin' };
 const wait = ms => new Promise(r => setTimeout(r, ms));
 // Run from the developer's own machine, the game keeps a play log (keys pressed for a shot and what came of them)
 const LOCAL = location.hostname === '127.0.0.1' || location.hostname === 'localhost';
@@ -255,18 +255,20 @@ class App {
       <line x1="200" y1="26" x2="200" y2="184" stroke="#0b0d12" stroke-width="3"/><circle cx="200" cy="26" r="3.5" fill="#0b0d12"/><circle cx="200" cy="184" r="3.5" fill="#0b0d12"/></svg>`;
   }
   eventPanel(T, me) {
-    const field = this.fieldFor(T, me), byes = T.draw === 12 ? 4 : 0, pts = T.points || {}, R = T.rounds || [];
+    const field = this.fieldFor(T, me), fin = T.level === 'finals', byes = fin ? 0 : Math.max(0, T.draw - field.length), pts = T.points || {}, R = T.rounds || [];
     const pace = T.pace > 4 ? 'Fast' : T.pace < -4 ? 'Slow' : 'Medium', fmt = n => Number(n).toLocaleString('en-GB');
     const court = this.courtSvg(T);
     const tile = (k, v, sub) => `<div class="tl"><span class="lab">${k}</span><b>${v}</b>${sub ? `<i>${sub}</i>` : ''}</div>`;
-    const path = R.map(r => `<div><span>${RND[r] || r}</span><b>${fmt(pts[r] || 0)}</b></div>`).join('') + `<div class="w"><span>Champion</span><b>${fmt(pts.W || 0)}</b></div>`;
-    const rows = field.map((id, i) => `<div class="${id === me ? 'me' : ''}"><small>${i < 8 ? i + 1 : ''}</small><b>${esc(pname(id))}</b><i>${esc(PLAYERS[id].facts.country || '')}</i>${this.edge(id, T)}${i < byes ? '<em>Bye</em>' : ''}</div>`).join('');
+    // (the Finals pay by the win: 200 a round-robin win, 400 more for the semi-final, 500 for the final)
+    const path = fin ? `<div><span>Group win</span><b>${fmt(pts.RR)}</b></div><div><span>Semi-final win</span><b>+${fmt(pts.SF)}</b></div><div><span>Final win</span><b>+${fmt(pts.F)}</b></div><div class="w"><span>Unbeaten</span><b>${fmt(3 * pts.RR + pts.SF + pts.F)}</b></div>`
+      : R.map(r => `<div><span>${RND[r] || r}</span><b>${fmt(pts[r] || 0)}</b></div>`).join('') + `<div class="w"><span>Champion</span><b>${fmt(pts.W || 0)}</b></div>`;
+    const rows = field.map((id, i) => `<div class="${id === me ? 'me' : ''}"><small>${i < (fin ? 8 : T.draw / 4) ? i + 1 : ''}</small><b>${esc(pname(id))}</b><i>${esc(PLAYERS[id].facts.country || '')}</i>${this.edge(id, T)}${i < byes ? '<em>Bye</em>' : ''}</div>`).join('');
     return `<div class="evp" style="--tier:${TIER[T.level][0]}">
       <div class="hd"><span class="lab">${TIER[T.level][1]} · ${esc(T.month || '')}</span><b>${esc(T.name)}</b><span class="lab">${esc(T.court || '')} · ${esc(T.city || '')}${T.country ? ', ' + esc(T.country) : ''}</span></div>
       <div class="bd">
         <div class="lf">${court}
           <div class="tls">${tile('Surface', esc(T.surface), (SURFACE_PLAY[T.surface] || SURFACE_PLAY.hard).about)}${tile('Format', 'Best of ' + T.bestOf, 'Sets')}${tile('Court pace', pace, T.cpi ? 'CPI ' + T.cpi : '')}
-            ${tile('Draw', T.draw, byes ? byes + ' byes' : 'Round robin')}${tile('Capacity', T.cap ? fmt(T.cap) : '—', 'Centre court')}${tile('Conditions', Math.round(T.temp) + '°', T.indoor ? 'Indoor' : (T.roof ? 'Roof · ' : '') + Math.round(T.windKmh) + ' km/h wind')}</div>
+            ${tile('Draw', fin ? '2 × 4' : T.draw, fin ? 'Round robin · top two to the semis' : field.length + ' players' + (byes ? ' · ' + byes + ' byes' : ''))}${tile('Capacity', T.cap ? fmt(T.cap) : '—', 'Centre court')}${tile('Conditions', Math.round(T.temp) + '°', T.indoor ? 'Indoor' : (T.roof ? 'Roof · ' : '') + Math.round(T.windKmh) + ' km/h wind')}</div>
           <div class="pts"><span class="lab">Ranking points</span><div class="path">${path}</div></div></div>
         <div class="fld"><span class="lab">The field</span><div class="rows">${rows}</div></div>
       </div></div>`;
@@ -338,22 +340,43 @@ class App {
   }
   drawView(season) {
     const d = season ? season.draw : this.draw, T = d.T, me = d.human, hm = d.humanMatch(), bye = d.hasBye(me);
-    const line = (id, m, top) => { if (id == null) return '<div><small></small><b>—</b></div>'; const w = m.res && m.res.winner === id, sc = m.res ? m.res.sets.map(x => x.g[m.res.a === id ? 0 : 1]).join(' ') : ''; void top;
+    // a line of a tie: seed, name, his games set by set (w/o for a walkover, ret. after the score of the man who stopped), or Bye
+    const line = (id, m) => { if (id == null) return m.res && m.res.bye ? '<div class="bye"><small></small><b>Bye</b></div>' : '<div><small></small><b>—</b></div>';
+      const R = m.res, w = R && R.winner === id, sc = !R || R.bye ? '' : R.wo ? (w ? 'w/o' : '') : R.sets.map(x => x.g[R.a === id ? 0 : 1]).join(' ') + (R.ret && !w ? ' ret.' : '');
       return `<div class="${w ? 'w' : ''} ${id === me ? 'you' : ''}"><small>${d.seedNo[id] || ''}</small><b>${esc(pname(id))}</b><i>${sc}</i></div>`; };
-    const cols = d.rounds.map((r, ri) => `<div class="rnd"><span class="lab">${RND[T.rounds[ri]] || T.rounds[ri]}</span><div class="ms">${r.map(m => `<div class="tie ${m.a === me || m.b === me ? 'me' : ''}">${line(m.a, m, true)}${line(m.b, m)}</div>`).join('')}</div></div>`).join('');
+    const blank = { a: null, b: null, res: null };   // (a round not reached yet: its places, empty)
+    const tie = m => `<div class="tie ${m.a === me || m.b === me ? 'me' : ''}">${line(m.a, m)}${line(m.b, m)}</div>`;
+    let cols;
+    if (d.rr) {
+      // the Finals: each group's table (wins and losses, sets) over its matches, then the semi-finals and the final
+      const grp = gi => { const st = d.standings(gi), ms = d.rounds.slice(0, 3).flat().filter(m => m.g === gi);
+        return `<div class="grp"><span class="lab">Group ${'AB'[gi]}</span><table class="gt">${st.map((x, k) => `<tr class="${x.id === me ? 'you' : ''} ${d.round >= 3 && k < 2 ? 'q' : ''}"><td>${d.seedNo[x.id] || ''}</td><td>${esc(pname(x.id))}</td><td>${x.w}–${x.l}</td><td>${x.sw}–${x.sl}</td></tr>`).join('')}</table>
+          <div class="ms">${ms.map(tie).join('')}</div></div>`; };
+      cols = `<div class="rnd rrg">${grp(0)}${grp(1)}</div>` + [3, 4].map(ri => `<div class="rnd"><span class="lab">${RND[d.names[ri]]}</span><div class="ms">${(d.rounds[ri] || new Array(ri === 3 ? 2 : 1).fill(blank)).map(tie).join('')}</div></div>`).join('');
+    } else cols = d.names.map((nm, ri) => `<div class="rnd"><span class="lab">${RND[nm] || nm}</span><div class="ms">${(d.rounds[ri] || new Array(Math.max(1, d.rounds[0].length >> ri)).fill(blank)).map(tie).join('')}</div></div>`).join('');
     const champ = d.champion != null ? `<div class="champ"><span class="lab">Champion</span><b>${esc(pname(d.champion))}</b></div>` : '';
+    const big = !d.rr && d.rounds[0].length > 8;
     let foot;
     if (d.champion != null) foot = `<span class="lab">${d.champion === me ? 'Title' : (RND[d.resultFor(me)] || '')}</span><span class="sp"></span><button class="btn go" data-done>Done</button>`;
-    else if (hm) foot = `<span class="lab">${RND[d.roundName] || d.roundName} · v ${esc(pname(hm.a === me ? hm.b : hm.a))}</span><span class="sp"></span><button class="btn sm" data-sim>Sim match</button><button class="btn sm" data-simall>Sim all</button><button class="btn go" data-play>Play</button>`;
+    else if (hm) foot = `<span class="lab">${RND[d.roundName] || d.roundName}${d.rr && d.round < 3 ? ' · day ' + (d.round + 1) : ''} · v ${esc(pname(hm.a === me ? hm.b : hm.a))}</span><span class="sp"></span><button class="btn sm" data-sim>Sim match</button><button class="btn sm" data-simall>Sim all</button><button class="btn go" data-play>Play</button>`;
     else foot = `<span class="lab">${bye ? 'Bye' : d.alive(me) ? '' : 'Out · ' + (RND[d.resultFor(me)] || '')}</span><span class="sp"></span><button class="btn sm" data-simall>Sim all</button><button class="btn go" data-next>Next round</button>`;
-    this.screen(this.bar(esc(T.name), `<span class="lab">${TIER[T.level][1]} · ${esc(T.surface)}</span>`) + `<div class="draw">${cols}${champ}</div><div class="foot">${foot}</div>`, '', true);
+    this.screen(this.bar(esc(T.name), `<span class="lab">${TIER[T.level][1]} · ${esc(T.surface)}</span>`) + `<div class="draw ${big ? 'big' : ''} ${d.rr ? 'rr' : ''}">${cols}${champ}</div><div class="foot">${foot}</div>`, '', true);
     const again = () => { if (season) season.save(); this.drawView(season); };
     this.on('[data-back]', () => season ? this.season() : this.tour());
     this.on('[data-play]', () => { d.simRound(false); this.play({ kind: 'draw', draw: d, match: hm, season }, me, hm.a === me ? hm.b : hm.a, T, d.roundName); });
-    this.on('[data-sim]', () => { d.report(hm, simMatch(hm.a, hm.b, T, d.r)); d.simRound(false); again(); });
+    this.on('[data-sim]', () => { d.report(hm, d.sim(hm)); d.simRound(false); again(); });
     this.on('[data-next]', () => { d.simRound(false); again(); });
     this.on('[data-simall]', () => { d.simAll(); again(); });
     this.on('[data-done]', () => { if (season) { season.close(); this.season(); } else this.tour(); });
+  }
+  // the tour's news on the season screen: who is out of this week's event and why, then the latest - injuries, walkovers,
+  // retirements, returns, titles
+  newsPanel(S) {
+    const T = S.event; if (!T) return '';
+    const outNow = S.field().filter(id => id !== S.human && S.plan[id] && S.plan[id].includes(T.key) && !S.fit(id));
+    const items = S.news.slice(0, 4).map(n => `<div class="${n.kind}"><i>${esc(TOURNAMENTS[n.ev] ? TOURNAMENTS[n.ev].name : '')}</i><span>${esc(n.text)}</span></div>`).join('');
+    if (!outNow.length && !items) return '';
+    return `<div class="news">${outNow.length ? `<div class="wk"><i>This week</i><span>Out of ${esc(T.name)}: ${outNow.map(id => { const j = S.injury(id); return esc(pname(id)) + (j ? ` (${esc(j.part)})` : ''); }).join(', ')}</span></div>` : ''}${items}</div>`;
   }
   season() {
     let S = this.S || Season.load();
@@ -368,13 +391,15 @@ class App {
     this.S = S; this.sel.p0 = S.human;
     const T = S.event, rank = S.ranking(), me = S.human;
     const cal = TOURNAMENTS.map((t, i) => { const r = S.results[i]; return this.evTile(t, i === S.ev && !S.done, r ? (r.skipped ? 'Skipped' : r.human === 'W' ? 'Won' : r.human || '—') : ''); }).join('');
-    const rows = rank.map((id, i) => `<tr class="${id === me ? 'me' : ''}"><td>${i + 1}</td><td>${esc(pname(id))}</td><td>${S.pts[id]}</td></tr>`).join('');
+    // (who is hurt, and for how long; he asked for "injuries and stuff" on the tour)
+    const injTag = id => { const j = S.injury(id); return j ? ` <span class="inj" title="${esc(j.part)}${j.surgery ? ' (surgery)' : ''} · back for ${esc(j.back)}">${j.part === 'illness' ? 'ILL' : 'INJ'} · ${j.events}</span>` : ''; };
+    const rows = rank.map((id, i) => `<tr class="${id === me ? 'me' : ''}"><td>${i + 1}</td><td>${esc(pname(id))}${injTag(id)}</td><td>${S.pts[id]}</td></tr>`).join('');
     let now, foot;
     if (S.done) { now = `<div class="now"><span class="lab">Year end</span><b>No. ${S.rankOf(me)}</b><span class="lab">${S.pts[me]} points · ${S.results.filter(r => r.human === 'W').length} titles</span></div>`; foot = '<span class="sp"></span><button class="btn go" data-reset>New season</button>'; }
-    else { const q = S.qualified(T);
+    else { if (!S.draw) S.prepare(); const q = S.qualified(T);
       now = `<div class="now" style="--tier:${TIER[T.level][0]}"><span class="lab">Week ${S.ev + 1} / ${TOURNAMENTS.length} · ${TIER[T.level][1]} · ${esc(T.surface)}</span><b>${esc(T.name)}</b><span class="lab">${q ? esc(T.court || '') : 'Top eight only'}</span></div>`;
       foot = `<button class="btn sm" data-abandon>Abandon</button><span class="sp"></span>${S.draw ? '' : '<button class="btn sm" data-skip>Skip</button>'}<button class="btn sm" data-simev>Sim event</button><button class="btn sm" data-simrest>Sim season</button>${q ? `<button class="btn go" data-enter>${S.draw ? 'Draw' : 'Enter'}</button>` : ''}`; }
-    this.screen(this.bar(esc(pname(me)), `<span class="lab">No. ${S.rankOf(me)} · ${S.pts[me]} pts</span>`) + `<div class="cols"><div>${now}<div class="cal">${cal}</div></div><div><table class="rk">${rows}</table></div></div><div class="foot">${foot}</div>`, '', true);
+    this.screen(this.bar(esc(pname(me)), `<span class="lab">No. ${S.rankOf(me)} · ${S.pts[me]} pts</span>`) + `<div class="cols"><div>${now}${this.newsPanel(S)}<div class="cal">${cal}</div></div><div><table class="rk">${rows}</table></div></div><div class="foot">${foot}</div>`, '', true);
     this.on('[data-back]', () => this.home());
     this.on('[data-enter]', () => { S.open(); S.save(); this.sel.T = T; this.drawView(S); });
     this.on('[data-simev]', () => { S.simEvent(); this.season(); });
@@ -395,7 +420,7 @@ class App {
     await this.wipe(T.name, round ? RND[round] || round : TIER[T.level][1]);
     this.ui.innerHTML = ''; $('#shade').style.opacity = 0; this.covered = false;
     this.game.stop();
-    await this.game.start({ T, weather, p0, p1, round, format: fmt, difficulty: set.difficulty, cam: set.cam, intro: true });
+    await this.game.start({ T, weather, p0, p1, round, format: fmt, difficulty: set.difficulty, cam: set.cam, intro: true, oppForm: ctx.draw ? ctx.draw.strengthFor(p1) : 0 });
     this.mode = 'match'; this.paused = false;
     this.audio.setVolume(set.volume);
     this.hud.classList.remove('hidden'); this.input.enabled = true;
@@ -647,7 +672,7 @@ class App {
   leave(sim) {
     const g = this.game, c = this.ctx;
     this.paused = false; g.paused = false;
-    this.afterMatch(sim ? simMatch(g.cfg.p0, g.cfg.p1, g.cfg.T, c.draw ? c.draw.r : Math.random) : null);
+    this.afterMatch(sim ? (c.draw && c.match ? c.draw.sim(c.match) : simMatch(g.cfg.p0, g.cfg.p1, g.cfg.T, Math.random)) : null);
   }
   async afterMatch(res) {
     const c = this.ctx; this.showStats(false); this.lower(null); $('#strap').classList.remove('on');

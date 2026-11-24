@@ -74,9 +74,14 @@ export class Game {
     const surf = spec.surface, D = DIFFICULTY[cfg.online ? 1 : cfg.difficulty == null ? 1 : cfg.difficulty];
     const p0 = profileFor(cfg.p0, surf, T && T.key), p1 = profileFor(cfg.p1, surf, T && T.key);
     if (!cfg.demo && !cfg.online) { p1.speed *= D.speed; p1.react *= D.react; p1.s1Kmh *= D.pace; p1.s1Max *= D.pace; p1.s2Kmh *= D.pace; p1.fhKmh *= D.pace; p1.bhKmh *= D.pace; }
+    // how well the man across the net is playing this week, beyond his record and the level (season.js Draw.strengthFor: his form,
+    // how fresh he is after his last match, and the round - he asked for the difficulty to go by "how deep in the tournament we are,
+    // their form"): about one unit each way at most, a little quicker, surer and harder hitting for each
+    const oF = cfg.demo || cfg.online ? 0 : Math.max(-0.6, Math.min(0.6, cfg.oppForm || 0));
+    if (oF) { p1.speed *= 1 + 0.04 * oF; p1.react *= 1 - 0.05 * oF; for (const k of ['s1Kmh', 's1Max', 's2Kmh', 'fhKmh', 'bhKmh']) p1[k] *= 1 + 0.025 * oF; }
     const m = this.match = new Match({ env, format: cfg.format || (T && T.bestOf === 5 ? 'slam5' : 'atp3'), p0, p1, seed: cfg.seed, firstServer: cfg.firstServer == null ? (Math.random() < 0.5 ? 0 : 1) : cfg.firstServer, pace: cfg.pace == null ? 1 : cfg.pace, quick: cfg.quick !== false });
     m.bounds = A.bounds;
-    if (!cfg.demo && !cfg.online) m.diffScale[1] = D.err;
+    if (!cfg.demo && !cfg.online) m.diffScale[1] = D.err * Math.exp(-0.6 * oF);
     this.human = cfg.demo ? null : new Human(this);
     if (this.human) { m.timingWindow[0] = D.window; m.diffScale[0] = D.aid; m.cleanK[0] = D.clean == null ? 1 : D.clean; m.mercy[0] = D.mercy == null ? 1 : D.mercy; m.aimSafe[0] = D.aimSafe; this.human.safe = D.safe; this.human.srvSafe = D.srvSafe; }
     m.ctl = [this.human || new AI(), new AI()];

@@ -212,22 +212,56 @@ export function profileFor(id, surface, key) {
 const ELITE_K = { Alcaraz: 1, Sinner: 1.6, Djokovic: 1.3, Nadal: 2.2, Federer: 2.5 };   // (the bot at Tour then wins 33-37% of points from them, 42% from Medvedev, the hardest of the rest)
 // and in simulated matches and seeding (season.js gameProb, eventSeeding): percentage points more service games held and broken
 export const isElite = id => PLAYERS[id] && ELITE_K[PLAYERS[id].facts.name] != null;
-export const ELITE_SIM = 4;
-// Who plays an event (he said "rn for some reason some players never enter tournaments": the field was the twelve strongest at each
-// event, and Wawrinka, Ivanisevic, Monfils and Kyrgios were in 2-4% of the fields, Thiem 6%, Kuerten 10%). `order`: everyone, best
-// first (strength at the event, or the season's ranking). The human always plays; at a Slam or a Masters 1000 the five do too (they
-// are compulsory for the top men, as on the tour), at a 500 each about half the time; the other places are drawn, the stronger more
-// likely, every man with a real chance. The Finals are the top eight.
-export function pickField(order, T, rnd, me) {
+export const ELITE_SIM = 5;
+// ---------- who plays where ----------
+// Each man plans his year as the top men do (he said "all the big 5 players shouldnt have to play in every tournament, make the
+// schedules more realistic"): the four majors; the Masters 1000s, compulsory for the top men, though a top-30 man misses about two of
+// the twelve big events a year (Sackmann's match data, 2015-25: median 1, a third miss none) - Monte-Carlo, not compulsory, mostly by
+// those who like clay; and five to seven of the sixteen 500s (four are required of the top 30; with no 250s here, a little more), the ones he likes: where he has played
+// most (his career matches there), on a surface that suits him, at home. Injuries take him out of some of them (season.js).
+const HOME = { Australia: 'AUS', Netherlands: 'NED', 'United States': 'USA', USA: 'USA', Qatar: 'QAT', Brazil: 'BRA', 'United Arab Emirates': 'UAE', Mexico: 'MEX', Monaco: 'MON',
+  Spain: 'ESP', Germany: 'GER', Italy: 'ITA', France: 'FRA', 'United Kingdom': 'GBR', 'Great Britain': 'GBR', England: 'GBR', Canada: 'CAN', Japan: 'JPN', China: 'CHN', Switzerland: 'SUI', Austria: 'AUT', Sweden: 'SWE', Argentina: 'ARG' };
+export function eventPull(id, T) {
+  const P = PLAYERS[id], wl = EVENT_WL[P.facts.name] && EVENT_WL[P.facts.name][T.key], n = wl ? wl[0] + wl[1] : 0;
+  const aff = clamp((P.win[T.surface] || P.overall) / P.overall, 0.82, 1.15), home = HOME[T.country] && HOME[T.country] === P.facts.country ? 2.2 : 1;
+  return (1 + Math.min(n, 40) / 8) * Math.pow(aff, 4) * home;
+}
+// one man's year: the keys of the events he means to play (`rnd` 0..1)
+export function planSeason(id, rnd) {
+  const P = PLAYERS[id], plan = new Set(), risk = injuryRisk(id);
+  for (const T of TOURNAMENTS) {
+    if (T.level === 'slam' && rnd() < 0.985) plan.add(T.key);
+    if (T.level === 'm1000') { const aff = clamp((P.win[T.surface] || P.overall) / P.overall, 0.85, 1.12);
+      const p = T.key === 'mc' ? 0.5 * Math.pow(aff, 6) : clamp(0.93 * Math.pow(aff, 2) - 0.04 * (risk - 1), 0.55, 0.97); if (rnd() < p) plan.add(T.key); }
+  }
+  // the 500s: drawn by how much he likes each, without putting back (each one's key u^(1/w), the highest k play)
+  const k = 5 + Math.floor(rnd() * 3), five = TOURNAMENTS.filter(T => T.level === '500').map(T => ({ T, key: Math.pow(Math.max(1e-9, rnd()), 1 / eventPull(id, T)) }));
+  five.sort((x, y) => y.key - x.key); for (const f of five.slice(0, k)) plan.add(f.T.key);
+  return plan;
+}
+// How likely each man is to be hurt, against the tour's rate (about 0.8 injuries or illnesses a season that cost a top-30 man an event
+// or a match), and where it tends to be: from their histories (Nadal's left foot and knees, del Potro's wrists and knee, Murray's hip,
+// Thiem's wrist, Kuerten's hip, Agassi's and Lendl's backs; Edberg played 54 majors in a row).
+const INJURY = {
+  Alcaraz: [1.1, ['wrist', 'abdomen', 'thigh']], Sinner: [1.0, ['hip', 'knee', 'elbow']], Djokovic: [1.0, ['elbow', 'knee', 'thigh', 'shoulder']], Nadal: [1.7, ['foot', 'knee', 'wrist', 'abdomen']],
+  Federer: [0.75, ['back', 'knee']], Sampras: [1.05, ['back', 'thigh', 'leg']], Agassi: [1.25, ['back', 'wrist']], Lendl: [0.95, ['back']], Borg: [0.6, []], McEnroe: [0.8, ['back']],
+  Connors: [0.6, ['wrist']], Laver: [0.6, []], Murray: [1.4, ['hip', 'back', 'ankle']], Wawrinka: [1.05, ['knee', 'foot']], Zverev: [1.0, ['ankle', 'foot']], Thiem: [1.4, ['wrist']],
+  Medvedev: [0.85, ['hip', 'thigh']], Tsitsipas: [1.05, ['elbow', 'shoulder', 'back']], 'del Potro': [2.1, ['wrist', 'knee']], Roddick: [1.05, ['shoulder', 'hip', 'thigh']],
+  Kyrgios: [1.6, ['knee', 'wrist', 'hip']], Monfils: [1.6, ['knee', 'ankle', 'foot', 'wrist']], Becker: [1.05, ['knee', 'wrist', 'thigh']], Edberg: [0.45, []], Ivanisevic: [1.05, ['shoulder']],
+  Wilander: [0.65, []], Kuerten: [1.4, ['hip']], Hewitt: [1.25, ['hip', 'foot']],
+};
+export const injuryRisk = id => (INJURY[PLAYERS[id].facts.name] || [1])[0];
+export const injurySpots = id => (INJURY[PLAYERS[id].facts.name] || [1, []])[1];
+// The field for an event: `order` is everyone, best first (strength at the event, or the season's ranking); `plan(id)` says whether
+// he is playing it (his season's plan, fit); the human always plays when he enters. The Finals are the top eight who can play.
+// With no plan given (a single tournament), each man's is drawn now, and a few are out hurt.
+export function pickField(order, T, rnd, me, plan) {
   const n = T.draw;
-  if (T.level === 'finals') { const f = order.slice(0, n); if (me != null && !f.includes(me)) f[n - 1] = me; return order.filter(id => f.includes(id)); }
-  const f = new Set(me != null ? [me] : []), big = T.level === 'slam' || T.level === 'm1000';
-  for (const id of order) if (f.size < n && isElite(id) && (big || rnd() < 0.5)) f.add(id);
-  // (drawn by weight without putting back: each man's key is u^(1/w), the highest keys play; w falls from 1 for the strongest left
-  // to about a fifth for the weakest at a big event, a third at a 500)
-  const rest = order.filter(id => !f.has(id)).map((id, i) => ({ id, k: Math.pow(Math.max(1e-9, rnd()), 1 + i / (big ? 5.5 : 9)) }));
-  rest.sort((a, b) => b.k - a.k); for (const r of rest) { if (f.size >= n) break; f.add(r.id); }
-  return order.filter(id => f.has(id));
+  const plays = plan || (() => { const P = {}; for (const id of order) P[id] = planSeason(id, rnd).has(T.key) && rnd() > 0.05 * injuryRisk(id); return id => P[id]; })();
+  if (T.level === 'finals') { const f = order.filter(id => id === me || plays(id) !== false).slice(0, n); if (me != null && !f.includes(me)) f[n - 1] = me; return order.filter(id => f.includes(id)); }
+  const f = order.filter(id => id === me || plays(id)).slice(0, n);
+  if (me != null && !f.includes(me)) { f[n - 1] = me; }
+  return order.filter(id => f.includes(id));
 }
 // Strength for simulated matches: career win rate on the surface, as odds.
 export function strength(id, surface, key) { const w = clamp(eventRate(id, key, surface).rate / 100, 0.3, 0.93); return w / (1 - w); }
@@ -245,19 +279,21 @@ export function eventSeeding(ids, T, rnd, form = 0.35) {
 // ---------- tournaments ----------
 const LEVEL_NAME = { slam: 'Grand Slam', m1000: 'Masters 1000', finals: 'Tour Finals', '500': 'ATP 500' };
 // draws are played from this many players; real points for the rounds that exist
-// Every event takes all twelve: the top four seeds have a bye, the other eight play for the
-// remaining quarter-final places. The Finals take the top eight.
-const DRAW = { slam: 12, m1000: 12, '500': 12, finals: 8 };
-const ROUNDS = { 12: ['R16', 'QF', 'SF', 'F'], 8: ['QF', 'SF', 'F'] };
-const ROUND_NAME = { R32: 'Round of 32', R16: 'Round of 16', QF: 'Quarter-final', SF: 'Semi-final', F: 'Final', W: 'Champion' };
+// (he said "there should be rounds preceding the ones in the tournaments, i swear some players i just never even see their names":
+// every event was twelve men, the top four straight into the quarter-finals. Now a major or a Masters is a draw of 32 - nearly
+// everyone, the top seeds' byes where the field is short - a 500 of 16, and the Finals two round-robin groups of four.)
+const DRAW = { slam: 32, m1000: 32, '500': 16, finals: 8 };
+const ROUNDS = { 32: ['R32', 'R16', 'QF', 'SF', 'F'], 16: ['R16', 'QF', 'SF', 'F'], 8: ['RR', 'SF', 'F'] };
+const ROUND_NAME = { R32: 'Round of 32', R16: 'Round of 16', QF: 'Quarter-final', SF: 'Semi-final', F: 'Final', RR: 'Round robin', W: 'Champion' };
 export { ROUND_NAME, LEVEL_NAME };
 
 export const TOURNAMENTS = TOUR_FACTS.map((t, id) => {
   const draw = DRAW[t.level], rounds = ROUNDS[draw];
   const pts = t.pts || {};
   // points for losing in each round, and for the title
+  // (the Finals: 200 a round-robin win, 400 more for winning the semi-final, 500 for the final - 1,500 for an unbeaten champion)
   const table = t.level === 'finals'
-    ? { QF: 200, SF: 600, F: 1000, W: 1500 }
+    ? { RR: 200, SF: 400, F: 500, W: 0, finals: true }
     : Object.fromEntries([...rounds.map(r => [r, or(pts[r], 0)]), ['W', or(pts.W, 500)]]);
   // court pace relative to the surface family: published CPI where there is one, otherwise
   // Tennis Abstract's ace-based surface speed rating
