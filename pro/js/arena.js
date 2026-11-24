@@ -295,8 +295,11 @@ export function buildArena(spec, opt = {}) {
     root.add(new THREE.Mesh(band(hi, cap, 1, 1), capMat));
     A.wallTop = hi;
     // boards: flat panels a hair in front of the wall
+    // (a board's words are a string, or a partner as the event shows it - { t, fg, bg, font, weight } - in its own colours: venues.js
+    // BRANDS, each event's real partners; he said "from stadium to stadium the logos are all the same and generic and fake")
     const board = (text, x, z, w, h, ry, o) => {
-      const t = TX.textTexture(text, { w: 1024, h: Math.round(1024 * h / w), bg: o.bg || wallCol, fg: o.fg || spec.wallText || '#ffffff', weight: o.weight || 700, size: o.size, spacing: o.spacing, font: o.font });
+      const e = typeof text === 'object' && text ? text : { t: text };
+      const t = TX.textTexture(e.t, { w: 1024, h: Math.round(1024 * h / w), bg: e.bg || o.bg || wallCol, fg: e.fg || o.fg || spec.wallText || '#ffffff', weight: e.weight || o.weight || 700, size: o.size, spacing: e.spacing ?? o.spacing, font: e.font || o.font });
       // indoor events ring the court with LED boards: they glow rather than reflect
       const bm = spec.glowWall ? new THREE.MeshBasicMaterial({ map: t, color: new THREE.Color().setScalar(spec.glowWall) }) : lit(std({ map: t, roughness: 0.55 }));
       const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), bm);
@@ -314,14 +317,15 @@ export function buildArena(spec, opt = {}) {
       if (nx * -x + nz * -z < 0) { nx = -nx; nz = -nz; }
       return { x: x + nx * inset, z: z + nz * inset, ry: Math.atan2(nx, nz), seg: ql - p.s };
     };
-    const names = (spec.boards || ['RALLY']).filter(Boolean).length ? spec.boards : [' '];
+    const names = (spec.boards || ['RALLY']).filter(b => b && (typeof b === 'string' ? b.trim() : b.t)).length ? spec.boards : [' '];
+    const nameT = b => typeof b === 'object' && b ? b.t : b;
     const bh = Math.min(0.92, wallBackH - 0.16), bw = 5.2;
     // behind each baseline: the venue's own words
     for (const s of [-1, 1]) {
       const zz = s * (hz - 0.03), ry = s > 0 ? Math.PI : 0;
-      const row = spec.backText || [spec.city || names[0]];
+      const row = spec.backText || [spec.city || nameT(names[0])];
       const span = (hx - F.rc) * 2, each = Math.min(bw * 1.5, span / row.length);
-      const dressed = wallBackH >= 1.9 && names[0].trim() && !spec.backTextSize;
+      const dressed = wallBackH >= 1.9 && String(nameT(names[0])).trim() && !spec.backTextSize;
       if (!dressed) row.forEach((tx, i) => board(tx, (-(row.length - 1) / 2 + i) * each * (s > 0 ? -1 : 1), zz, each * 0.94, bh, ry, { bg: wallCol, fg: spec.wallText, spacing: 6, size: spec.backTextSize, weight: spec.backTextWeight || 700 }));
       else {
         // a tall back wall as the big events dress it: the venue's word large in the middle, a
@@ -332,10 +336,10 @@ export function buildArena(spec, opt = {}) {
         if (BB) {
           // a pale band the full width of the wall's top with the word on it, partners' names small below
           const bH = wallBackH * (BB.h || 0.42), bY = wallBackH - bH / 2 - 0.12;
-          board(row.join('  '), 0, zz, span + 0.02, bH, ry, { y: bY, bg: BB.bg, fg: BB.fg, spacing: 14, weight: 800, size: Math.round(1024 * bH / span * 0.62) });
+          board(row.length === 1 ? row[0] : row.map(nameT).join('  '), 0, zz, span + 0.02, bH, ry, { y: bY, bg: BB.bg, fg: BB.fg, spacing: 14, weight: 800, size: Math.round(1024 * bH / span * 0.62) });
           [-1, 1].forEach((k, i) => board(names[(i + (s > 0 ? 1 : 3)) % names.length], k * span * 0.3 * dir, zz, span * 0.3, bH * 0.5, ry, { y: bY - bH * 0.5 - 0.42, bg: wallCol, fg: spec.wallText, spacing: 6, weight: 700 }));
         } else {
-          board(row.join('  '), 0, zz, wC, hC, ry, { y: cy, bg: wallCol, fg: spec.wallText, spacing: 10, weight: 800 });
+          board(row.length === 1 ? row[0] : row.map(nameT).join('  '), 0, zz, wC, hC, ry, { y: cy, bg: wallCol, fg: spec.wallText, spacing: 10, weight: 800 });
           if (wide) [-1, 1].forEach((k, i) => board(names[(i + (s > 0 ? 1 : 3)) % names.length], k * span * 0.36 * dir, zz, span * 0.22, hC * 0.6, ry, { y: cy, bg: wallCol, fg: spec.wallText, spacing: 6, weight: 700 }));
         }
         const slot = new THREE.MeshBasicMaterial({ color: '#020304' }), rim = lit(std({ color: '#0b0d10', roughness: 0.5 }));

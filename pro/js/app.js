@@ -274,13 +274,12 @@ class App {
       </div></div>`;
   }
   // Online, before a match: the event the host has picked (its court, how it plays) beside the two ways in, hosting and joining,
-  // each a numbered step; then what playing someone this way is like (he said "make this look better on the online screen")
+  // each a numbered step (he said "make this look better on the online screen"; and of the explanations under it, "get rid of this")
   onlinePanel(T, msg) {
     const pace = T.pace > 4 ? 'Fast' : T.pace < -4 ? 'Slow' : 'Medium';
     const tile = (k, v, sub) => `<div class="tl"><span class="lab">${k}</span><b>${v}</b>${sub ? `<i>${sub}</i>` : ''}</div>`;
-    const how = [['Your own keyboard', 'Each of you plays your own player, on your own computer.'], ['Nobody waits', 'You move and hit at once; the ball comes across as fast as the line between you allows.'], ['Browser to browser', 'Nothing to install or sign up for: a four-letter code connects you.']];
     return `<div class="evp onl" style="--tier:${TIER[T.level][0]}">
-      <div class="hd"><span class="lab">Online · ${TIER[T.level][1]} · the host picks the event</span><b>${esc(T.name)}</b><span class="lab">${esc(T.court || '')} · ${esc(T.city || '')}${T.country ? ', ' + esc(T.country) : ''}</span></div>
+      <div class="hd"><b>${esc(T.name)}</b><span class="lab">${esc(T.court || '')} · ${esc(T.city || '')}${T.country ? ', ' + esc(T.country) : ''}</span></div>
       <div class="bd">
         <div class="lf">${this.courtSvg(T)}
           <div class="tls">${tile('Surface', esc(T.surface), (SURFACE_PLAY[T.surface] || SURFACE_PLAY.hard).about)}${tile('Court pace', pace, T.cpi ? 'CPI ' + T.cpi : '')}${tile('Conditions', Math.round(T.temp) + '°', T.indoor ? 'Indoor' : (T.roof ? 'Roof · ' : '') + Math.round(T.windKmh) + ' km/h wind')}</div></div>
@@ -290,10 +289,9 @@ class App {
           <div class="or"><span class="lab">or</span></div>
           <div class="step"><span class="n">2</span><div><b>Join a match</b><span class="lab">Type the four letters you were given</span></div></div>
           <div class="row"><input data-join maxlength="4" placeholder="CODE" spellcheck="false" autocomplete="off"><button class="btn" data-dojoin>Join</button></div>
-          <div class="status" data-status>${esc(msg || 'Pick your player on the left; the host picks the event below.')}</div>
+          <div class="status" data-status>${esc(msg || '')}</div>
         </div>
       </div>
-      <div class="how">${how.map(([h, t]) => `<div><b>${h}</b><span>${t}</span></div>`).join('')}</div>
     </div>`;
   }
   // The season before it starts (or at its end): the year at a glance, month by month, every event as a chip in its surface's
