@@ -150,6 +150,36 @@
   .evp .rows small { width: calc(var(--u) * 1.6); color: var(--dim); font: 500 calc(var(--u) * 1.15)/1 var(--f); }
   .evp .rows b { flex: 1; font-weight: 700; } .evp .rows i { font-style: normal; color: var(--dim); font-size: .85em; } .evp .rows em { font-style: normal; font: 600 calc(var(--u) * 1)/1 var(--f); color: var(--lime); }
 
+  /* online: the event beside the two ways in, then what it is like */
+  .evp.onl .bd { grid-template-columns: 1.15fr 1fr; }
+  .evp.onl .crt { max-height: calc(var(--u) * 22); }
+  .conn { display: flex; flex-direction: column; gap: calc(var(--u) * 1.2); background: var(--navy2); border-radius: calc(var(--u) * .8); padding: calc(var(--u) * 2); min-height: 0; }
+  .conn .step { display: flex; gap: calc(var(--u) * 1.2); align-items: center; }
+  .conn .step .n { flex: none; width: calc(var(--u) * 3.2); height: calc(var(--u) * 3.2); border-radius: 50%; display: grid; place-items: center; background: var(--blue); font: 700 calc(var(--u) * 1.6)/1 var(--f); }
+  .conn .step b { display: block; font: 700 calc(var(--u) * 2)/1.1 var(--f); margin-bottom: calc(var(--u) * .4); }
+  .conn .row { display: flex; gap: calc(var(--u) * 1); align-items: center; padding-left: calc(var(--u) * 4.4); }
+  .conn .row .btn.go { padding: calc(var(--u) * 1.6) calc(var(--u) * 3.4); }
+  .codebox { display: flex; gap: calc(var(--u) * .5); }
+  .codebox b { width: calc(var(--u) * 4.4); height: calc(var(--u) * 5.2); display: grid; place-items: center; background: var(--navy); border-radius: calc(var(--u) * .6); font: 700 calc(var(--u) * 3)/1 var(--f); color: var(--hair); }
+  .codebox.on b { color: var(--lime); box-shadow: inset 0 0 0 2px var(--lime); }
+  .conn input { width: calc(var(--u) * 19.6); padding: calc(var(--u) * 1.3) calc(var(--u) * 1.4); font: 700 calc(var(--u) * 2.6)/1 var(--f); letter-spacing: .5em; text-transform: uppercase; background: var(--navy); color: #fff; border: 0; border-radius: calc(var(--u) * .6); outline: none; box-shadow: inset 0 0 0 1px var(--track); }
+  .conn input:focus { box-shadow: inset 0 0 0 2px var(--blue); }
+  .conn .or { display: flex; align-items: center; gap: calc(var(--u) * 1); padding-left: calc(var(--u) * 4.4); }
+  .conn .or::before, .conn .or::after { content: ''; flex: 1; height: 1px; background: var(--track); }
+  .conn .status { margin-top: auto; font: 500 calc(var(--u) * 1.4)/1.35 var(--f); color: var(--dim); background: var(--navy); border-radius: calc(var(--u) * .6); padding: calc(var(--u) * 1.1) calc(var(--u) * 1.4); }
+  .evp .how { display: grid; grid-template-columns: repeat(3, 1fr); gap: calc(var(--u) * .5); flex: none; }
+  .evp .how div { background: var(--navy2); border-radius: calc(var(--u) * .6); padding: calc(var(--u) * 1.1) calc(var(--u) * 1.3); }
+  .evp .how b { display: block; font: 700 calc(var(--u) * 1.5)/1.1 var(--f); }
+  .evp .how span { display: block; margin-top: calc(var(--u) * .5); font: 400 calc(var(--u) * 1.25)/1.3 var(--f); color: var(--dim); }
+  /* the season: the year month by month, what each kind of event is worth, the field */
+  .evp.tourp .bd { grid-template-columns: 1.6fr 1fr; }
+  .evp .yr { display: flex; flex-direction: column; gap: calc(var(--u) * .45); flex: 1; min-height: 0; }
+  .evp .yr .mo { display: flex; gap: calc(var(--u) * .4); align-items: center; min-width: 0; }
+  .evp .yr .mo .lab { flex: none; width: calc(var(--u) * 4.2); }
+  .evp .yr i { position: relative; flex: 0 1 auto; min-width: 0; font: 600 calc(var(--u) * 1.2)/1 var(--f); font-style: normal; padding: calc(var(--u) * .75) calc(var(--u) * 1.5) calc(var(--u) * .75) calc(var(--u) * 1); background: var(--navy2); border-radius: calc(var(--u) * .4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-shadow: inset 3px 0 0 var(--sf); }
+  .evp .yr i::after { content: ''; position: absolute; right: calc(var(--u) * .5); top: 50%; margin-top: calc(var(--u) * -.3); width: calc(var(--u) * .6); height: calc(var(--u) * .6); border-radius: 50%; background: var(--tier); }
+  .evp .yr i em { margin-left: calc(var(--u) * .6); font: 700 calc(var(--u) * 1.05)/1 var(--f); font-style: normal; color: var(--lime); }
+  .evp.tourp .rows em { font: 500 calc(var(--u) * 1.05)/1 var(--f); color: var(--dim); width: calc(var(--u) * 6.4); text-align: right; }
   /* settings and controls */
   .sheet { align-self: center; width: min(calc(var(--u) * 84), 100%); margin-top: calc(var(--u) * 2); display: grid; grid-template-columns: auto 1fr; gap: calc(var(--u) * 1.4) calc(var(--u) * 3); align-items: center; }
   .sheet input[type=range] { width: 100%; accent-color: var(--blue); }
@@ -238,10 +268,6 @@
   #meter::after { content: attr(data-k); position: absolute; left: 0; right: 0; top: calc(var(--u) * 1.2); text-align: center; font: 700 calc(var(--u) * 1.2)/1 var(--f); letter-spacing: .1em; }
   #net { position: absolute; right: calc(var(--u) * 2.4); bottom: calc(var(--u) * 2.2); font: 600 calc(var(--u) * 1.1)/1 var(--f); letter-spacing: .08em; text-transform: uppercase; color: var(--dim); opacity: 0; transition: opacity .3s; }
   #net.on { opacity: .85; }
-  .online { display: flex; flex-direction: column; gap: calc(var(--u) * 1.6); margin-top: calc(var(--u) * 1.4); }
-  .online .row { display: flex; gap: calc(var(--u) * 1.2); align-items: center; }
-  .online input { width: calc(var(--u) * 14); padding: calc(var(--u) * 1) calc(var(--u) * 1.4); font: 700 calc(var(--u) * 2.2)/1 var(--f); letter-spacing: .3em; text-transform: uppercase; background: var(--navy2); color: #fff; border: 0; border-radius: calc(var(--u) * .6); outline: none; }
-  .online .code { font: 700 calc(var(--u) * 3.2)/1 var(--f); letter-spacing: .25em; color: var(--lime); margin-left: calc(var(--u) * .8); }
   #tip { position: absolute; left: 50%; bottom: calc(var(--u) * 2.6); transform: translateX(-50%); display: flex; gap: calc(var(--u) * 1.2); align-items: center; font: 400 calc(var(--u) * 1.3)/1 var(--f); opacity: 0; transition: opacity .25s; white-space: nowrap; }
   #tip.on { opacity: .95; }
   #replay { position: absolute; right: 5.16vw; top: calc(var(--p) * 53); height: calc(var(--p) * 42); padding: 0 calc(var(--p) * 18); border-radius: calc(var(--p) * 6); background: #121dfd; display: flex; align-items: center; font: 700 calc(var(--p) * 24)/1 var(--f); opacity: 0; transition: opacity .2s; }

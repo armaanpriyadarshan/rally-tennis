@@ -1596,3 +1596,10 @@ still in the air, both in a stroke's finish, for two or three frames.
   off them"): its tab, the round and the court, had a fixed width, and "Quarter-final · Estadio Manolo Santana, Caja Mágica" ran
   off both ends; long names could run past the panel. Strap and tab are now as wide as their text (the strap from its old width up
   to 94% of the screen, the tab with padding).
+- **Online and season panels** (he said "make this look better on the online screen. similarly make it better for the tour
+  screen"): the Online panel was a heading, two controls and a sentence on an empty panel; the season's opening panel only its
+  title. Online now has the event the host picked (its court in its colours, surface, pace, conditions), the two ways in as
+  numbered steps - Host, with the code shown in four boxes, or Join, typing it - a status line, and three facts about playing this
+  way. The season's panel ("The Tour", and the year-end one) shows the year month by month, each event a chip in its surface's
+  colour with its tier's dot (and his result once played), what each kind of event is worth, and the field by career win rate.
+  (app.js courtSvg is the event panel's court, shared.)

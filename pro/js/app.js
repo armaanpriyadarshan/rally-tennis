@@ -248,12 +248,16 @@ class App {
   }
   // An event as the tour presents it: its court drawn in its own colours, what it is worth round by round,
   // how it plays, and who is in it.
+  // its court drawn in its own colours
+  courtSvg(T) {
+    return `<svg viewBox="0 0 400 210" class="crt" aria-hidden="true"><rect width="400" height="210" rx="6" fill="${T.outer || '#3d7bd9'}"/><rect x="60" y="34" width="280" height="142" fill="${T.inner || T.outer || '#2a5aa8'}"/>
+      <g fill="none" stroke="#f4f4ef" stroke-width="2.2"><rect x="60" y="34" width="280" height="142"/><line x1="60" y1="52" x2="340" y2="52"/><line x1="60" y1="158" x2="340" y2="158"/><line x1="135" y1="52" x2="135" y2="158"/><line x1="265" y1="52" x2="265" y2="158"/><line x1="135" y1="105" x2="265" y2="105"/></g>
+      <line x1="200" y1="26" x2="200" y2="184" stroke="#0b0d12" stroke-width="3"/><circle cx="200" cy="26" r="3.5" fill="#0b0d12"/><circle cx="200" cy="184" r="3.5" fill="#0b0d12"/></svg>`;
+  }
   eventPanel(T, me) {
     const field = this.fieldFor(T, me), byes = T.draw === 12 ? 4 : 0, pts = T.points || {}, R = T.rounds || [];
     const pace = T.pace > 4 ? 'Fast' : T.pace < -4 ? 'Slow' : 'Medium', fmt = n => Number(n).toLocaleString('en-GB');
-    const court = `<svg viewBox="0 0 400 210" class="crt" aria-hidden="true"><rect width="400" height="210" rx="6" fill="${T.outer || '#3d7bd9'}"/><rect x="60" y="34" width="280" height="142" fill="${T.inner || T.outer || '#2a5aa8'}"/>
-      <g fill="none" stroke="#f4f4ef" stroke-width="2.2"><rect x="60" y="34" width="280" height="142"/><line x1="60" y1="52" x2="340" y2="52"/><line x1="60" y1="158" x2="340" y2="158"/><line x1="135" y1="52" x2="135" y2="158"/><line x1="265" y1="52" x2="265" y2="158"/><line x1="135" y1="105" x2="265" y2="105"/></g>
-      <line x1="200" y1="26" x2="200" y2="184" stroke="#0b0d12" stroke-width="3"/><circle cx="200" cy="26" r="3.5" fill="#0b0d12"/><circle cx="200" cy="184" r="3.5" fill="#0b0d12"/></svg>`;
+    const court = this.courtSvg(T);
     const tile = (k, v, sub) => `<div class="tl"><span class="lab">${k}</span><b>${v}</b>${sub ? `<i>${sub}</i>` : ''}</div>`;
     const path = R.map(r => `<div><span>${RND[r] || r}</span><b>${fmt(pts[r] || 0)}</b></div>`).join('') + `<div class="w"><span>Champion</span><b>${fmt(pts.W || 0)}</b></div>`;
     const rows = field.map((id, i) => `<div class="${id === me ? 'me' : ''}"><small>${i < 8 ? i + 1 : ''}</small><b>${esc(pname(id))}</b><i>${esc(PLAYERS[id].facts.country || '')}</i>${this.edge(id, T)}${i < byes ? '<em>Bye</em>' : ''}</div>`).join('');
@@ -265,6 +269,54 @@ class App {
             ${tile('Draw', T.draw, byes ? byes + ' byes' : 'Round robin')}${tile('Capacity', T.cap ? fmt(T.cap) : '—', 'Centre court')}${tile('Conditions', Math.round(T.temp) + '°', T.indoor ? 'Indoor' : (T.roof ? 'Roof · ' : '') + Math.round(T.windKmh) + ' km/h wind')}</div>
           <div class="pts"><span class="lab">Ranking points</span><div class="path">${path}</div></div></div>
         <div class="fld"><span class="lab">The field</span><div class="rows">${rows}</div></div>
+      </div></div>`;
+  }
+  // Online, before a match: the event the host has picked (its court, how it plays) beside the two ways in, hosting and joining,
+  // each a numbered step; then what playing someone this way is like (he said "make this look better on the online screen")
+  onlinePanel(T, msg) {
+    const pace = T.pace > 4 ? 'Fast' : T.pace < -4 ? 'Slow' : 'Medium';
+    const tile = (k, v, sub) => `<div class="tl"><span class="lab">${k}</span><b>${v}</b>${sub ? `<i>${sub}</i>` : ''}</div>`;
+    const how = [['Your own keyboard', 'Each of you plays your own player, on your own computer.'], ['Nobody waits', 'You move and hit at once; the ball comes across as fast as the line between you allows.'], ['Browser to browser', 'Nothing to install or sign up for: a four-letter code connects you.']];
+    return `<div class="evp onl" style="--tier:${TIER[T.level][0]}">
+      <div class="hd"><span class="lab">Online · ${TIER[T.level][1]} · the host picks the event</span><b>${esc(T.name)}</b><span class="lab">${esc(T.court || '')} · ${esc(T.city || '')}${T.country ? ', ' + esc(T.country) : ''}</span></div>
+      <div class="bd">
+        <div class="lf">${this.courtSvg(T)}
+          <div class="tls">${tile('Surface', esc(T.surface), (SURFACE_PLAY[T.surface] || SURFACE_PLAY.hard).about)}${tile('Court pace', pace, T.cpi ? 'CPI ' + T.cpi : '')}${tile('Conditions', Math.round(T.temp) + '°', T.indoor ? 'Indoor' : (T.roof ? 'Roof · ' : '') + Math.round(T.windKmh) + ' km/h wind')}</div></div>
+        <div class="conn">
+          <div class="step"><span class="n">1</span><div><b>Host a match</b><span class="lab">Get a code and give it to your opponent</span></div></div>
+          <div class="row"><button class="btn go" data-host>Host</button><div class="codebox" data-code><b>·</b><b>·</b><b>·</b><b>·</b></div></div>
+          <div class="or"><span class="lab">or</span></div>
+          <div class="step"><span class="n">2</span><div><b>Join a match</b><span class="lab">Type the four letters you were given</span></div></div>
+          <div class="row"><input data-join maxlength="4" placeholder="CODE" spellcheck="false" autocomplete="off"><button class="btn" data-dojoin>Join</button></div>
+          <div class="status" data-status>${esc(msg || 'Pick your player on the left; the host picks the event below.')}</div>
+        </div>
+      </div>
+      <div class="how">${how.map(([h, t]) => `<div><b>${h}</b><span>${t}</span></div>`).join('')}</div>
+    </div>`;
+  }
+  // The season before it starts (or at its end): the year at a glance, month by month, every event as a chip in its surface's
+  // colour with its tier's mark; what each kind is worth; and the field he is up against, by career record (he asked for the tour
+  // screen to look better, like the online one)
+  tourPanel(S) {
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November'];
+    const by = months.map(mo => [mo, TOURNAMENTS.map((t, i) => [t, i]).filter(([t]) => t.month === mo)]).filter(([, l]) => l.length);
+    const res = i => { const r = S && S.results[i]; return r ? (r.skipped ? '–' : r.human === 'W' ? 'W' : r.human || '') : ''; };
+    const yr = by.map(([mo, l]) => `<div class="mo"><span class="lab">${mo.slice(0, 3)}</span>${l.map(([t, i]) => `<i style="--sf:${SFC[t.surface]};--tier:${TIER[t.level][0]}" title="${esc(t.name)} · ${TIER[t.level][1]}">${esc(t.name)}${res(i) ? `<em>${res(i)}</em>` : ''}</i>`).join('')}</div>`).join('');
+    const n = lv => TOURNAMENTS.filter(t => t.level === lv).length, sf = k => TOURNAMENTS.filter(t => t.surface === k).length;
+    const pts = lv => { const t = TOURNAMENTS.find(x => x.level === lv); return t && t.points ? Number(t.points.W || 0).toLocaleString('en-GB') : '—'; };
+    const tile = (k, v, sub) => `<div class="tl"><span class="lab">${k}</span><b>${v}</b>${sub ? `<i>${sub}</i>` : ''}</div>`;
+    const field = PLAYERS.map(p => p.id).sort((a, b) => (PLAYERS[b].facts.win?.overall || 0) - (PLAYERS[a].facts.win?.overall || 0));
+    const me = S ? S.human : this.sel.p0;
+    const rows = field.map((id, i) => { const f = PLAYERS[id].facts; return `<div class="${id === me ? 'me' : ''}"><small>${i + 1}</small><b>${esc(pname(id))}</b><i>${esc(f.country || '')}</i><em>${f.slams ? f.slams + (f.slams === 1 ? ' major' : ' majors') : ''}</em></div>`; }).join('');
+    const head = S ? `<span class="lab">Year end · ${S.results.filter(r => r.human === 'W').length} titles</span><b>No. ${S.rankOf(S.human)}</b><span class="lab">${esc(pname(S.human))} · ${S.pts[S.human]} points</span>`
+      : `<span class="lab">${TOURNAMENTS.length} events · January to November</span><b>The Tour</b><span class="lab">Four majors · nine Masters · the Finals</span>`;
+    return `<div class="evp tourp" style="--tier:var(--lime)">
+      <div class="hd">${head}</div>
+      <div class="bd">
+        <div class="lf"><div class="yr">${yr}</div>
+          <div class="tls">${tile('Grand Slams', n('slam'), pts('slam') + ' pts · best of 5')}${tile('Masters 1000', n('m1000'), pts('m1000') + ' pts to the winner')}${tile('ATP 500', n('500'), pts('500') + ' pts to the winner')}
+            ${tile('Surfaces', sf('hard') + ' · ' + sf('clay') + ' · ' + sf('grass'), 'Hard · clay · grass')}${tile('The Finals', 'Top 8', pts('finals') + ' pts · round robin')}${tile('Your goal', 'No. 1', 'Year-end ranking')}</div></div>
+        <div class="fld"><span class="lab">The field · by career win rate</span><div class="rows">${rows}</div></div>
       </div></div>`;
   }
   tour() {
@@ -307,7 +359,7 @@ class App {
     let S = this.S || Season.load();
     if (!S || (S.done && !this.S)) {
       this.screen(this.bar('Season') + `<div class="h2h" style="grid-template-columns:1fr 1.4fr">${this.card(this.sel.p0, 'You', 'me')}
-        <div class="now"><span class="lab">${TOURNAMENTS.length} events · January to November</span><b>${S && S.done ? 'No. ' + S.rankOf(S.human) : 'The tour'}</b><span class="lab">${S && S.done ? esc(pname(S.human)) + ' · ' + S.pts[S.human] + ' points' : 'Four majors · nine Masters · the Finals'}</span></div></div>
+        ${this.tourPanel(S && S.done ? S : null)}</div>
         <div class="foot"><span class="sp"></span><button class="btn go" data-new>Start</button></div>`, '', true);
       this.on('[data-back]', () => this.home()); this.on('.pl.me', () => this.pick(0, () => { this.S = null; this.season(); }));
       this.on('[data-new]', () => { Season.clear(); this.S = new Season(this.sel.p0); this.S.save(); this.season(); });
@@ -614,12 +666,7 @@ class App {
     if (this.net && !this.net.open) { this.net.close(); this.net = null; }
     this.screen(this.bar('Online') + `
       <div class="h2h" style="grid-template-columns:1fr 2fr">${this.card(s.p0, 'You', 'me', T)}
-        <div class="evp"><div class="hd"><span class="lab">Host picks the event</span><b>${esc(T.name)}</b><span class="lab">${esc(T.surface)} · ${esc(T.city || '')}</span></div>
-          <div class="online">
-            <div class="row"><button class="btn go" data-host>Host a match</button><span class="lab" data-code></span></div>
-            <div class="row"><input data-join maxlength="4" placeholder="CODE" spellcheck="false" autocomplete="off"><button class="btn" data-dojoin>Join</button></div>
-            <div class="lab" data-status>${esc(msg || 'Each of you plays your own player from your own keyboard. Nobody waits on the other: you move and hit at once, and the ball comes across as fast as the line between you allows.')}</div>
-          </div></div></div>
+        ${this.onlinePanel(T, msg)}</div>
       <div class="strip">${TOURNAMENTS.map(t => this.evTile(t, t === T)).join('')}</div>`, '', true);
     const status = t => { const n = this.ui.querySelector('[data-status]'); if (n) n.textContent = t; };
     this.on('[data-back]', () => { if (this.net) { this.net.close(); this.net = null; } this.home(); });
@@ -630,7 +677,7 @@ class App {
       const N = net();
       N.on('msg', d => this.onlineMsg(d));
       N.on('open', () => status('Connected. Setting up the match'));
-      N.host(code => { const c = this.ui.querySelector('[data-code]'); if (c) c.innerHTML = 'Code <b class="code">' + code + '</b>'; status('Give your opponent this code'); });
+      N.host(code => { const c = this.ui.querySelector('[data-code]'); if (c) { c.innerHTML = [...code].map(ch => `<b>${esc(ch)}</b>`).join(''); c.classList.add('on'); } status('Give your opponent this code'); });
     });
     const join = () => { const inp = this.ui.querySelector('[data-join]'), code = (inp.value || '').trim().toUpperCase(); if (code.length !== 4) { status('The code is four letters.'); return; }
       const N = net(); N.on('msg', d => this.onlineMsg(d)); N.on('open', () => { status('Connected. Waiting for the host'); N.send({ k: 'hi', p: this.sel.p0 }); }); N.join(code); };
