@@ -23,6 +23,8 @@ const full = id => { const f = PLAYERS[id].facts, first = (f.full || '').replace
 const MARK = 'Rally<small><em style="font-style:normal;font-weight:700">Pro</em> Tour</small>';
 const clockText = t => { const m = Math.floor(t / 60); return `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`; };
 const SFC = { hard: 'var(--hard)', clay: 'var(--clay)', grass: 'var(--grass)' };
+// the injury mark: a sticking plaster, in white (he said "the injury symbol should be all white and like a bandaid")
+const PLASTER = '<svg viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(-45 12 12)"><rect x="1.5" y="7.5" width="21" height="9" rx="4.5" fill="#fff"/><rect x="8.5" y="7.5" width="7" height="9" fill="#fff" fill-opacity=".55"/><circle cx="4.6" cy="10.6" r=".75" fill="#0b1a33" fill-opacity=".55"/><circle cx="4.6" cy="13.4" r=".75" fill="#0b1a33" fill-opacity=".55"/><circle cx="19.4" cy="10.6" r=".75" fill="#0b1a33" fill-opacity=".55"/><circle cx="19.4" cy="13.4" r=".75" fill="#0b1a33" fill-opacity=".55"/></g></svg>';
 const RND = { R32: 'Round of 32', R16: 'Round of 16', QF: 'Quarter-final', SF: 'Semi-final', F: 'Final', RR: 'Round robin' };
 const wait = ms => new Promise(r => setTimeout(r, ms));
 // Run from the developer's own machine, the game keeps a play log (keys pressed for a shot and what came of them)
@@ -336,7 +338,7 @@ class App {
   drawView(season, past) {
     const d = past || (season ? season.draw : this.draw), T = d.T, me = d.human, hm = past ? null : d.humanMatch(), bye = !past && d.hasBye(me);
     // (a man who gave a walkover or retired hurt has the injury mark by his name, and his score says so: W/O, RET.)
-    const injM = (id, R) => R && !R.bye && (R.wo || R.ret) && R.loser === id ? `<em class="injic" title="${R.wo ? 'Walkover' : 'Retired'} · injured">+</em>` : season && season.injury && season.injury(id) && !past ? `<em class="injic" title="Injured">+</em>` : '';
+    const injM = (id, R) => R && !R.bye && (R.wo || R.ret) && R.loser === id ? `<em class="injic" title="${R.wo ? 'Walkover' : 'Retired'} · injured">${PLASTER}</em>` : season && season.injury && season.injury(id) && !past ? `<em class="injic" title="Injured">${PLASTER}</em>` : '';
     // a line of a tie: seed, name, his games set by set (w/o for a walkover, ret. after the score of the man who stopped), or Bye
     const line = (id, m) => { if (id == null) return m.res && m.res.bye ? '<div class="bye"><small></small><b>Bye</b></div>' : '<div><small></small><b>—</b></div>';
       const R = m.res, w = R && R.winner === id, sc = !R || R.bye ? '' : R.wo ? (w ? '' : 'W/O') : R.sets.map(x => x.g[R.a === id ? 0 : 1]).join(' ') + (R.ret && !w ? ' RET.' : '');
@@ -385,7 +387,7 @@ class App {
     // (who is hurt, and for how long; he asked for "injuries and stuff" on the tour)
     // (an injured man has the injury mark by his name; what and until when on hover - he said "when a player is injured, there should be a
     // little icon next to their name")
-    const injTag = id => { const j = S.injury(id); return j ? `<em class="injic" title="${esc(j.part === 'illness' ? 'Illness' : j.part + ' injury')}${j.surgery ? ' (surgery)' : ''} · back for ${esc(j.back)}">+</em>` : ''; };
+    const injTag = id => { const j = S.injury(id); return j ? `<em class="injic" title="${esc(j.part === 'illness' ? 'Illness' : j.part + ' injury')}${j.surgery ? ' (surgery)' : ''} · back for ${esc(j.back)}">${PLASTER}</em>` : ''; };
     const rows = rank.map((id, i) => `<tr class="${id === me ? 'me' : ''}"><td>${i + 1}</td><td>${esc(pname(id))}${injTag(id)}</td><td>${S.pts[id]}</td></tr>`).join('');
     let now, foot;
     if (S.done) { now = `<div class="now"><span class="lab">Year end</span><b>No. ${S.rankOf(me)}</b><span class="lab">${S.pts[me]} points · ${S.results.filter(r => r.human === 'W').length} titles</span></div>`; foot = '<span class="sp"></span><button class="btn go" data-reset>New season</button>'; }

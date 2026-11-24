@@ -147,8 +147,9 @@
   .cols > div { min-height: 0; overflow: auto; scrollbar-width: thin; scrollbar-color: var(--navy2) transparent; }
   .now { background: var(--navy); padding: calc(var(--u) * 2.2); border-radius: calc(var(--u) * 1); display: flex; flex-direction: column; justify-content: flex-end; }
   .now b { display: block; font: 700 calc(var(--u) * 4.4)/1 var(--f); margin: calc(var(--u) * .9) 0 calc(var(--u) * 1.1); }
-  /* the injury mark by a name: a white cross on red */
-  .injic { display: inline-grid; place-items: center; width: calc(var(--u) * 1.5); height: calc(var(--u) * 1.5); margin-left: calc(var(--u) * .6); vertical-align: middle; border-radius: calc(var(--u) * .35); background: #e5383b; color: #fff; font: 800 calc(var(--u) * 1.3)/1 var(--f); font-style: normal; }
+  /* the injury mark by a name: a white plaster */
+  .injic { display: inline-block; width: calc(var(--u) * 1.7); height: calc(var(--u) * 1.7); margin-left: calc(var(--u) * .6); vertical-align: middle; font-style: normal; }
+  .injic svg { display: block; width: 100%; height: 100%; }
   .cal .ev[data-past] { cursor: pointer; } .cal .ev[data-past]:hover { background: var(--navy2); opacity: .8; }
   .cal { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(var(--u) * 20), 1fr)); gap: calc(var(--u) * .4); margin-top: calc(var(--u) * 1); }
   .cal .ev { width: auto; cursor: default; }
