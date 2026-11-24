@@ -207,7 +207,7 @@ export function profileFor(id, surface, key) {
   const eK = ELITE_K[P.facts.name];
   if (eK) { b.cons = clamp(b.cons + 0.07 * eK, 0.1, 0.98); b.speed *= 1 + 0.03 * eK; b.accel *= 1 + 0.04 * eK; b.react *= 1 - 0.06 * eK;
     b.fhKmh *= 1 + 0.025 * eK; b.bhKmh *= 1 + 0.025 * eK; b.s1Kmh *= 1 + 0.015 * eK; b.firstIn = clamp(b.firstIn + 0.02 * eK, 0.45, 0.8); }
-  b.tempo = tempoOf(P.facts.name);
+  b.tempo = tempoOf(P.facts.name); b.style = styleOf(P.facts.name);
   return b;
 }
 // How long each man takes between points, from the end of one to his serve (seconds): measured at the Australian Opens of 2014-16
@@ -217,6 +217,49 @@ const TEMPO = { Monfils: 14.1, Kyrgios: 14.9, Federer: 17.3, Djokovic: 21.3, Mur
   Lendl: 21.5, Borg: 17.5, McEnroe: 18.5, Connors: 19.5, Laver: 15.5, Wawrinka: 22.0, Zverev: 23.0, Thiem: 21.5, Medvedev: 21.0, Tsitsipas: 23.0, 'del Potro': 22.0,
   Roddick: 16.5, Becker: 20.0, Edberg: 15.5, Ivanisevic: 17.0, Wilander: 19.0, Kuerten: 19.0, Hewitt: 20.0 };
 export const tempoOf = name => TEMPO[name] || 20;
+// How each man plays, from the Match Charting Project (Tennis Abstract, every charted match of his career) and the ATP's numbers
+// (he asked for "more unique attributes and playstyles reminiscent of how they actually play"):
+//   sv / sv2: where his first and second serves go, deuce court [wide, body, T] then ad court, in % (Nadal's lefty slice wide in the
+//     ad court 56%, Kuerten's second serve there 75%, Kyrgios down the T 54% in both courts);
+//   r1 / r2: where he stands to return a first and a second serve on a hard court, metres behind the baseline (Medvedev 4.1 and 2.7,
+//     measured; Federer 0.2, measured; Agassi and Connors on it, inside against a second); clay puts everyone further back;
+//   rd: where he rallies from, metres behind the baseline (Agassi on it, Nadal two back, Thiem and Monfils three and more);
+//   fh / bh: share of his forehands, backhands, hit crosscourt (with the inside-out forehand) and down the line (with inside-in);
+//   lob: lobs per hundred shots (Laver 5.1, McEnroe and Connors 2.7, Sinner 0.55); clutch: how he plays break points against his
+//     usual serving, -1 to 1 (Zverev and Tsitsipas save about nine points fewer than they should, Kuerten served better on them);
+//   sv2k: how often he serves and volleys behind a second serve, against his first (Edberg as often); sabr: Federer's charge on a
+//   second serve. Positions marked estimated in the research are judgements from how they are known to play.
+const STYLE = {
+  Alcaraz:  { sv: [48, 19, 33, 47, 17, 36], sv2: [33, 23, 44, 61, 20, 19], r1: 1.7, r2: 0.3, rd: 0.9, fh: [0.65, 0.16], bh: [0.56, 0.13], lob: 2.0, clutch: 0 },
+  Sinner:   { sv: [46, 12, 41, 56, 10, 34], sv2: [25, 50, 25, 38, 50, 12], r1: 2.0, r2: 0.3, rd: 0.5, fh: [0.62, 0.12], bh: [0.51, 0.15], lob: 0.55, clutch: -0.1 },
+  Djokovic: { sv: [48, 11, 41, 47, 10, 42], sv2: [43, 30, 27, 35, 32, 33], r1: 1.5, r2: 0.0, rd: 0.8, fh: [0.63, 0.13], bh: [0.48, 0.15], lob: 1.0, clutch: 0.1 },
+  Nadal:    { sv: [37, 12, 51, 56, 10, 34], sv2: [13, 41, 46, 45, 44, 11], r1: 3.6, r2: 2.6, rd: 2.0, fh: [0.68, 0.14], bh: [0.44, 0.19], lob: 0.9, clutch: 0.05 },
+  Federer:  { sv: [48, 9, 43, 52, 7, 41], sv2: [35, 24, 41, 52, 25, 23], r1: 0.3, r2: -0.4, rd: 0.4, fh: [0.61, 0.12], bh: [0.45, 0.17], lob: 1.2, clutch: 0, sabr: 0.1 },
+  Sampras:  { sv: [47, 7, 47, 41, 7, 52], sv2: [34, 32, 34, 34, 32, 34], r1: 1.0, r2: 0.0, rd: 1.4, fh: [0.66, 0.14], bh: [0.54, 0.13], lob: 0.6, clutch: -0.2, sv2k: 0.7 },
+  Agassi:   { sv: [54, 10, 36, 58, 5, 37], sv2: [35, 35, 30, 72, 18, 10], r1: 0.0, r2: -0.6, rd: 0.1, fh: [0.65, 0.12], bh: [0.63, 0.16], lob: 1.2, clutch: 0.4 },
+  Lendl:    { sv: [51, 9, 40, 55, 7, 38], sv2: [27, 46, 27, 69, 20, 11], r1: 1.5, r2: 0.8, rd: 1.5, fh: [0.63, 0.12], bh: [0.50, 0.15], lob: 2.1, clutch: 0.2 },
+  Borg:     { sv: [63, 10, 27, 39, 10, 51], sv2: [25, 52, 23, 25, 50, 25], r1: 2.5, r2: 1.5, rd: 2.5, fh: [0.60, 0.10], bh: [0.54, 0.14], lob: 2.35, clutch: 0.2 },
+  McEnroe:  { sv: [38, 21, 41, 56, 10, 34], sv2: [27, 43, 30, 55, 25, 20], r1: -0.2, r2: -0.8, rd: 0.5, fh: [0.60, 0.14], bh: [0.38, 0.20], lob: 2.7, clutch: -0.15, sv2k: 0.9 },
+  Connors:  { sv: [30, 12, 58, 60, 10, 30], sv2: [33, 34, 33, 50, 30, 20], r1: -0.1, r2: -0.6, rd: 0.2, fh: [0.62, 0.13], bh: [0.50, 0.17], lob: 2.7, clutch: 0.1 },
+  Laver:    { sv: [35, 15, 50, 44, 20, 36], sv2: [24, 20, 56, 62, 18, 20], r1: 1.0, r2: 0.4, rd: 1.2, fh: [0.58, 0.14], bh: [0.50, 0.18], lob: 5.1, clutch: 0.1, sv2k: 0.8 },
+  Murray:   { sv: [53, 9, 38, 41, 8, 51], sv2: [25, 45, 30, 47, 33, 20], r1: 1.5, r2: 0.5, rd: 2.0, fh: [0.65, 0.12], bh: [0.54, 0.15], lob: 2.0, clutch: 0 },
+  Wawrinka: { sv: [47, 10, 42, 49, 6, 45], sv2: [30, 35, 35, 60, 25, 15], r1: 3.0, r2: 2.0, rd: 2.5, fh: [0.63, 0.13], bh: [0.54, 0.21], lob: 1.0, clutch: 0.38 },
+  Zverev:   { sv: [49, 6, 45, 44, 6, 50], sv2: [17, 37, 46, 41, 35, 24], r1: 3.5, r2: 1.5, rd: 3.0, fh: [0.60, 0.12], bh: [0.55, 0.18], lob: 1.0, clutch: -1 },
+  Thiem:    { sv: [49, 7, 45, 53, 8, 39], sv2: [33, 34, 33, 49, 30, 21], r1: 4.0, r2: 2.5, rd: 3.5, fh: [0.66, 0.13], bh: [0.50, 0.21], lob: 1.0, clutch: -0.36 },
+  Medvedev: { sv: [53, 8, 39, 42, 8, 50], sv2: [45, 25, 30, 35, 30, 35], r1: 4.1, r2: 2.7, rd: 3.0, fh: [0.62, 0.13], bh: [0.58, 0.12], lob: 1.0, clutch: -0.49 },
+  Tsitsipas:{ sv: [48, 7, 44, 47, 8, 45], sv2: [28, 44, 28, 30, 41, 29], r1: 3.0, r2: 1.5, rd: 2.0, fh: [0.68, 0.14], bh: [0.48, 0.14], lob: 1.0, clutch: -0.96 },
+  'del Potro': { sv: [40, 10, 50, 44, 11, 45], sv2: [25, 51, 24, 33, 34, 33], r1: 2.5, r2: 1.5, rd: 2.0, fh: [0.64, 0.17], bh: [0.50, 0.10], lob: 0.8, clutch: -0.2 },
+  Roddick:  { sv: [52, 6, 42, 40, 6, 54], sv2: [35, 35, 30, 64, 20, 16], r1: 2.0, r2: 1.0, rd: 2.0, fh: [0.66, 0.12], bh: [0.50, 0.12], lob: 0.8, clutch: -0.27 },
+  Kyrgios:  { sv: [38, 8, 54, 39, 8, 53], sv2: [30, 21, 49, 54, 20, 26], r1: 1.5, r2: 1.0, rd: 1.6, fh: [0.63, 0.14], bh: [0.50, 0.16], lob: 0.6, clutch: 0.3 },
+  Monfils:  { sv: [47, 9, 44, 46, 6, 48], sv2: [47, 28, 25, 40, 30, 30], r1: 4.0, r2: 3.0, rd: 3.8, fh: [0.62, 0.14], bh: [0.49, 0.12], lob: 1.0, clutch: 0.2 },
+  Becker:   { sv: [43, 11, 45, 47, 14, 39], sv2: [33, 34, 33, 48, 32, 20], r1: 1.0, r2: 0.5, rd: 1.5, fh: [0.62, 0.16], bh: [0.45, 0.24], lob: 2.2, clutch: -0.1, sv2k: 0.45 },
+  Edberg:   { sv: [40, 24, 36, 54, 12, 34], sv2: [30, 40, 30, 55, 25, 20], r1: 1.0, r2: 0.0, rd: 1.2, fh: [0.55, 0.12], bh: [0.48, 0.20], lob: 2.1, clutch: -0.1, sv2k: 1.0 },
+  Ivanisevic: { sv: [36, 10, 54, 56, 10, 34], sv2: [33, 30, 37, 50, 25, 25], r1: 1.0, r2: 0.5, rd: 1.6, fh: [0.60, 0.14], bh: [0.50, 0.15], lob: 0.8, clutch: 0.18 },
+  Wilander: { sv: [48, 4, 48, 48, 4, 48], sv2: [28, 44, 28, 28, 44, 28], r1: 1.0, r2: 0.3, rd: 1.5, fh: [0.55, 0.12], bh: [0.51, 0.14], lob: 2.2, clutch: 0.2 },
+  Kuerten:  { sv: [38, 10, 52, 65, 8, 27], sv2: [35, 35, 30, 75, 15, 10], r1: 2.5, r2: 1.5, rd: 2.5, fh: [0.65, 0.12], bh: [0.56, 0.20], lob: 1.0, clutch: 1 },
+  Hewitt:   { sv: [57, 8, 35, 43, 8, 49], sv2: [48, 27, 25, 62, 22, 16], r1: 0.7, r2: 0.2, rd: 0.8, fh: [0.68, 0.12], bh: [0.68, 0.16], lob: 0.8, clutch: -0.05 },
+};
+export const styleOf = name => STYLE[name] || null;
 const ELITE_K = { Alcaraz: 1, Sinner: 1.6, Djokovic: 1.3, Nadal: 2.2, Federer: 2.5 };   // (the bot at Tour then wins 33-37% of points from them, 42% from Medvedev, the hardest of the rest)
 // and in simulated matches and seeding (season.js gameProb, eventSeeding): percentage points more service games held and broken
 export const isElite = id => PLAYERS[id] && ELITE_K[PLAYERS[id].facts.name] != null;

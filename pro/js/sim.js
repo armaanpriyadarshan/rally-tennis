@@ -152,6 +152,9 @@ export class Match {
     if (a >= 3 && b >= 3) { if (a === b) return ['40', '40']; return a > b ? ['AD', ''] : ['', 'AD']; }
     return [PT[Math.min(a, 3)], PT[Math.min(b, 3)]];
   }
+  // On the big points (a break point, a set or match point either way, a tiebreak) the computer's men play as they did on them (data.js
+  // STYLE clutch): Zverev and Tsitsipas a seventh wilder, Kuerten that much steadier, most much as usual.
+  press(p) { const c = p.prof.style && p.prof.style.clutch; if (!c) return 1; const s = this.score; return s.tb || this.isBreakPoint() || Math.max(this.pointValue(0), this.pointValue(1)) >= 2 ? 1 - 0.14 * c : 1; }
   isBreakPoint() {
     const s = this.score; if (s.tb) return false;
     const r = 1 - s.server, a = s.p[r], b = s.p[s.server];
@@ -218,7 +221,15 @@ export class Match {
     const side = deuce ? 1 : -1;
     const sx = (srv.servePlan && srv.servePlan.standX != null ? srv.servePlan.standX : 0.9) * side;
     srv.spot = { x: sx * srv.sgn, z: srv.sgn * (COURT.halfLen + 0.35) };
-    const surf = this.env.surf.key, back = this.score.serveNum === 1 ? (surf === 'clay' ? 2.6 : surf === 'grass' ? 1.2 : 1.7) : 0.4;
+    // (where he stands to return, data.js STYLE: Medvedev four metres back against a first serve, Federer and Agassi on the baseline,
+    // inside it against a second - and now and then Federer's charge right in on one; everyone further back on clay)
+    const surf = this.env.surf.key, st = rcv.prof.style, sAdd = surf === 'clay' ? 1.1 : surf === 'grass' ? -0.4 : 0;
+    let back = this.score.serveNum === 1 ? (surf === 'clay' ? 2.6 : surf === 'grass' ? 1.2 : 1.7) : 0.4;
+    // (his distance from a metre and a bit back at about half, either way: at the full four metres and more the game's returner could not get across
+    // to a wide serve - 26 aces in 300 points off Zverev on clay where 16 had been; on the baseline, 56 in 800 off Agassi - though the order of who
+    // stands where is his)
+    if (st) { const r = this.score.serveNum === 1 ? st.r1 + sAdd : st.r2 + sAdd * 0.6; back = Math.max(-1.0, Math.min(3.2, 1.2 + (r - 1.2) * (r > 1.2 ? 0.45 : 0.6))); }
+    if (st && st.sabr && this.score.serveNum === 2 && this.rng.u() < st.sabr) back = -1.0;
     rcv.spot = { x: 3.3 * side * rcv.sgn, z: rcv.sgn * (COURT.halfLen + back) };
   }
   startBetween(dur) {
@@ -802,7 +813,7 @@ export class Match {
     }
     if (!sol || !sol.ok) sol = { el: -0.07, az: Math.atan2(stx - p0.x, stz - p0.z), speed, top, side };
     const cal = this.calib[p.i];
-    const kq = (first ? cal.k1 : cal.k2) * lerp(2.4, 1, q) * (st.auto ? 1 : (it.sigma || 1)) * this.diffScale[p.i] * (spec.sig || 1) * (1 - 0.9 * pf);
+    const kq = (first ? cal.k1 : cal.k2) * lerp(2.4, 1, q) * (st.auto ? this.press(p) : (it.sigma || 1)) * this.diffScale[p.i] * (spec.sig || 1) * (1 - 0.9 * pf);
     const el = sol.el + rng.g() * SERVE_SIG.el * kq - (dy < -0.12 ? (-dy - 0.12) * 0.12 : 0);
     const az = sol.az + rng.g() * SERVE_SIG.az * kq;
     const v = sol.speed * (1 + rng.g() * SERVE_SIG.v * kq);
@@ -1042,7 +1053,7 @@ export class Match {
     // a clean swing takes the level's share off the routine part of the spread only: off an easy ball it goes where it
     // was sent, while what makes a ball hard (pace, width, running, a stretch) is still all there
     const k = strike ? sig * this.diffScale[p.i] * (it.sigma || 1) * lerp(1.15, 0.9, prof.cons) * (0.12 + 1.3 * Math.pow(1 - Q, 1.2)) * (1 + 0.5 * clamp(diff / 1.5, 0, 1))
-      : (st.auto ? sig * steady * (1 + diff) : sig * (steady / clean) * (clean + diff)) * (1 - 0.4 * easyT) * (1 - 0.82 * pf * (1 - 0.5 * clamp(diff / 1.5, 0, 1)));   // (and nearer his aim; Perfect most of all, less so off a hard ball)
+      : (st.auto ? sig * steady * (1 + diff) * this.press(p) : sig * (steady / clean) * (clean + diff)) * (1 - 0.4 * easyT) * (1 - 0.82 * pf * (1 - 0.5 * clamp(diff / 1.5, 0, 1)));   // (and nearer his aim; Perfect most of all, less so off a hard ball)
     // timing drags the ball: early pulls it across the body, late pushes it wide
     const pull = -clamp(tim, -0.11, 0.13) * TUNE.timPull * (relX >= 0 ? 1 : -1) * p.hs * p.sgn;
     let outEl = sol.el + rng.g() * TUNE.sigEl * k - clamp(tim, -0.1, 0.1) * TUNE.timEl;

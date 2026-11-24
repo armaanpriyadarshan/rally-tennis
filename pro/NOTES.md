@@ -1666,3 +1666,20 @@ still in the air, both in a stroke's finish, for two or three frames.
   - the clock box is labelled as what it is - OFFICIAL TIME under the dial, SHOT CLOCK over the seconds - and shows the last
     serve's speed beneath (the shot clock and the serve-speed display share one box at tour events).
   The ball kids run round the new things (staff.js obstacles).
+- **Each man plays like himself** (he asked for "more unique attributes and playstyles reminiscent of how they actually play"):
+  data.js STYLE, from each man's career Match Charting Project page (Tennis Abstract) and the ATP's numbers, for all 28:
+  - where his serves go, court by court, first and second ([wide, body, T] in each court: Nadal's lefty slice wide in the ad court
+    56%, Kyrgios down the T 54% in both, Kuerten's and Agassi's second serve wide in the ad court 75% and 72%), and how often he
+    serves and volleys behind a second (Edberg as often as behind a first);
+  - where he stands to return a first and a second serve (Medvedev, Thiem, Monfils deep; Federer, Agassi, Connors, McEnroe on the
+    baseline and in on a second; Federer's SABR charge now and then; everyone further back on clay), and where he rallies from
+    (Agassi on the baseline, Monfils and Thiem deep). At their full distances the game's returner and rallier could not do what
+    they do - 26 aces in 300 points off Zverev on clay where there had been 16, 56 in 800 off Agassi - so each stands at about half
+    his distance from 1.2 m behind the baseline: the order and character are his, the balance as before (four matchups of 800
+    points against the previous version: +3, -1, -1, -1 points in a hundred to the man playing);
+  - how often he goes crosscourt, through the middle or down the line on each wing (Hewitt's backhand crosscourt 68%, Nadal's
+    forehand 68% with the inside-out, Wawrinka's backhand down the line one in five);
+  - how often he lobs (Laver 5.1 a hundred shots, McEnroe and Connors 2.7, Sinner 0.55);
+  - how he plays big points (break, set and match points, tiebreaks): his break points saved against his usual serving - Zverev
+    and Tsitsipas a seventh wilder there, Kuerten, Agassi and Wawrinka steadier (the research found little of it persists from year
+    to year, so it is small).

@@ -58,9 +58,11 @@ export class AI {
   // ---------- serving ----------
   planServe(m, i) {
     const p = m.players[i], prof = p.prof, r = m.rng, first = m.score.serveNum === 1, deuce = m.deuceSide;
-    const wb = prof.wideBias;
+    const wb = prof.wideBias, st = prof.style, tb = st && (first ? st.sv : st.sv2);
     let wT = 0.45 - (wb - 0.5) * 0.6, wW = 0.36 + (wb - 0.5) * 0.6, wB = 0.19;
     if (!first) { wT -= 0.08; wW -= 0.10; wB += 0.18; }
+    // (where he really serves, court by court, first and second: data.js STYLE)
+    if (tb) { const o = deuce ? 0 : 3; wW = tb[o]; wB = tb[o + 1]; wT = tb[o + 2]; }
     const u = r.u() * (wT + wW + wB);
     const spot = u < wT ? 'T' : u < wT + wW ? 'wide' : 'body';
     let type;
@@ -71,7 +73,7 @@ export class AI {
     } else type = r.u() < 0.84 ? 'kick' : 'slice';
     // big servers paint the lines on a first serve; everyone keeps the second well inside
     const tg = serveTarget(p.sgn, deuce, spot, first ? lerp(0.62, 0.36, prof.aceAim == null ? 0.4 : prof.aceAim) : 0.95);
-    this.goNet = r.u() < prof.sv * (first ? 1 : 0.35);
+    this.goNet = r.u() < prof.sv * (first ? 1 : (st && st.sv2k) || 0.35);
     p.approach = this.goNet;
     return { tx: tg.x, tz: tg.z, type, spot, pace: 1 };
   }
@@ -294,7 +296,8 @@ export class AI {
     // ---- he is at the net: pass or lob ----
     if (oppAtNet) {
       pl.state = 'pass';
-      const lobP = state === 'defend' ? 0.5 : (oD > -4.2 ? 0.22 : 0.10);
+      // (as often as he lobs: Laver, McEnroe and Connors three or four times as often as Sinner)
+      const lobP = Math.min(0.8, (state === 'defend' ? 0.5 : (oD > -4.2 ? 0.22 : 0.10)) * clamp(((prof.style && prof.style.lob) || 1.2) / 1.2, 0.45, 2.4));
       // (not for a person: he lobs when he asks, ↑ held, and said "get rid of autolob"; the game's choice for him is a pass)
       if (!this.noLob && r.u() < lobP) return T(cross * r.range(1.0, 2.6), -(HL - r.range(1.2, 2.2)), 'lob', state === 'defend' ? 0.7 : 0.45);
       const dir = r.u() < 0.56 ? open : -open;
@@ -324,6 +327,7 @@ export class AI {
       return T(dir * (HW - mX), -(HL - mD), kind, Math.min(1, lerp(AIT.atkP0, AIT.atkP1, agg) + (cpu ? 0.06 : 0)));
     }
     // ---- neutral: build the point ----
+    const dirs = prof.style ? (pl.wing === 'fh' ? prof.style.fh : prof.style.bh) : [0.6, 0.2];
     // the short angle: crosscourt, landing near the side line about the service line, so that it runs on off the court and takes
     // him with it - off a ball he is set for, most often from out wide (an angle answers an angle) and by the heavy topspin
     // forehands, Nadal's and Alcaraz's; some in every man's rallies (he said "balls never go anything but deep. like there are no
@@ -335,8 +339,10 @@ export class AI {
     let X;
     // building the point: a man out of position is moved again, into the space he has left
     if (cpu && oOut > 0.4 && r.u() < 0.7) X = open * (HW - (lerp(AIT.neuX0, AIT.neuX1, agg) * 0.85 + r.range(-0.1, 0.3)));
-    else if (u < 0.60) X = cross * (HW - (lerp(AIT.neuX0, AIT.neuX1, agg) + r.range(-0.15, 0.4)));
-    else if (u < 0.80) X = r.u() < 0.6 ? oppBh * r.range(0.3, 1.6) : r.range(-1.2, 1.2);
+    // (crosscourt, through the middle or down the line as often as he does on that wing: Hewitt's backhand crosscourt 68% of the
+    // time, Nadal's forehand 68% with the inside-out, Wawrinka's backhand down the line one in five)
+    else if (u < dirs[0]) X = cross * (HW - (lerp(AIT.neuX0, AIT.neuX1, agg) + r.range(-0.15, 0.4)));
+    else if (u < 1 - dirs[1]) X = r.u() < 0.6 ? oppBh * r.range(0.3, 1.6) : r.range(-1.2, 1.2);
     else X = -cross * (HW - (lerp(AIT.neuX0, AIT.neuX1, agg) + r.range(0, 0.4)));
     const D = -(HL - (lerp(AIT.neuD0, AIT.neuD1, agg) + r.range(-0.4, 0.7)));
     // (not for a person in a rally or an approach: his backhand is a drive, struck as hard as he times it - sliced for him at the
@@ -355,7 +361,11 @@ export class AI {
       // close behind the ball and shade toward the line it can be passed down
       return { x: clamp(Xl * 0.42, -2.4, 2.4) * sgn, z: sgn * lerp(4.6, 3.0, clamp((p.z * sgn < 7 ? 1 : 0), 0, 1)) };
     }
-    const base = COURT.halfLen + (surf === 'clay' ? 1.7 : surf === 'grass' ? 0.8 : 1.15) - prof.agg * 0.5;
+    // (where he rallies from, data.js STYLE: Agassi on the baseline, Nadal two metres back and more on clay, Monfils near the wall)
+    // (at about half his distance from a metre and a bit back: right on the baseline the game's Agassi had too little time, and the
+    // man playing him won 6% more of the points)
+    const base = prof.style ? COURT.halfLen + clamp(1.2 + (prof.style.rd - 1.2) * 0.5 + (surf === 'clay' ? 0.6 : surf === 'grass' ? -0.3 : 0), 0.3, 3.4)
+      : COURT.halfLen + (surf === 'clay' ? 1.7 : surf === 'grass' ? 0.8 : 1.15) - prof.agg * 0.5;
     // a drop shot of mine pulls him in, so I step up too
     const up = Dl > -4 ? 1.2 : 0;
     return { x: clamp(-0.18 * Xl, -1.2, 1.2) * sgn, z: sgn * (base - up) };
