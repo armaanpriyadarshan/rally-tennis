@@ -97,7 +97,11 @@ export const ROSTER = ['Alcaraz', 'Sinner', 'Djokovic', 'Nadal', 'Federer', 'Sam
 // on the tour (Tennis Abstract's, which counts the whole of his game), and his forehand, the shot he won with, came out of it a
 // slow loop - he said "the topspin makes rafas forehand so slow and so high instead of it being a lethal weapon like it is irl".
 const FH_AGG = { Nadal: 0.7 };
-export const PLAYERS = ROSTER.map(n => PLAYER_FACTS.find(f => f.name === n)).filter(Boolean).map((f, id) => {
+// Return numbers the stat tables lack for the two oldest careers (the Match Charting Project's charted matches: Borg won 39% of points
+// against first serves and 54% against second in 34 matches, taken a little lower for the small sample; Laver estimated), so their
+// court coverage is not the tour average by default
+const FILL = { Borg: { r1Won: 36, r2Won: 54, aces: 4 }, Laver: { r1Won: 33, r2Won: 53, aces: 6 } };
+export const PLAYERS = ROSTER.map(n => PLAYER_FACTS.find(f => f.name === n)).filter(Boolean).map(f0 => ({ ...f0, ...Object.fromEntries(Object.entries(FILL[f0.name] || {}).filter(([k]) => f0[k] == null)) })).map((f, id) => {
   const e = ERA[f.name] || {};
   const rep = f.rep !== false;                         // false: the stat tables only cover the end of the career
   const s1In = or(rep ? f.s1In : e.s1In, or(f.s1In, 61));
@@ -187,9 +191,11 @@ export function eventEdge(id, key, surface) {
 }
 // A player's profile on a given surface: the surface's own way of playing, and his edge there (at the event when it is
 // known, from his record at it), which makes him steadier, quicker about the court, harder hitting and surer on serve.
-export function profileFor(id, surface, key) {
+// o.own: the man a person is playing - his record at the event counts half (he said, as Thiem against Sinner at the Finals, "it was
+// impossible to get a winner": Thiem's record indoors there took 16% off him, his pace and steadiness, on top of Sinner's best event)
+export function profileFor(id, surface, key, o = {}) {
   const P = PLAYERS[id], b = { ...BASE_PROFILE, ...P.base }, S = SURFACE_PLAY[surface] || SURFACE_PLAY.hard;
-  const { adv } = key ? eventEdge(id, key, surface) : surfaceEdge(id, surface), k = adv - 1;
+  const { adv } = key ? eventEdge(id, key, surface) : surfaceEdge(id, surface), k = (adv - 1) * (o.own ? 0.5 : 1);
   b.cons = clamp(b.cons + k * 1.1, 0.1, 0.98);
   b.speed *= 1 + k * 0.35; b.accel *= (1 + k * 0.5) * S.grip; b.brake = S.brake;
   b.react *= 1 - k * 0.4;
@@ -200,13 +206,15 @@ export function profileFor(id, surface, key) {
   b.net = clamp(b.net * S.net, 0, 0.9); b.sv = clamp(b.sv * S.sv, 0, 0.9); b.drop = clamp(b.drop * S.drop, 0, 0.2); b.slice = clamp(b.slice * S.slice, 0, 0.6);
   b.agg = clamp(b.agg + S.agg, 0.05, 0.97); if (b.fhAgg != null) b.fhAgg = clamp(b.fhAgg + S.agg, 0.05, 0.97);
   b.adv = adv;
-  // The five he wants above everyone (he said "alcaraz, sinner, federer, djokovic, and nadal in general should just be above the
-  // rest"): steadier, quicker to the ball and off the mark, and a little more pace, on top of their own numbers. Their numbers alone
-  // put Federer and Alcaraz behind Medvedev, Zverev and Agassi (the bot at Tour won 48% and 51% of points from them, 42-43% from
-  // those three). ELITE_K scales each man's edge so that all five come out hardest.
-  const eK = ELITE_K[P.facts.name];
-  if (eK) { b.cons = clamp(b.cons + 0.07 * eK, 0.1, 0.98); b.speed *= 1 + 0.03 * eK; b.accel *= 1 + 0.04 * eK; b.react *= 1 - 0.06 * eK;
-    b.fhKmh *= 1 + 0.025 * eK; b.bhKmh *= 1 + 0.025 * eK; b.s1Kmh *= 1 + 0.015 * eK; b.firstIn = clamp(b.firstIn + 0.02 * eK, 0.45, 0.8); }
+  // His level (LEVEL below): steadier, quicker to the ball and off the mark, a little more pace and a surer first serve the higher it
+  // is - the same for every man, a unit for every five points of level from the middle of the tour (84)
+  { const u = (courtLevelOf(id) - 84) / 5;
+    b.cons = clamp(b.cons + 0.07 * u, 0.1, 0.98); b.speed *= 1 + 0.015 * u; b.accel *= 1 + 0.02 * u; b.react *= 1 - 0.03 * u;
+    b.fhKmh *= 1 + 0.025 * u; b.bhKmh *= 1 + 0.025 * u; b.s1Kmh *= 1 + 0.015 * u; b.firstIn = clamp(b.firstIn + 0.02 * u, 0.45, 0.8); }
+  // (and none of it beyond what a man can be: no one steadier than 0.95 - at the old ceiling, 0.98, Sinner at the Finals all but never
+  // missed, the bot won 37% of the points from him - nor quicker than the quickest, nor slower to react than the slowest)
+  b.speed = clamp(b.speed, 5.4, 7.0); b.accel = clamp(b.accel, 4.9, 8.2); b.react = clamp(b.react, 0.19, 0.28);
+  b.cons = Math.min(b.cons, 0.95);
   b.tempo = tempoOf(P.facts.name); b.style = styleOf(P.facts.name);
   return b;
 }
@@ -260,10 +268,57 @@ const STYLE = {
   Hewitt:   { sv: [57, 8, 35, 43, 8, 49], sv2: [48, 27, 25, 62, 22, 16], r1: 0.7, r2: 0.2, rd: 0.8, fh: [0.68, 0.12], bh: [0.68, 0.16], lob: 0.8, clutch: -0.05 },
 };
 export const styleOf = name => STYLE[name] || null;
-const ELITE_K = { Alcaraz: 1, Sinner: 1.6, Djokovic: 1.3, Nadal: 2.2, Federer: 2.5 };   // (the bot at Tour then wins 33-37% of points from them, 42% from Medvedev, the hardest of the rest)
-// and in simulated matches and seeding (season.js gameProb, eventSeeding): percentage points more service games held and broken
-export const isElite = id => PLAYERS[id] && ELITE_K[PLAYERS[id].facts.name] != null;
-export const ELITE_SIM = 5;
+// How good each man was at his best, one number (the middle of the tour 84, a unit every five points): from his career - majors, titles,
+// weeks at No. 1, win rate - with the five he named highest (he said "alcaraz, sinner, federer, djokovic, and nadal in general should
+// just be above the rest", and "the big five shouldnt have boosts this way... just bake it into whatever player attribute / adv
+// system we have"). It goes into his attributes in a match (profileFor), his service games held and broken in simulated matches
+// (season.js) and his seeding, the same way for everyone. Careers count win rate over a whole career, early and late years with the
+// best, so a level is what his career says he was at his peak.
+const LEVEL = { Djokovic: 96, Federer: 96, Nadal: 95, Alcaraz: 93, Sinner: 93, Borg: 89, Sampras: 88, Laver: 88, McEnroe: 87, Lendl: 87, Connors: 86, Agassi: 86,
+  Murray: 85, Becker: 85, Edberg: 85, Wilander: 84, Medvedev: 84, Hewitt: 83, Zverev: 83, Wawrinka: 82, 'del Potro': 82, Thiem: 82, Kuerten: 82, Roddick: 81,
+  Tsitsipas: 81, Ivanisevic: 80, Kyrgios: 79, Monfils: 78 };
+export const levelOf = id => (PLAYERS[id] && LEVEL[PLAYERS[id].facts.name]) || 82;
+// How his game, built from his statistics, plays in a match against his level, measured and taken out (tools/classicbot.mjs: the bot as
+// Murray against each man at Miami, at the Tour level, 300 points each; the points the bot won against what the level says - two points
+// in a hundred for every point of level - corrected in two rounds, by the measured half a point of the bot's wins a point of level, at
+// most ten points of level either way: a big server is hard to break whatever his level, and that is his). Without it his numbers
+// alone made Hewitt and Borg among the easiest men to beat and Kyrgios and Medvedev among the hardest. Only in a match he plays: the
+// simulated matches go by his real holds and breaks. (Re-measure with /tmp/rally-work/tour/ladder.sh after changing how a man plays.)
+const CAL = { Sampras: -2.0, Agassi: -2.2, Federer: 10.0, Alcaraz: 10.0, Nadal: 7.6, Sinner: -6.5, Djokovic: 8.8, McEnroe: 10.0, Laver: 10.0, Wawrinka: 2.3, Lendl: -9.4, Connors: 10.0, Zverev: -10.0, Borg: 10.0, Monfils: -10.0, Tsitsipas: -0.3, Kyrgios: -10.0, Roddick: -10.0, Thiem: 4.6, Medvedev: -10.0, "del Potro": -10.0, Ivanisevic: -10.0, Hewitt: 10.0, Edberg: -5.2, Kuerten: -2.8, Becker: 1.5, Wilander: 2.7 };
+export const courtLevelOf = id => levelOf(id) + ((PLAYERS[id] && CAL[PLAYERS[id].facts.name]) || 0);
+// His ratings for the menus, as a football game shows them (he said "attributes n stuff should be visible on a player in the menu like
+// fifa style"): overall is his level; the six from his real numbers, each against the other 27 men (a standard deviation is nine
+// points about 80) and a third his level - serve from his holds, aces and pace; return from breaks and points won against first and
+// second serves; forehand and backhand from their pace and spin; movement from how much court his returning says he covers and how
+// quick the research found him; net from points won there and how often he goes.
+const MOVE = { Alcaraz: 4, Djokovic: 4, Nadal: 4, Borg: 4, Murray: 4, Monfils: 4, Hewitt: 4, Laver: 4, Sinner: 3, Federer: 3, Connors: 3, Sampras: 3, Zverev: 3, Thiem: 3, Medvedev: 3,
+  Edberg: 3, Wilander: 3, Lendl: 3, Agassi: 2, McEnroe: 2, Wawrinka: 2, Tsitsipas: 2, Kuerten: 2, Roddick: 2, Becker: 2, Ivanisevic: 2, Kyrgios: 2, 'del Potro': 1 };
+// (each man's weapon and weakness, as the charting research names them, five points either way: pace and spin alone rate Federer's
+// forehand below Thiem's, and Djokovic's return below Borg's)
+const SHOTS = { Alcaraz: ['fh mov'], Sinner: ['bh'], Djokovic: ['ret bh'], Nadal: ['fh'], Federer: ['fh srv'], Sampras: ['srv net'], Agassi: ['ret'], Lendl: ['fh'],
+  McEnroe: ['net'], Connors: ['ret', 'fh'], Laver: ['bh net'], Murray: ['ret bh', 'srv'], Wawrinka: ['bh'], Zverev: ['bh srv', 'fh'], Thiem: ['fh bh'], Medvedev: ['ret bh'],
+  Tsitsipas: ['fh', 'bh ret'], 'del Potro': ['fh', 'bh'], Roddick: ['srv fh', 'bh net'], Kyrgios: ['srv'], Monfils: ['mov'], Becker: ['srv net'], Edberg: ['net', 'fh'],
+  Ivanisevic: ['srv'], Wilander: ['ret'], Kuerten: ['bh'], Hewitt: ['mov ret'] };
+let RATE = null;
+export function ratingsOf(id) {
+  if (!RATE) {
+    const vals = PLAYERS.map(P => { const f = P.facts, b = P.base;
+      return { srv: [P.hold, or(f.aces, 5), b.s1Kmh], ret: [P.brk, or(f.r1Won, 30), or(f.r2Won, 51)], fh: [b.fhKmh, b.fhRpm, or(f.fhShare, 49)], bh: [b.bhKmh, b.bhRpm], mov: [MOVE[f.name] || 2, b.speed], net: [or(f.netWon, 68), or(f.netPct, 10), or(f.svPct, 2)] }; });
+    const W = { srv: [0.5, 0.3, 0.2], ret: [0.4, 0.3, 0.3], fh: [0.55, 0.25, 0.2], bh: [0.6, 0.4], mov: [0.65, 0.35], net: [0.3, 0.4, 0.3] };
+    // (pace and spin against his own era's: the wooden and early metal rackets of Laver, Connors, Borg and McEnroe hit slower than any
+    // modern one, which says nothing of how good their forehands were)
+    const era = P => (P.facts.born || 1980) < 1961 ? 0 : P.facts.born < 1977 ? 1 : 2, ERA_K = { srv: [2], fh: [0, 1], bh: [0, 1] };
+    const z = {}; for (const k in W) { z[k] = vals.map(() => 0); W[k].forEach((w, j) => {
+      const xs = vals.map(v => v[k][j]), byEra = ERA_K[k] && ERA_K[k].includes(j);
+      const stat = sel => { const ys = xs.filter((x, i) => sel(i)), m = ys.reduce((t, x) => t + x, 0) / ys.length, sd = Math.sqrt(ys.reduce((t, x) => t + (x - m) ** 2, 0) / ys.length) || 1; return [m, sd]; };
+      xs.forEach((x, i) => { const [m, sd] = byEra ? stat(q => era(PLAYERS[q]) === era(PLAYERS[i])) : stat(() => true); z[k][i] += w * (x - m) / sd; }); }); }
+    RATE = PLAYERS.map((P, i) => { const L = levelOf(P.id), o = { ovr: L }, sh = SHOTS[P.facts.name] || [], up = (sh[0] || '').split(' '), dn = (sh[1] || '').split(' ');
+      for (const k in W) o[k] = Math.round(clamp(0.7 * (80 + 10 * z[k][i]) + 0.3 * L + (up.includes(k) ? 5 : 0) - (dn.includes(k) ? 5 : 0), 50, 99)); return o; });
+  }
+  return RATE[id];
+}
+// in simulated matches, points of service games held and broken per point of level above the tour's middle
+export const LEVEL_SIM = 0.45;
 // ---------- who plays where ----------
 // Each man plans his year as the top men do (he said "all the big 5 players shouldnt have to play in every tournament, make the
 // schedules more realistic"): the four majors; the Masters 1000s, compulsory for the top men, though a top-30 man misses about two of
@@ -323,7 +378,7 @@ export function eventSeeding(ids, T, rnd, form = 0.35) {
   const g = () => { let u = 0; while (u === 0) u = rnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * rnd()); };
   // (his win rate here as it is, up to 98.5%: the match model caps it at 93%, which would rank Nadal at Roland Garros, 112-4,
   // level with anyone else above 93)
-  const lo = id => { const w = clamp(eventRate(id, T.key, T.surface).rate / 100, 0.3, 0.985); return Math.log(w / (1 - w)) + (isElite(id) ? 0.8 : 0); };
+  const lo = id => { const w = clamp(eventRate(id, T.key, T.surface).rate / 100, 0.3, 0.985); return Math.log(w / (1 - w)) + (levelOf(id) - 84) * 0.07; };
   return ids.map(id => ({ id, s: lo(id) + form * g() })).sort((a, b) => b.s - a.s).map(x => x.id);
 }
 

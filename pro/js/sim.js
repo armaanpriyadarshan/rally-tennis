@@ -228,7 +228,10 @@ export class Match {
     // (his distance from a metre and a bit back at about half, either way: at the full four metres and more the game's returner could not get across
     // to a wide serve - 26 aces in 300 points off Zverev on clay where 16 had been; on the baseline, 56 in 800 off Agassi - though the order of who
     // stands where is his)
-    if (st) { const r = this.score.serveNum === 1 ? st.r1 + sAdd : st.r2 + sAdd * 0.6; back = Math.max(-1.0, Math.min(3.2, 1.2 + (r - 1.2) * (r > 1.2 ? 0.45 : 0.6))); }
+    // (a person's own man stands where the game always put him, tuned for someone playing: put on Thiem's deep spot, a man playing him
+    // won 11% of points on Sinner's serve at the Finals; he can always step in or back himself)
+    const own = this.ctl && this.ctl[rcv.i] && this.ctl[rcv.i].isHuman;
+    if (st && !own) { const r = this.score.serveNum === 1 ? st.r1 + sAdd : st.r2 + sAdd * 0.6; back = Math.max(-1.0, Math.min(3.2, 1.2 + (r - 1.2) * (r > 1.2 ? 0.45 : 0.6))); }
     if (st && st.sabr && this.score.serveNum === 2 && this.rng.u() < st.sabr) back = -1.0;
     rcv.spot = { x: 3.3 * side * rcv.sgn, z: rcv.sgn * (COURT.halfLen + back) };
   }

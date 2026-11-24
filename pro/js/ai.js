@@ -73,6 +73,10 @@ export class AI {
     } else type = r.u() < 0.84 ? 'kick' : 'slice';
     // big servers paint the lines on a first serve; everyone keeps the second well inside
     const tg = serveTarget(p.sgn, deuce, spot, first ? lerp(0.62, 0.36, prof.aceAim == null ? 0.4 : prof.aceAim) : 0.95);
+    // a body serve goes at the man: along the line from the server to where the returner stands, so it comes into him and jams him (it
+    // was aimed at the middle of the box, and went past him half a metre wide - "the computer cant hit body shots")
+    if (spot === 'body') { const R = m.players[1 - i], zl = tg.z, k = (zl - p.z) / ((R.z - p.z) || 1), bx = p.x + (R.x - p.x) * k + (r.u() - 0.5) * 0.3;
+      const sideX = (deuce ? -1 : 1) * p.sgn, lo = Math.min(sideX * 0.35, sideX * (COURT.halfW - 0.35)), hi = Math.max(sideX * 0.35, sideX * (COURT.halfW - 0.35)); tg.x = clamp(bx, lo, hi); }
     this.goNet = r.u() < prof.sv * (first ? 1 : (st && st.sv2k) || 0.35);
     p.approach = this.goNet;
     return { tx: tg.x, tz: tg.z, type, spot, pace: 1 };

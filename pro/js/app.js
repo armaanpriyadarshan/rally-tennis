@@ -4,7 +4,7 @@ import { Gfx, QUALITY } from './render.js';
 import { Game } from './game.js';
 import { Input } from './input.js';
 import { Audio } from './audio.js';
-import { PLAYERS, TOURNAMENTS, DIFFICULTY, playerByName, lookAt, eventEdge, SURFACE_PLAY, kitEvent, eventSeeding, pickField } from './data.js';
+import { PLAYERS, TOURNAMENTS, DIFFICULTY, playerByName, lookAt, eventEdge, SURFACE_PLAY, kitEvent, eventSeeding, pickField, ratingsOf } from './data.js';
 import { loadPerson } from './people.js';
 import { renderPortraits } from './portraits.js';
 import { PORTRAIT_FILES } from './portraitfiles.js';
@@ -182,10 +182,12 @@ class App {
     }
   }
   card(id, who, cls, T) {
-    const P = PLAYERS[id], f = P.facts, b = P.base, L = T ? lookAt(id, T.key) : P.look, img = this.face(id, T), fk = id + '|' + (T ? kitEvent(T.key) : 'default');
+    // (his ratings, as a football game shows them: data.js ratingsOf - he asked for attributes "visible on a player in the menu like fifa style")
+    const P = PLAYERS[id], f = P.facts, rt = ratingsOf(id), L = T ? lookAt(id, T.key) : P.look, img = this.face(id, T), fk = id + '|' + (T ? kitEvent(T.key) : 'default');
     return `<button class="pl ${cls || ''}" data-p="${id}"><span class="kit" style="background:radial-gradient(120% 90% at 50% 0%, ${L.top} 0%, transparent 62%)"></span><img data-k="${fk}" data-d="${id}" ${img ? `src="${img}"` : `src="${BLANK_IMG}" data-blank="1"`} alt="">
       ${who ? `<span class="who">${who}</span>` : ''}${T ? this.edge(id, T, 'card') : ''}
-      <span class="nums"><span><b>${Math.round(b.s1Kmh)}</b><span class="lab">Serve</span></span><span><b>${Math.round(b.fhKmh)}</b><span class="lab">Forehand</span></span></span>
+      <span class="ovr"><b>${rt.ovr}</b><span class="lab">OVR</span></span>
+      <span class="rts">${[['srv', 'SRV'], ['ret', 'RET'], ['fh', 'FH'], ['bh', 'BH'], ['mov', 'MOV'], ['net', 'NET']].map(([k, n]) => `<span class="${rt[k] >= 90 ? 'hi' : rt[k] < 75 ? 'lo' : ''}"><b>${rt[k]}</b><i>${n}</i></span>`).join('')}</span>
       <span class="nm"><b>${esc(f.name)}</b><span>${esc(f.country || '')} · ${f.cm} cm · ${f.lefty ? 'Left' : 'Right'}${f.oneHandBh ? ' · One-hand' : ''}</span></span></button>`;
   }
   // how much better (or worse) he is at this event than anywhere (on its surface where he has hardly played it):

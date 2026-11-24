@@ -89,7 +89,8 @@ export class BallFx {
     if (H.length > TRAIL) H.length = TRAIL;
     const pa = this.trail.geometry.attributes.position.array, aa = this.trail.geometry.attributes.aAlpha.array;
     const live = b.visible && b.held < 0 && speed > 7;
-    const shutter = 0.05, wid = BALL.r * sc * 0.92, cam = camera.position;
+    // (a thirtieth of a second's blur: at a twentieth a fast ball was a bar half a metre long)
+    const shutter = 0.033, wid = BALL.r * sc * 0.92, cam = camera.position;
     for (let i = 0; i < TRAIL; i++) {
       const h = H[Math.min(i, H.length - 1)], n = H[Math.min(i + 1, H.length - 1)];
       // side vector: perpendicular to both the path and the line of sight
@@ -104,6 +105,10 @@ export class BallFx {
     this.stepDust(dt); this.stepMarks(dt);
   }
   reset() { this.hist.length = 0; }
+  // A bounce: the point where it met the court goes into the streak, so the blur bends there - down to the court and up off it -
+  // instead of cutting straight from the rising ball back to where it was before it landed (he said "the ball bounce still looks
+  // kinda weird": the streak was a straight line through the court)
+  bounced(x, z) { this.hist.unshift({ x, y: BALL.r, z, t: this.t }); if (this.hist.length > TRAIL) this.hist.length = TRAIL; }
 
   // ---- marks ----
   mark(x, z, vx, vz, speed, o = {}) {

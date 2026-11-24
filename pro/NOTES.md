@@ -1692,3 +1692,33 @@ still in the air, both in a stroke's finish, for two or three frames.
   reading (input.js), the mouse aim marker (game.js) - and so are the Aim speed, Aim ring and Replays settings: the aim ring is
   always on, great winners always replayed. (The keyboard path folded with /tmp/rally-work/cleanup/fold.mjs; 60 bot points and the
   menus and a match in a browser without errors.)
+- **The bounce's streak** (he said "the ball bounce still looks kinda weird"): the bounce itself was sound (it comes off at 0.6-0.7 of
+  its vertical speed, and the lowest frame drawn at a bounce is a median 1.7 cm above touching), but the motion streak behind the
+  ball, drawn through its last positions, joined the rising ball straight back to where it had been before it landed - a line through
+  the court rather than a V off it - and at a twentieth of a second's blur a fast ball was a bar half a metre long. ballfx.js: the
+  contact point goes into the streak at every bounce, and the blur is a thirtieth.
+- **One level for every man, no boost for the five** (he said "the big five shouldnt have boosts this way... just bake it into whatever
+  player attribute / adv system we have" and "make sure the player attributes/play style/advantage system is really robust"):
+  ELITE_K (the five's extra steadiness, speed and pace), ELITE_SIM (their extra holds and breaks in simulated matches) and their
+  seeding bonus are gone. data.js LEVEL is how good each man was at his best (the middle of the tour 84; the five 93-96, then Borg,
+  Sampras, Laver...), and it goes into everyone's attributes, simulated holds and breaks and seeding the same way. His game, built
+  from his statistics, is measured against his level and corrected (CAL: the bot as Murray against each man at Miami, two rounds, at
+  most ten points of level either way - before it, his numbers alone made Hewitt and Borg among the easiest to beat), and checked
+  with another man at another event (the bot as Agassi at the US Open: the five the five hardest, 48-52% of points to the bot, the
+  rest 54-68%, where it had been 47-80% with Alcaraz behind Agassi and Medvedev). No one steadier than 0.95 (Sinner at the Finals had
+  been at the old 0.98 and all but never missed), and speed, acceleration and reaction kept within what a man can be. Borg's and
+  Laver's missing return numbers filled from their charted matches. Simulated seasons: the five win about half the titles and 70% of
+  the majors.
+- **Playing a weaker man at a strong man's event** (he said, as Thiem against Sinner at the Finals, "it was impossible to get a
+  winner"): the man a person plays has his record at the event count half (Thiem's record indoors had taken 16% off his pace and
+  steadiness), returns from the standard place rather than his own deep one, and the opponent's form and round add half as much as
+  before (at their full, his errors were 30% down on top of everything else). tools/ladder.sh-style runs: /tmp/rally-work/tour/ladder.sh.
+- **Body serves** (he said "the computer cant hit body shots"): the computer's body serve was aimed at the middle of the box and went
+  by the returner half a metre wide; now it goes along the line from the server to where the returner stands. (Body serves at the
+  computer, tested the same way, are returned: no aces in 900 points.)
+- **Ratings on the players, football-game style** (he said "attributes n stuff should be visible on a player in the menu like fifa
+  style"): every card shows his overall (his level) large in the corner and six ratings over his name - serve, return, forehand,
+  backhand, movement, net - from his real numbers against the other 27 (holds, aces and pace; breaks and return points won; each
+  wing's pace and spin against his own era's rackets; how much court he covers; points won at the net and how often he goes), with
+  his weapon and his weakness as the charting research names them (Djokovic's return, Federer's forehand, Edberg's forehand).
+  data.js ratingsOf. The pick grid shows the overall.
