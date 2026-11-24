@@ -978,21 +978,6 @@ function buildFurniture(A, spec, lit, model) {
       buildHair(k, k.look.hairSpec, { type: 'cap', c: capC });
       k.root.position.set(x, 0, z); k.root.rotation.y = ry; g.add(k.root); A.staff.push(k); A.kids.push({ k, person: k, x, z, ry, kneel });
     };
-    // line judges, at Roland Garros only (every other event has called its lines electronically since 2025, Wimbledon too): seated on
-    // the line each calls - the baselines and service lines from the side wall across from the chair, the side lines from the back
-    if (spec.key === 'rg' && ST && ST.umpire) {
-      const seats = [];
-      for (const sz of [-1, 1]) { seats.push([A.hx - 0.75, sz * COURT.halfLen, Math.PI / 2], [A.hx - 0.75, sz * 6.40, Math.PI / 2]); for (const sx of [-1, 1]) seats.push([sx * COURT.halfW, sz * (A.hz - 0.75), sz > 0 ? 0 : Math.PI]); }
-      for (const [x0, z0, ry] of seats) {
-        let x = x0, z = z0;
-        if (Math.abs(x0) > COURT.halfWD) while (Math.abs(x) > COURT.halfWD + 1.2 && !insideCourt(A, x, z, 0.5)) x -= Math.sign(x0) * 0.1;
-        if (Math.abs(z0) > COURT.halfLen + 1) while (Math.abs(z) > COURT.halfLen + 2 && !insideCourt(A, x, z, 0.5)) z -= Math.sign(z0) * 0.1;
-        const cg = new THREE.Group(); cg.position.set(x, 0, z); cg.rotation.y = ry; g.add(cg); chair(cg, 0).rotation.y = Math.PI / 2;
-        const lj = new Person(ST.umpire, { height: 1.76, uniform: { top: '#1d2a44', bottom: '#e9e4d6' } }); poseSeated(lj, 0, 0.04, 0, 0.52);
-        lj.root.position.set(x, 0.03, z); lj.root.rotation.y = ry; g.add(lj.root); A.staff.push(lj);
-        (A.courtside || (A.courtside = [])).push({ x, z, r: 0.45 });
-      }
-    }
     // the back four a couple of metres off the wall, in line with the alleys, clear of the rounded corners and of
     // what stands against the wall, facing up the court; the other two on one knee by the net posts
     const bxk = COURT.halfWD - 0.2;
@@ -1002,7 +987,7 @@ function buildFurniture(A, spec, lit, model) {
     // what they run round: the chair, the net posts, the players' benches and coolers, the towel stands
     const NP = COURT.halfWD + 0.914, obstacles = [{ x: ux - 0.08, z: 0, r: 0.62 }, { x: NP, z: 0, r: 0.12 }, { x: -NP, z: 0, r: 0.12 }];
     for (const s of [-1, 1]) obstacles.push({ x: ux - 0.35, z: s * 3.4, r: 0.75 }, { x: ux - 0.4, z: s * 4.55, r: 0.45 }, { x: A.hx - 3.4, z: s * (A.hz - 0.36), r: 0.6 }, { x: -(A.hx - 3.4), z: s * (A.hz - 0.36), r: 0.6 });
-    // (the line judges' chairs at Roland Garros, and the courtside cameras)
+    // (the courtside cameras)
     for (const o of A.courtside || []) obstacles.push(o);
     // and what stands on the floor against the walls (the clock cabinets, the partners' blocks): a row of circles along each box
     for (const o of root.children) {

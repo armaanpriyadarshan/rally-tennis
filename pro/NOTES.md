@@ -1818,3 +1818,5 @@ still in the air, both in a stroke's finish, for two or three frames.
   aces - are taken back (sim.js and data.js as they were at 91ca08b): the level adds pace again, a Perfect serve 6% harder and 30 cm
   inside the line, groundstrokes 0.92-1.27 of his pace by how well timed. Kept: the Tour level's wider spread and no pulling in, the
   angles opening up with where he stands, everything else.
+- The line judges at Roland Garros are gone (he said "get rid of the line judges bro they look so eerie"): eight seated figures, still,
+  along the walls. The court has the umpire and the six ball kids, as everywhere else.
