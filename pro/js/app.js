@@ -309,14 +309,14 @@ class App {
     const me = S ? S.human : this.sel.p0;
     const rows = field.map((id, i) => { const f = PLAYERS[id].facts; return `<div class="${id === me ? 'me' : ''}"><small>${i + 1}</small><b>${esc(pname(id))}</b><i>${esc(f.country || '')}</i><em>${f.slams ? f.slams + (f.slams === 1 ? ' major' : ' majors') : ''}</em></div>`; }).join('');
     const head = S ? `<span class="lab">Year end · ${S.results.filter(r => r.human === 'W').length} titles</span><b>No. ${S.rankOf(S.human)}</b><span class="lab">${esc(pname(S.human))} · ${S.pts[S.human]} points</span>`
-      : `<span class="lab">${TOURNAMENTS.length} events · January to November</span><b>The Tour</b><span class="lab">Four majors · nine Masters · the Finals</span>`;
+      : `<span class="lab">${TOURNAMENTS.length} events · January to November</span><b>The Tour</b>`;
     return `<div class="evp tourp" style="--tier:var(--lime)">
       <div class="hd">${head}</div>
       <div class="bd">
         <div class="lf"><div class="yr">${yr}</div>
           <div class="tls">${tile('Grand Slams', n('slam'), pts('slam') + ' pts · best of 5')}${tile('Masters 1000', n('m1000'), pts('m1000') + ' pts to the winner')}${tile('ATP 500', n('500'), pts('500') + ' pts to the winner')}
             ${tile('Surfaces', sf('hard') + ' · ' + sf('clay') + ' · ' + sf('grass'), 'Hard · clay · grass')}${tile('The Finals', 'Top 8', pts('finals') + ' pts · round robin')}${tile('Your goal', 'No. 1', 'Year-end ranking')}</div></div>
-        <div class="fld"><span class="lab">The field · by career win rate</span><div class="rows">${rows}</div></div>
+        <div class="fld"><div class="rows">${rows}</div></div>
       </div></div>`;
   }
   tour() {
