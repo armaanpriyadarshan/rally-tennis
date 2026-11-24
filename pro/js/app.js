@@ -42,6 +42,8 @@ class App {
     if (!saved.camTv) { this.set.cam = 'tv'; this.set.camTv = 1; try { localStorage.setItem(SAVE, JSON.stringify(this.set)); } catch (e) {} }
     if ((saved.rev || 0) < 3) this.set.player = null;        // the tour is twelve players now: old picks no longer point at the same man
     if ((saved.rev || 0) < 4) { this.set.controls = 'classic'; this.set.cam = 'chase'; }     // the first game's controls, seen from behind the player
+    // (no longer choices - he said "get rid of mouse controls and the option", "aim ring shouldnt be toggleable", "same with great winners")
+    this.set.controls = 'classic'; this.set.markers = true; this.set.replays = 'best';
     if ((saved.rev || 0) < 5) { this.set.cam = 'fp'; this.set.assist = 1; }                  // first person, with Assist footwork (2026-11-11)
     this.set.rev = 5;
     const canvas = $('#view');
@@ -58,7 +60,6 @@ class App {
     addEventListener('resize', () => { this.gfx.resize(); if (this.game.fx) this.game.fx.setViewport(this.gfx.h); });
     addEventListener('keydown', e => this.key(e));
     for (const ev of ['pointerdown', 'keydown']) addEventListener(ev, () => this.audio.unlock(), { passive: true });
-    this.input.onLock = on => { if (!on && !this.input.soft && this.mode === 'match' && !this.game.over && !this.paused) this.pause(true); };
     this.last = performance.now();
     requestAnimationFrame(t => this.loop(t));
   }
@@ -98,7 +99,7 @@ class App {
   async attract() {
     const big = TOURNAMENTS.filter(t => t.level !== '500' && !t.indoor), T = big[Math.floor(Math.random() * big.length)];
     const a = Math.floor(Math.random() * PLAYERS.length); let b = Math.floor(Math.random() * PLAYERS.length); if (b === a) b = (a + 1) % PLAYERS.length;
-    this.mode = 'menu'; this.hud.classList.add('hidden'); this.input.enabled = false; this.input.unlock();
+    this.mode = 'menu'; this.hud.classList.add('hidden'); this.input.enabled = false;
     await this.game.start({ T, weather: rollWeather(T, T.night && Math.random() < 0.4 ? 'night' : 'day'), p0: a, p1: b, demo: true, cam: 'tv', pace: 0.55, format: 'atp3' });
     this.audio.setVolume(this.set.volume * 0.35);
   }
@@ -122,34 +123,26 @@ class App {
       <div class="mark"><b>Rally</b><span><em>Pro</em> Tour</span></div>
       <div class="corner"><button class="btn sm" data-go="how">Controls</button><button class="btn sm" data-go="settings">Settings</button></div>
       <div class="tiles">
-        <button class="tile main" data-go="quick"><i>Exhibition</i><b>Play</b></button>
-        <button class="tile" data-go="tour"><i>Thirty events</i><b>Tournament</b></button>
-        <button class="tile" data-go="season"><i>${on ? esc(pname(S.human)) + ' · Week ' + (S.ev + 1) : 'The full year'}</i><b>${on ? 'Continue' : 'Season'}</b></button>
-        <button class="tile" data-go="online"><i>Against a friend</i><b>Online</b></button>
+        <button class="tile main" data-go="quick"><b>Play</b></button>
+        <button class="tile" data-go="tour"><b>Tournament</b></button>
+        <button class="tile" data-go="season">${on ? `<i>${esc(pname(S.human))} · Week ${S.ev + 1}</i>` : ''}<b>${on ? 'Continue' : 'Season'}</b></button>
+        <button class="tile" data-go="online"><b>Online</b></button>
       </div>`, 'home');
     this.on('[data-go]', n => this[n.dataset.go]());
   }
   how() {
-    const classic = this.set.controls === 'classic';
-    const K = classic ? [['W A S D', 'Move'], ['Space', 'Toss · Serve · Hit'], ['Hold ← or →', 'As you swing: angle'], ['Hold ↑ / ↓', 'As you swing: lob or deep · drop shot (off a quick ball: short angle)'], ['Hold ↑ / ↓', 'As you serve: kick · slice'], ['Space at the top', 'Of the toss: more pace'], ['V', 'Camera'], ['Tab', 'Statistics'], ['M', 'Sound'], ['Esc', 'Pause']]
-      : [['Mouse', 'Aim'], ['Tap', 'Rally ball'], ['Hold', 'Drive · longer is harder'], ['Release', 'As the ring closes'], ['Right button', 'Slice'], ['Shift', 'Flat'], ['Q', 'Lob'], ['E', 'Drop shot'],
-        ['W A S D', 'Move'], ['Space', 'Split step'], ['Click · Click', 'Toss · Serve'], ['V', 'Camera'], ['Tab', 'Statistics'], ['Esc', 'Pause']];
-    this.screen(this.bar('Controls', `<span class="chips">${[['classic', 'Classic'], ['mouse', 'Mouse']].map(([k, n]) => `<span class="chip ${this.set.controls === k ? 'on' : ''}" data-ctl="${k}">${n}</span>`).join('')}</span>`) + `<div class="keys">${K.map(([k, t]) => `<kbd>${k}</kbd><span>${t}</span>`).join('')}</div>`, '', true);
+    const K = [['W A S D', 'Move'], ['Space', 'Toss · Serve · Hit'], ['Hold ← or →', 'Angle'], ['Hold ↑ / ↓', 'Lob or deep · drop shot or short angle'], ['Hold ↑ / ↓ on serve', 'Kick · slice'], ['Space at the toss\'s top', 'More pace'], ['V', 'Camera'], ['Tab', 'Statistics'], ['M', 'Sound'], ['Esc', 'Pause']];
+    this.screen(this.bar('Controls') + `<div class="keys">${K.map(([k, t]) => `<kbd>${k}</kbd><span>${t}</span>`).join('')}</div>`, '', true);
     this.on('[data-back]', () => this.home());
-    this.on('[data-ctl]', n => { this.set.controls = n.dataset.ctl; this.save(); this.how(); });
   }
   settings(back) {
     const s = this.set, chips = (key, list) => `<span class="chips">${list.map(([v, n]) => `<span class="chip ${String(s[key]) === String(v) ? 'on' : ''}" data-set="${key}" data-v="${v}">${n}</span>`).join('')}</span>`;
     const row = (l, h) => `<span class="lab">${l}</span><span>${h}</span>`, range = (key, a, b, st) => `<input type="range" min="${a}" max="${b}" step="${st}" value="${s[key]}" data-range="${key}">`;
     const html = this.bar('Settings') + `<div class="sheet">
-      ${row('Controls', chips('controls', [['classic', 'Classic'], ['mouse', 'Mouse']]))}
       ${row('Footwork', chips('assist', [[2, 'Auto'], [1, 'Assist'], [0, 'Manual']]))}
       ${row('Camera', chips('cam', [['fp', 'First person'], ['chase', 'Behind'], ['tv', 'Broadcast']]))}
-      ${row('Aim speed', range('aimSens', 0.4, 2.2, 0.05))}
       ${row('Field of view', range('fov', 55, 85, 1))}
       ${row('Graphics', chips('quality', QUALITY.map((q, i) => [i, q.name])))}
-      ${row('Aim ring', chips('markers', [[true, 'On'], [false, 'Off']]))}
-      ${row('Replays', chips('replays', [['best', 'Great winners'], ['off', 'Off']]))}
       ${row('Volume', range('volume', 0, 1, 0.05))}</div>`;
     const host = back ? $('#overlay') : this.ui;
     if (back) { host.className = ''; host.innerHTML = `<div class="screen" style="background:rgba(2,6,14,.92)">${html}</div>`; } else this.screen(html, '', true);
@@ -267,8 +260,8 @@ class App {
       <div class="hd"><span class="lab">${TIER[T.level][1]} · ${esc(T.month || '')}</span><b>${esc(T.name)}</b><span class="lab">${esc(T.court || '')} · ${esc(T.city || '')}${T.country ? ', ' + esc(T.country) : ''}</span></div>
       <div class="bd">
         <div class="lf">${court}
-          <div class="tls">${tile('Surface', esc(T.surface), (SURFACE_PLAY[T.surface] || SURFACE_PLAY.hard).about)}${tile('Format', 'Best of ' + T.bestOf, 'Sets')}${tile('Court pace', pace, T.cpi ? 'CPI ' + T.cpi : '')}
-            ${tile('Draw', fin ? '2 × 4' : T.draw, fin ? 'Round robin · top two to the semis' : field.length + ' players' + (byes ? ' · ' + byes + ' byes' : ''))}${tile('Capacity', T.cap ? fmt(T.cap) : '—', 'Centre court')}${tile('Conditions', Math.round(T.temp) + '°', T.indoor ? 'Indoor' : (T.roof ? 'Roof · ' : '') + Math.round(T.windKmh) + ' km/h wind')}</div>
+          <div class="tls">${tile('Surface', esc(T.surface))}${tile('Format', 'Best of ' + T.bestOf)}${tile('Court pace', pace, T.cpi ? 'CPI ' + T.cpi : '')}
+            ${tile('Draw', fin ? '2 × 4' : T.draw, fin ? 'Round robin' : field.length + ' players' + (byes ? ' · ' + byes + ' byes' : ''))}${tile('Capacity', T.cap ? fmt(T.cap) : '—')}${tile('Conditions', Math.round(T.temp) + '°', T.indoor ? 'Indoor' : (T.roof ? 'Roof · ' : '') + Math.round(T.windKmh) + ' km/h wind')}</div>
           <div class="pts"><span class="lab">Ranking points</span><div class="path">${path}</div></div></div>
         <div class="fld"><span class="lab">The field</span><div class="rows">${rows}</div></div>
       </div></div>`;
@@ -282,12 +275,12 @@ class App {
       <div class="hd"><b>${esc(T.name)}</b><span class="lab">${esc(T.court || '')} · ${esc(T.city || '')}${T.country ? ', ' + esc(T.country) : ''}</span></div>
       <div class="bd">
         <div class="lf">${this.courtSvg(T)}
-          <div class="tls">${tile('Surface', esc(T.surface), (SURFACE_PLAY[T.surface] || SURFACE_PLAY.hard).about)}${tile('Court pace', pace, T.cpi ? 'CPI ' + T.cpi : '')}${tile('Conditions', Math.round(T.temp) + '°', T.indoor ? 'Indoor' : (T.roof ? 'Roof · ' : '') + Math.round(T.windKmh) + ' km/h wind')}</div></div>
+          <div class="tls">${tile('Surface', esc(T.surface))}${tile('Court pace', pace, T.cpi ? 'CPI ' + T.cpi : '')}${tile('Conditions', Math.round(T.temp) + '°', T.indoor ? 'Indoor' : (T.roof ? 'Roof · ' : '') + Math.round(T.windKmh) + ' km/h wind')}</div></div>
         <div class="conn">
-          <div class="step"><span class="n">1</span><div><b>Host a match</b><span class="lab">Get a code and give it to your opponent</span></div></div>
+          <div class="step"><span class="n">1</span><div><b>Host a match</b></div></div>
           <div class="row"><button class="btn go" data-host>Host</button><div class="codebox" data-code><b>·</b><b>·</b><b>·</b><b>·</b></div></div>
           <div class="or"><span class="lab">or</span></div>
-          <div class="step"><span class="n">2</span><div><b>Join a match</b><span class="lab">Type the four letters you were given</span></div></div>
+          <div class="step"><span class="n">2</span><div><b>Join a match</b></div></div>
           <div class="row"><input data-join maxlength="4" placeholder="CODE" spellcheck="false" autocomplete="off"><button class="btn" data-dojoin>Join</button></div>
           <div class="status" data-status>${esc(msg || '')}</div>
         </div>
@@ -309,13 +302,13 @@ class App {
     const me = S ? S.human : this.sel.p0;
     const rows = field.map((id, i) => { const f = PLAYERS[id].facts; return `<div class="${id === me ? 'me' : ''}"><small>${i + 1}</small><b>${esc(pname(id))}</b><i>${esc(f.country || '')}</i><em>${f.slams ? f.slams + (f.slams === 1 ? ' major' : ' majors') : ''}</em></div>`; }).join('');
     const head = S ? `<span class="lab">Year end · ${S.results.filter(r => r.human === 'W').length} titles</span><b>No. ${S.rankOf(S.human)}</b><span class="lab">${esc(pname(S.human))} · ${S.pts[S.human]} points</span>`
-      : `<span class="lab">${TOURNAMENTS.length} events · January to November</span><b>The Tour</b>`;
+      : `<b>The Tour</b>`;
     return `<div class="evp tourp" style="--tier:var(--lime)">
       <div class="hd">${head}</div>
       <div class="bd">
         <div class="lf"><div class="yr">${yr}</div>
-          <div class="tls">${tile('Grand Slams', n('slam'), pts('slam') + ' pts · best of 5')}${tile('Masters 1000', n('m1000'), pts('m1000') + ' pts to the winner')}${tile('ATP 500', n('500'), pts('500') + ' pts to the winner')}
-            ${tile('Surfaces', sf('hard') + ' · ' + sf('clay') + ' · ' + sf('grass'), 'Hard · clay · grass')}${tile('The Finals', 'Top 8', pts('finals') + ' pts · round robin')}${tile('Your goal', 'No. 1', 'Year-end ranking')}</div></div>
+          <div class="tls">${tile('Grand Slams', n('slam'), pts('slam') + ' pts')}${tile('Masters 1000', n('m1000'), pts('m1000') + ' pts')}${tile('ATP 500', n('500'), pts('500') + ' pts')}
+            ${tile('Surfaces', sf('hard') + ' · ' + sf('clay') + ' · ' + sf('grass'), 'Hard · clay · grass')}${tile('The Finals', 'Top 8', pts('finals') + ' pts')}${tile('Players', PLAYERS.length)}</div></div>
         <div class="fld"><div class="rows">${rows}</div></div>
       </div></div>`;
   }
@@ -433,7 +426,7 @@ class App {
     await wait(3600);
     st.classList.remove('on');
     await wait(350);
-    if (this.mode === 'match') { $('#bug').classList.remove('off'); if (this.set.controls !== 'classic') this.input.lock(); }
+    if (this.mode === 'match') $('#bug').classList.remove('off');
   }
   matchStart(g) {
     if (LOCAL && g.human) { g.human.log = this.plog = [['start', new Date().toISOString().slice(11, 19), { ...this.set }, g.cfg.T && g.cfg.T.key, pname(g.cfg.p0), pname(g.cfg.p1), navigator.userAgent.replace(/.*(Firefox|Chrome)\/(\d+).*/, '$1 $2'), innerWidth + 'x' + innerHeight, { controlsBuild: g.human.build || 'old', path: location.pathname }]]; clearInterval(this.plogT); this.plogT = setInterval(() => { if (this.plog && this.plog.length) { const b = JSON.stringify(this.plog.splice(0)); fetch('/__playlog', { method: 'POST', body: b, keepalive: true }).catch(() => {}); } }, 3000); }
@@ -579,10 +572,10 @@ class App {
     // (with the first game's controls it closes at the moment that is Perfect, just before the ball reaches the racket - sim.js judges
     // a press against that, 0.08 s before contact - not at the swing's start, 0.15 s before: timed to the old ring a press was 0.07 s
     // early, and he said "i time it perfectly and its always early and sometimes good")
-    const pressT = (this.set.controls || 'classic') === 'classic', ringT = h.tau != null && pressT ? h.tau + TIMING.swing - 0.08 : h.tau;
+    const ringT = h.tau != null ? h.tau + TIMING.swing - 0.08 : h.tau;
     if (m.phase === 'live' && ringT != null && ringT < 0.75 && ringT > -0.2) tau = ringT;
     else if (m.phase === 'toss' && m.score.server === 0 && m.ball.held < 0 && !(m.players[0].stroke && m.players[0].stroke.tc != null)) tau = m.tossIdeal - TIMING.serveSwing - m.t;
-    if (tau != null && tau > -0.15) { const r = 15 + Math.max(0, tau) * 120, good = m.phase === 'live' && pressT ? (tau < 0.07 && tau > -0.10) : Math.abs(tau) < (m.windowFor ? m.windowFor(0) : 0.03); out.setAttribute('r', r.toFixed(1)); out.setAttribute('opacity', (tau > 0.6 ? (0.75 - tau) / 0.15 : 0.9).toFixed(2)); out.setAttribute('stroke', good ? '#e2f03a' : tau < 0 ? '#ff6a4d' : '#fff'); }
+    if (tau != null && tau > -0.15) { const r = 15 + Math.max(0, tau) * 120, good = m.phase === 'live' ? (tau < 0.07 && tau > -0.10) : Math.abs(tau) < (m.windowFor ? m.windowFor(0) : 0.03); out.setAttribute('r', r.toFixed(1)); out.setAttribute('opacity', (tau > 0.6 ? (0.75 - tau) / 0.15 : 0.9).toFixed(2)); out.setAttribute('stroke', good ? '#e2f03a' : tau < 0 ? '#ff6a4d' : '#fff'); }
     else out.setAttribute('opacity', 0);
     // power, and the shot it will be
     const mt = $('#meter'); mt.classList.toggle('on', h.power > 0);
@@ -617,8 +610,7 @@ class App {
   pause(on) {
     if (this.mode !== 'match') return;
     this.paused = on; this.game.paused = on && !this.game.net; const o = $('#overlay');
-    if (!on) { o.className = 'hidden'; if (this.set.controls !== 'classic') this.input.lock(); return; }
-    this.input.unlock();
+    if (!on) { o.className = 'hidden'; return; }
     o.className = ''; o.innerHTML = `<div class="box"><h2>Paused</h2><button class="btn go" data-a="resume">Resume</button><button class="btn" data-a="stats">Stats</button><button class="btn" data-a="settings">Settings</button><button class="btn" data-a="sim">Sim to the end</button><button class="btn" data-a="quit">Leave</button></div>`;
     o.querySelectorAll('[data-a]').forEach(n => n.onclick = () => {
       const a = n.dataset.a;
@@ -633,7 +625,7 @@ class App {
   finish() {
     if (this.mode !== 'match') return;
     const g = this.game, s = g.match.score, me = g.cfg.p0, opp = g.cfg.p1, won = s.winner === 0;
-    this.input.unlock(); this.input.enabled = false;
+    this.input.enabled = false;
     let res = { a: me, b: opp, winner: won ? me : opp, loser: won ? opp : me, sets: s.sets.map(x => ({ g: [x.g[0], x.g[1]], tb: x.tb })) };
     // (any format shorter than the event's own - Classic, One set, the match tiebreak, three sets at a Slam - put as the full match:
     // he said "should be the same for all the other non-full formats too")

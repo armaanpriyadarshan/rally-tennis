@@ -447,7 +447,7 @@ export class Game {
 
   markers() {
     const m = this.match, fx = this.fx, h = this.human;
-    if (!h || this.opts.controls === 'classic' || this.opts.controls == null) {
+    {
       // the first game's controls aim with the arrows: no marker to steer, only where his ball will land
       const b0 = this.match.ball, inc0 = this.match.incoming, show0 = h && this.opts.markers && this.match.phase === 'live' && b0.live && b0.lastHit === 1 && inc0 && inc0.land && !inc0.bounced && b0.bounces === 0;
       // where his own ball will land too, as it flies; and where he is aiming: the marker moves as he holds an arrow, and stays where he
@@ -461,26 +461,8 @@ export class Game {
       else if (mine0) fx.showMine(inc0.land.x, inc0.land.z, 0.9, '#d4ff3a');
       else fx.showMine(null);
       fx.showAim(0, 0, 1, '#fff', 0);
-      return;
     }
-    const b = m.ball, inc = m.incoming;
-    // where his shot will land
-    const show = this.opts.markers && m.phase === 'live' && b.live && b.lastHit === 1 && inc && inc.land && !inc.bounced && b.bounces === 0;
-    fx.showLanding(show ? inc.land : null, show ? 1 : 0);
-    // where mine is going
-    const srv = m.score.server === 0 && (m.phase === 'ready' || m.phase === 'toss');
-    const on = this.opts.markers && (m.phase === 'live' ? b.lastHit !== 0 || !b.live : srv);
-    const p = m.players[0], sp = Math.hypot(p.vx, p.vz);
-    // The ring is the size of the miss: nineteen balls in twenty land inside it. It is the
-    // engine's own scatter for the ball about to be hit — bigger for a fast ball, on the run,
-    // for more pace or a riskier shot. Keep it inside the lines and the ball goes in; let it
-    // overlap one to gamble, and it turns amber to say so.
-    const R = srv ? { x: 0.42, z: 0.55 } : m.missRing(0, h.kindNow || 'drive', h.hold ? h.power : 0.6);
-    this.ringX = damp(this.ringX || R.x, R.x, 10, 1 / 60); this.ringZ = damp(this.ringZ || R.z, R.z, 10, 1 / 60);
-    const r = this.ringX, rz = this.ringZ;
-    const risky = !srv && (Math.abs(h.aim.X) + r > COURT.halfW + 0.05 || Math.abs(h.aim.D) + rz > COURT.halfLen + 0.05);
-    const col = risky ? '#ffb36b' : h.kindNow === 'slice' ? '#8fd3ff' : h.kindNow === 'drop' ? '#ffd27a' : h.kindNow === 'lob' ? '#c9a6ff' : h.kindNow === 'flat' ? '#ff9a8a' : '#ffffff';
-    fx.showAim(h.aim.X, h.aim.D, r, col, on ? (h.hold ? 0.85 : 0.5) : 0, rz);
+
   }
 
   // ---------- replays ----------

@@ -1,13 +1,12 @@
-// Rally Pro — keyboard, mouse and gamepad. Produces one small state object the game reads.
+// Rally Pro — keyboard and gamepad (he said "get rid of mouse controls"). Produces one small state object the game reads.
 export class Input {
   constructor(el) {
     this.el = el;
     this.keys = new Set();
-    this.mx = 0; this.my = 0;                 // unread mouse movement, pixels
-    this.btn = [false, false, false];         // left, middle, right held
+    this.btn = [false, false, false];         // the pad's buttons, held
     this.edges = [];                          // { type: 'down'|'up', b, t }
     this.pressed = new Set();                 // keys pressed since last read
-    this.locked = false; this.soft = false; this.enabled = false; this.sens = 1;   // soft: the browser refused to capture the mouse, so read it uncaptured
+    this.enabled = false;
     this.pad = null;
     const kd = e => {
       if (!this.enabled) return;
@@ -17,20 +16,8 @@ export class Input {
     const ku = e => { this.keys.delete(e.code); };
     addEventListener('keydown', kd); addEventListener('keyup', ku);
     addEventListener('blur', () => { this.keys.clear(); this.btn = [false, false, false]; });
-    el.addEventListener('mousedown', e => { if (!this.enabled) return; if (!this.locked) { this.lock(); } this.btn[e.button] = true; this.edges.push({ type: 'down', b: e.button, t: performance.now() }); e.preventDefault(); });
-    addEventListener('mouseup', e => { if (!this.enabled) return; if (this.btn[e.button]) { this.btn[e.button] = false; this.edges.push({ type: 'up', b: e.button, t: performance.now() }); } });
-    addEventListener('mousemove', e => { if (!this.enabled) return; if (this.locked || this.soft) { this.mx += e.movementX; this.my += e.movementY; } });
-    document.addEventListener('pointerlockerror', () => { this.soft = true; if (this.onLock) this.onLock(true); });
     el.addEventListener('contextmenu', e => e.preventDefault());
-    document.addEventListener('pointerlockchange', () => { this.locked = document.pointerLockElement === el; if (this.locked) this.soft = false; if (this.onLock) this.onLock(this.locked); });
   }
-  // Capture the mouse. If the browser will not allow it, carry on with the free cursor.
-  lock() {
-    const plain = () => { try { const q = this.el.requestPointerLock(); if (q && q.catch) q.catch(() => { this.soft = true; if (this.onLock) this.onLock(true); }); } catch (e) { this.soft = true; } };
-    try { const p = this.el.requestPointerLock({ unadjustedMovement: true }); if (p && p.catch) p.catch(plain); } catch (e) { plain(); }
-  }
-  get active() { return this.locked || this.soft; }
-  unlock() { if (document.pointerLockElement) document.exitPointerLock(); }
   down(code) { return this.keys.has(code); }
   // movement as a vector: x right, y forward
   move() {
@@ -53,7 +40,6 @@ export class Input {
     const m = Math.hypot(x, y); if (m > 1) { x /= m; y /= m; }
     return { x, y };
   }
-  takeMouse() { const r = { x: this.mx * this.sens, y: this.my * this.sens }; this.mx = this.my = 0; const p = this.pad; if (p) { r.x += p.rx * 14; r.y += p.ry * 14; } return r; }
   takeEdges() { const e = this.edges; this.edges = []; return e; }
   takePressed() { const p = this.pressed; this.pressed = new Set(); return p; }
   poll() {

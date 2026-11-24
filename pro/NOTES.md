@@ -1683,3 +1683,12 @@ still in the air, both in a stroke's finish, for two or three frames.
   - how he plays big points (break, set and match points, tiebreaks): his break points saved against his usual serving - Zverev
     and Tsitsipas a seventh wilder there, Kuerten, Agassi and Wawrinka steadier (the research found little of it persists from year
     to year, so it is small).
+- **Fewer words, fewer switches** (he said "overall just get rid of those really verbose explanations on menu screens", "get rid of
+  mouse controls and the option to choose between classic and mouse", "aim ring shouldnt be toggleable", "same with great
+  winners"): the home tiles are their names alone; the season panel, the event panels and the online steps lost their notes and
+  explanations (surface blurbs, "sets", "centre court", "the field · by career win rate", "30 events · January to November", the
+  host and join instructions, the three facts under Online); the controls screen is the keyboard's keys in a few words. Mouse
+  controls are gone - the settings and controls screens' chooser, the mouse aim and swing (human.js), the pointer capture and mouse
+  reading (input.js), the mouse aim marker (game.js) - and so are the Aim speed, Aim ring and Replays settings: the aim ring is
+  always on, great winners always replayed. (The keyboard path folded with /tmp/rally-work/cleanup/fold.mjs; 60 bot points and the
+  menus and a match in a browser without errors.)
