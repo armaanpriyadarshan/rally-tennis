@@ -378,10 +378,12 @@ export function strength(id, surface, key) { const w = clamp(eventRate(id, key, 
 export function eventSeeding(ids, T, rnd, form = 0.35) {
   const g = () => { let u = 0; while (u === 0) u = rnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * rnd()); };
   // (by his level, then how much better or worse he does at this event than anywhere - Nadal at Roland Garros, the grass players at
-  // Wimbledon, a quarter of a level point a percent - and this week's form; it went by career win rate, and he said "thiem should not
+  // Wimbledon, half a level point a percent - and this week's form; it went by career win rate, and he said "thiem should not
   // be below kyrgios")
-  const lv = id => levelOf(id) + 0.25 * eventEdge(id, T.key, T.surface).pct;
-  return ids.map(id => ({ id, s: lv(id) + 4 * form * g() })).sort((a, b) => b.s - a.s).map(x => x.id);
+  // (half a level point a percent, and the week's form a little: at a quarter, with more form, Federer was the top seed at the
+  // Australian Open a third of the time over Djokovic's ten titles there - he asked "how is federer 1, nadal 2, and djok 3 at ao")
+  const lv = id => levelOf(id) + 0.5 * eventEdge(id, T.key, T.surface).pct;
+  return ids.map(id => ({ id, s: lv(id) + 1.6 * form * g() })).sort((a, b) => b.s - a.s).map(x => x.id);
 }
 
 // ---------- tournaments ----------

@@ -1758,3 +1758,9 @@ still in the air, both in a stroke's finish, for two or three frames.
   before"): raised to 4 m/s when he asked for it at ordinary pace, the move went past the walk's top speed (2.2 m/s) and he slid in
   his stance. Now a brisk walk, up to 3 m/s (the old pace was 1.6), and while he waits to serve the walk is kept on up to that pace:
   measured holding D, the walk fully on at 3 m/s.
+- **Seeds by the event** (he asked "how is federer 1, nadal 2, and djok 3 at ao"): with Federer, Nadal and Djokovic at the same level,
+  a quarter of a level point per percent of a man's record at the event, and the week's form at full width, made Federer the top seed
+  at Melbourne a third of the time (his 102-15 there against Djokovic's 104-11); and a season's first event went by the opening
+  order, which among three equal men is the luck of their form. Now half a point a percent and a little form: the top seed at the
+  Australian Open is Djokovic 90% of the time, at Roland Garros Nadal every time, at Wimbledon Federer 70% (Djokovic 23%), at the US
+  Open Federer 89%; and before anyone has a point, the season's event is seeded by the event's own order.
