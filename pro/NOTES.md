@@ -1789,3 +1789,9 @@ still in the air, both in a stroke's finish, for two or three frames.
   since the bounce went into the streak (above), each of its bounces put a point where it was into the streak the replay was drawing:
   lines from the replayed ball to wherever the dead one was. Only a live ball's bounces go in now, and none during a replay (a replay
   forced after a winner: the streak's biggest step 0.31 m).
+- **Injuries shown, events kept** (he said "when a player is injured, there should be a little icon next to their name. get rid of the
+  log thing on tour. if they get injured there should be a walkover thing on their score. after a tournament is finished you should
+  be able to click on it and see what happened"): an injured man has a small white cross on red by his name in the rankings (what
+  and until when on hover) and in a draw; the season screen's news log is gone; a walkover reads W/O by the man who gave it, a
+  retirement RET. after his score, each with the cross; and every finished event (played, simulated or skipped) keeps its draw, opened
+  from the calendar read-only. (The week's late withdrawals are now decided before the rankings are drawn, so theirs show at once.)

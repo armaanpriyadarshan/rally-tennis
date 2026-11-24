@@ -299,7 +299,9 @@ export class Season {
     for (const id in P) this.pts[id] = (this.pts[id] || 0) + P[id];
     const planned = this.field().filter(id => this.plan[id] && this.plan[id].includes(T.key)), entered = new Set(d.entrantIds());
     const out = planned.filter(id => !entered.has(id));
-    this.results.push({ key: T.key, champion: d.champion, human: skipped ? null : d.resultFor(this.human), skipped: !!skipped, pts: skipped ? 0 : P[this.human] || 0, out });
+    // (the whole draw kept, to be looked at again from the calendar - he said "after a tournament is finished you should be able to
+    // click on it and see what happened")
+    this.results.push({ key: T.key, champion: d.champion, human: skipped ? null : d.resultFor(this.human), skipped: !!skipped, pts: skipped ? 0 : P[this.human] || 0, out, draw: d.toJSON() });
     if (d.champion != null) this.say(`${name(d.champion)} won ${T.name}`, d.champion, 'win');
     // the wear of a week's matches: a man who played can come out of it hurt (more matches, more risk)
     const played = {}; for (const r of d.rounds) for (const m of r) if (m.res && !m.res.bye && !m.res.wo) { played[m.a] = (played[m.a] || 0) + 1; played[m.b] = (played[m.b] || 0) + 1; }

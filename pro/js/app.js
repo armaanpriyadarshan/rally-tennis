@@ -198,8 +198,8 @@ class App {
     const title = ev ? `${e.wl[0]}–${e.wl[1]} here in his career, against his overall record` : `Career win rate on ${surface} against his overall`;
     return `<span class="edge ${e.pct > 0 ? 'up' : 'dn'}" title="${title}">${where === 'card' ? (ev ? e.wl[0] + '–' + e.wl[1] + ' ' : sf + ' ') : ''}${e.pct > 0 ? '+' : '−'}${Math.abs(e.pct)}%</span>`;
   }
-  evTile(t, on, res) {
-    return `<button class="ev ${on ? 'on' : ''} ${res ? 'done' : ''}" data-t="${t.key}" style="--tier:${TIER[t.level][0]};--sf:${SFC[t.surface]}"><i class="sf"></i><b>${esc(t.name)}</b><span>${TIER[t.level][1]}${t.indoor ? ' · Indoor' : ''}</span>${res ? `<i class="res">${esc(res)}</i>` : ''}</button>`;
+  evTile(t, on, res, attrs = '') {
+    return `<button class="ev ${on ? 'on' : ''} ${res ? 'done' : ''}" ${attrs || `data-t="${t.key}"`} style="--tier:${TIER[t.level][0]};--sf:${SFC[t.surface]}"><i class="sf"></i><b>${esc(t.name)}</b><span>${TIER[t.level][1]}${t.indoor ? ' · Indoor' : ''}</span>${res ? `<i class="res">${esc(res)}</i>` : ''}</button>`;
   }
   pick(side, done) {
     this.screen(this.bar(side ? 'Opponent' : 'Your player') + `<div class="grid12">${PLAYERS.map(p => this.card(p.id, '', p.id === (side ? this.sel.p1 : this.sel.p0) ? 'on' : '', this.sel.T)).join('')}</div>`, '', true);
@@ -332,12 +332,15 @@ class App {
     });
     const cur = this.ui.querySelector('.ev.on'); if (cur) cur.scrollIntoView({ inline: 'center', block: 'nearest' });
   }
-  drawView(season) {
-    const d = season ? season.draw : this.draw, T = d.T, me = d.human, hm = d.humanMatch(), bye = d.hasBye(me);
+  // (past: a finished event of the season, looked at again from the calendar)
+  drawView(season, past) {
+    const d = past || (season ? season.draw : this.draw), T = d.T, me = d.human, hm = past ? null : d.humanMatch(), bye = !past && d.hasBye(me);
+    // (a man who gave a walkover or retired hurt has the injury mark by his name, and his score says so: W/O, RET.)
+    const injM = (id, R) => R && !R.bye && (R.wo || R.ret) && R.loser === id ? `<em class="injic" title="${R.wo ? 'Walkover' : 'Retired'} · injured">+</em>` : season && season.injury && season.injury(id) && !past ? `<em class="injic" title="Injured">+</em>` : '';
     // a line of a tie: seed, name, his games set by set (w/o for a walkover, ret. after the score of the man who stopped), or Bye
     const line = (id, m) => { if (id == null) return m.res && m.res.bye ? '<div class="bye"><small></small><b>Bye</b></div>' : '<div><small></small><b>—</b></div>';
-      const R = m.res, w = R && R.winner === id, sc = !R || R.bye ? '' : R.wo ? (w ? 'w/o' : '') : R.sets.map(x => x.g[R.a === id ? 0 : 1]).join(' ') + (R.ret && !w ? ' ret.' : '');
-      return `<div class="${w ? 'w' : ''} ${id === me ? 'you' : ''}"><small>${d.seedNo[id] || ''}</small><b>${esc(pname(id))}</b><i>${sc}</i></div>`; };
+      const R = m.res, w = R && R.winner === id, sc = !R || R.bye ? '' : R.wo ? (w ? '' : 'W/O') : R.sets.map(x => x.g[R.a === id ? 0 : 1]).join(' ') + (R.ret && !w ? ' RET.' : '');
+      return `<div class="${w ? 'w' : ''} ${id === me ? 'you' : ''}"><small>${d.seedNo[id] || ''}</small><b>${esc(pname(id))}${injM(id, R)}</b><i>${sc}</i></div>`; };
     const blank = { a: null, b: null, res: null };   // (a round not reached yet: its places, empty)
     const tie = m => `<div class="tie ${m.a === me || m.b === me ? 'me' : ''}">${line(m.a, m)}${line(m.b, m)}</div>`;
     let cols;
@@ -351,26 +354,19 @@ class App {
     const champ = d.champion != null ? `<div class="champ"><span class="lab">Champion</span><b>${esc(pname(d.champion))}</b></div>` : '';
     const big = !d.rr && d.rounds[0].length > 8;
     let foot;
-    if (d.champion != null) foot = `<span class="lab">${d.champion === me ? 'Title' : (RND[d.resultFor(me)] || '')}</span><span class="sp"></span><button class="btn go" data-done>Done</button>`;
+    if (past) foot = `<span class="lab">${me >= 0 && d.resultFor(me) ? (d.champion === me ? 'Title' : RND[d.resultFor(me)] || '') : ''}</span><span class="sp"></span><button class="btn go" data-pastback>Back</button>`;
+    else if (d.champion != null) foot = `<span class="lab">${d.champion === me ? 'Title' : (RND[d.resultFor(me)] || '')}</span><span class="sp"></span><button class="btn go" data-done>Done</button>`;
     else if (hm) foot = `<span class="lab">${RND[d.roundName] || d.roundName}${d.rr && d.round < 3 ? ' · day ' + (d.round + 1) : ''} · v ${esc(pname(hm.a === me ? hm.b : hm.a))}</span><span class="sp"></span><button class="btn sm" data-sim>Sim match</button><button class="btn sm" data-simall>Sim all</button><button class="btn go" data-play>Play</button>`;
     else foot = `<span class="lab">${bye ? 'Bye' : d.alive(me) ? '' : 'Out · ' + (RND[d.resultFor(me)] || '')}</span><span class="sp"></span><button class="btn sm" data-simall>Sim all</button><button class="btn go" data-next>Next round</button>`;
     this.screen(this.bar(esc(T.name), `<span class="lab">${TIER[T.level][1]} · ${esc(T.surface)}</span>`) + `<div class="draw ${big ? 'big' : ''} ${d.rr ? 'rr' : ''}">${cols}${champ}</div><div class="foot">${foot}</div>`, '', true);
-    const again = () => { if (season) season.save(); this.drawView(season); };
     this.on('[data-back]', () => season ? this.season() : this.tour());
+    if (past) { this.on('[data-pastback]', () => this.season()); return; }
+    const again = () => { if (season) season.save(); this.drawView(season); };
     this.on('[data-play]', () => { d.simRound(false); this.play({ kind: 'draw', draw: d, match: hm, season }, me, hm.a === me ? hm.b : hm.a, T, d.roundName); });
     this.on('[data-sim]', () => { d.report(hm, d.sim(hm)); d.simRound(false); again(); });
     this.on('[data-next]', () => { d.simRound(false); again(); });
     this.on('[data-simall]', () => { d.simAll(); again(); });
     this.on('[data-done]', () => { if (season) { season.close(); this.season(); } else this.tour(); });
-  }
-  // the tour's news on the season screen: who is out of this week's event and why, then the latest - injuries, walkovers,
-  // retirements, returns, titles
-  newsPanel(S) {
-    const T = S.event; if (!T) return '';
-    const outNow = S.field().filter(id => id !== S.human && S.plan[id] && S.plan[id].includes(T.key) && !S.fit(id));
-    const items = S.news.slice(0, 4).map(n => `<div class="${n.kind}"><i>${esc(TOURNAMENTS[n.ev] ? TOURNAMENTS[n.ev].name : '')}</i><span>${esc(n.text)}</span></div>`).join('');
-    if (!outNow.length && !items) return '';
-    return `<div class="news">${outNow.length ? `<div class="wk"><i>This week</i><span>Out of ${esc(T.name)}: ${outNow.map(id => { const j = S.injury(id); return esc(pname(id)) + (j ? ` (${esc(j.part)})` : ''); }).join(', ')}</span></div>` : ''}${items}</div>`;
   }
   season() {
     let S = this.S || Season.load();
@@ -383,21 +379,25 @@ class App {
       return;
     }
     this.S = S; this.sel.p0 = S.human;
+    if (!S.done && !S.draw) S.prepare();   // (the week's late withdrawals before the rankings are drawn, so their injury marks show)
     const T = S.event, rank = S.ranking(), me = S.human;
-    const cal = TOURNAMENTS.map((t, i) => { const r = S.results[i]; return this.evTile(t, i === S.ev && !S.done, r ? (r.skipped ? 'Skipped' : r.human === 'W' ? 'Won' : r.human || '—') : ''); }).join('');
+    const cal = TOURNAMENTS.map((t, i) => { const r = S.results[i]; return this.evTile(t, i === S.ev && !S.done, r ? (r.skipped ? 'Skipped' : r.human === 'W' ? 'Won' : r.human || '—') : '', r && r.draw ? `data-past="${i}"` : 'data-cal'); }).join('');
     // (who is hurt, and for how long; he asked for "injuries and stuff" on the tour)
-    const injTag = id => { const j = S.injury(id); return j ? ` <span class="inj" title="${esc(j.part)}${j.surgery ? ' (surgery)' : ''} · back for ${esc(j.back)}">${j.part === 'illness' ? 'ILL' : 'INJ'} · ${j.events}</span>` : ''; };
+    // (an injured man has the injury mark by his name; what and until when on hover - he said "when a player is injured, there should be a
+    // little icon next to their name")
+    const injTag = id => { const j = S.injury(id); return j ? `<em class="injic" title="${esc(j.part === 'illness' ? 'Illness' : j.part + ' injury')}${j.surgery ? ' (surgery)' : ''} · back for ${esc(j.back)}">+</em>` : ''; };
     const rows = rank.map((id, i) => `<tr class="${id === me ? 'me' : ''}"><td>${i + 1}</td><td>${esc(pname(id))}${injTag(id)}</td><td>${S.pts[id]}</td></tr>`).join('');
     let now, foot;
     if (S.done) { now = `<div class="now"><span class="lab">Year end</span><b>No. ${S.rankOf(me)}</b><span class="lab">${S.pts[me]} points · ${S.results.filter(r => r.human === 'W').length} titles</span></div>`; foot = '<span class="sp"></span><button class="btn go" data-reset>New season</button>'; }
-    else { if (!S.draw) S.prepare(); const q = S.qualified(T);
+    else { const q = S.qualified(T);
       now = `<div class="now" style="--tier:${TIER[T.level][0]}"><span class="lab">Week ${S.ev + 1} / ${TOURNAMENTS.length} · ${TIER[T.level][1]} · ${esc(T.surface)}</span><b>${esc(T.name)}</b><span class="lab">${q ? esc(T.court || '') : 'Top eight only'}</span></div>`;
       foot = `<button class="btn sm" data-abandon>Abandon</button><span class="sp"></span>${S.draw ? '' : '<button class="btn sm" data-skip>Skip</button>'}<button class="btn sm" data-simev>Sim event</button><button class="btn sm" data-simrest>Sim season</button>${q ? `<button class="btn go" data-enter>${S.draw ? 'Draw' : 'Enter'}</button>` : ''}`; }
-    this.screen(this.bar(esc(pname(me)), `<span class="lab">No. ${S.rankOf(me)} · ${S.pts[me]} pts</span>`) + `<div class="cols"><div>${now}${this.newsPanel(S)}<div class="cal">${cal}</div></div><div><table class="rk">${rows}</table></div></div><div class="foot">${foot}</div>`, '', true);
+    this.screen(this.bar(esc(pname(me)), `<span class="lab">No. ${S.rankOf(me)} · ${S.pts[me]} pts</span>`) + `<div class="cols"><div>${now}<div class="cal">${cal}</div></div><div><table class="rk">${rows}</table></div></div><div class="foot">${foot}</div>`, '', true);
     this.on('[data-back]', () => this.home());
     this.on('[data-enter]', () => { S.open(); S.save(); this.sel.T = T; this.drawView(S); });
     this.on('[data-simev]', () => { S.simEvent(); this.season(); });
-    this.on('[data-skip]', () => { S.skipEvent(); this.season(); });   // (sit this one out: played without him)
+    this.on('[data-skip]', () => { S.skipEvent(); this.season(); });
+    this.on('[data-past]', n => { const r = S.results[+n.dataset.past]; if (r && r.draw) this.drawView(S, Draw.from(r.draw)); });   // (sit this one out: played without him)
     this.on('[data-simrest]', () => { let g = 0; while (!S.done && g++ < 40) S.simEvent(); this.season(); });
     this.on('[data-reset]', () => { Season.clear(); this.S = null; this.season(); });
     this.on('[data-abandon]', () => { Season.clear(); this.S = null; this.home(); });
