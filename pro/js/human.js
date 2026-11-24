@@ -1,7 +1,7 @@
 // Rally Pro — the human at the controls. Kept free of anything graphical so the same code
 // that reads a player's mouse and keys can be driven by a test bot outside the browser.
 import { AI } from './ai.js';
-import { COURT } from './physics.js';
+import { COURT, lerp } from './physics.js';
 import { TIMING, REACH } from './sim.js';
 
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -290,6 +290,13 @@ export class Human {
             const aimF = clamp(((this.aimHDir === lat ? this.aimHDur : 0) - 0.05) / 0.35, 0, 1);
             const latX = 1.3 + (COURT.halfW - this.safe[0] - 0.3 - 1.3) * aimF;
             let X = lat ? lat * latX : chX, D = chD, power = ch ? ch.power : 0.74;
+            // (the angle there is to have opens up with where he is: closer to the net, or out wide going crosscourt, an arrow held to the
+            // line goes for the sharp angle - shorter and nearer the side line, running off the court - as far as he holds it; from the
+            // middle of the baseline it is the deep ball to near the line. He said "if youre wider / closer to the net you should be able to
+            // hit wider shots".)
+            if (lat && !own && !angle) { const cD = Math.abs(p.z), cX = p.x * s, netK = clamp((12.5 - cD) / 7, 0, 1), wideK = Math.sign(cX) === -lat ? clamp((Math.abs(cX) - 1.5) / 2.5, 0, 1) : 0;
+              const aK = Math.max(netK, 0.7 * wideK) * aimF;
+              if (aK > 0.001) { X = lat * lerp(latX, COURT.halfW - Math.max(0.25, this.safe[0]), aK); D = -lerp(-D, Math.max(4.2, COURT.svc - 0.9), 0.75 * aK); } }
             // his own drop shot dies just over the net, his lob lands deep; with no angle held, both straight down the middle
             if (angle) { const side = lat || -Math.sign(p.x * s || 1); X = side * (COURT.halfW - Math.max(0.6, this.safe[0] + 0.3)); D = -5.3; power = 0.6; }
             else if (own === 'drop') { X = lat ? lat * (COURT.halfW - 1.5) : 0; D = -2.1; power = 0.4; }

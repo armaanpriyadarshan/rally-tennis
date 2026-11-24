@@ -1802,3 +1802,8 @@ still in the air, both in a stroke's finish, for two or three frames.
   Perfect one goes nearly where it was meant. The bot as Nadal against Djokovic, at Tour: timed within about 0.05 s (nine in ten
   Perfect) 76% of points, 106 winners in 300, its Perfect drives 141 km/h at the median, 0.5 m inside the line, 1% out; timed loosely
   (one in seven Perfect) 31%, 16% of rally balls out. (Narrowing the Perfect window is the way to make Tour harder for a good timer.)
+- **Angles from where he stands** (he said "if youre wider / closer to the net you should be able to hit wider shots"): an arrow held to
+  the line goes for the sharp angle as his position allows - closer to the net (from 12.5 m in, fully by 5.5), or out wide going
+  crosscourt - shorter and nearer the side line, as far as he holds the arrow; from the middle of the baseline it stays the deep ball
+  near the line. Measured (classicbot ANGLES, his held-arrow rally balls): from the baseline middle 1.9 m inside the baseline, 3.7 m
+  out; from out wide 3.2 m in; from inside the court 4.2 m in, 3.6 m out.
