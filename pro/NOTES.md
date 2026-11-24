@@ -1574,3 +1574,10 @@ still in the air, both in a stroke's finish, for two or three frames.
   Skipped. (Sim event, as before, plays him in it.)
 - Two unreachable leftovers of the cleanup (a guarded return unwrapped, the old code after it left behind: season.js entrants,
   figure.js runPose) removed.
+- **Black flashes** (he said "there are still black flashes"): a whole frame went black, film grain over it, now and then in play on
+  clay (2 in 240 s of Roland Garros in a headless session reading the pixels after every frame; 0-1 elsewhere). The resize to keep
+  the frame rate was ruled out (forced resizes every few seconds gave none). Re-rendering a black frame with the bloom off gave the
+  normal picture: one non-number pixel (NaN, from a highlight on the clay's or ball's shading) went into the bloom, whose blur spreads
+  it over the whole screen. render.js: the bloom's bright-pass now reads a NaN or infinite pixel as black, so one bad pixel can no
+  longer take the frame with it (any picture without one is unchanged). After: 0 black frames in 2 × 240 s on clay (classic and best
+  of three). tools/steps_blackframes.mjs logs, for a black frame, the moment of play, its picture and the same frame without bloom.

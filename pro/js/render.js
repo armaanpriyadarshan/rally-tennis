@@ -104,7 +104,11 @@ export class Gfx {
     this.renderPass = new RenderPass(this.scene, this.camera); c.addPass(this.renderPass);
     this.focusSet = this.focusSet || { from: 45, range: 30, size: 0.005 };
     this.bloom = null;
-    if (Q.bloom) { this.bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.16, 0.6, 6.0); c.addPass(this.bloom); }
+    if (Q.bloom) { this.bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.16, 0.6, 6.0); c.addPass(this.bloom);
+      // (a pixel the scene drew as not-a-number - something in it divided by nothing for a frame - went into the glow, the glow blurs it
+      // over the whole picture, and the frame came out black: the black flashes he still saw, mid-rally, twice in four minutes at
+      // Roland Garros. Such a pixel is taken as black before the glow, so it stays one pixel.)
+      const hp = this.bloom.materialHighPassFilter; hp.fragmentShader = hp.fragmentShader.replace('vec4 texel = texture2D( tDiffuse, vUv );', 'vec4 texel = texture2D( tDiffuse, vUv ); if ( any( isnan( texel ) ) || any( isinf( texel ) ) ) texel = vec4( 0.0 );'); hp.needsUpdate = true; }
     this.lens = new ShaderPass(LensShader); if (Q.focus) { this.lens.material.defines.FOCUS = 1; this.lens.material.needsUpdate = true; } c.addPass(this.lens);
     this.hasFocus = !!Q.focus; this.frameNo = 0;
   }

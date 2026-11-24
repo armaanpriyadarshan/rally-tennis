@@ -11,13 +11,18 @@ export default async function ({ ev, sleep }) {
     const AIm = await import('./js/ai.js'); g.match.ctl[0] = new AIm.AI({ human: true });
     window.__bf = { frames: 0, black: [], resizes: 0, sizes: new Set() };
     const cv = r.domElement; new ResizeObserver(() => { window.__bf.resizes++; }).observe(cv);
+    const B0 = window.__bf; B0.lastResize = -1; B0.lastFlip = -1; B0.lastPlaced = -1; B0.lastSettle = -1;
+    const rz = gfx.resize.bind(gfx); gfx.resize = (...a) => { B0.lastResize = B0.frames; return rz(...a); };
+    const sf = gfx.setFlip.bind(gfx); gfx.setFlip = (...a) => { B0.lastFlip = B0.frames; return sf(...a); };
+    const gf = g.frame.bind(g); g.frame = (dt) => { if (g.settle) B0.lastSettle = B0.frames; return gf(dt); };
     const orig = gfx.render.bind(gfx);
     gfx.render = (dt) => { const out = orig(dt); const B = window.__bf; B.frames++; const w = gl.drawingBufferWidth, h = gl.drawingBufferHeight; B.sizes.add(w + 'x' + h);
       let lum = 0, n = 0; for (const [fx, fy] of [[0.2, 0.2], [0.5, 0.2], [0.8, 0.2], [0.2, 0.5], [0.5, 0.5], [0.8, 0.5], [0.2, 0.8], [0.5, 0.8], [0.8, 0.8]]) { gl.readPixels(Math.floor(w * fx), Math.floor(h * fy), 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); lum += px[0] + px[1] + px[2]; n++; }
-      if (lum / n < 12 && B.black.length < 30) { const m = g.match, c = gfx.camera; B.black.push({ t: +g.time.toFixed(2), ph: m.phase, phT: +(m.phaseT || 0).toFixed(2), cine: g.cine && g.cine.kind, rep: !!g.replay, fade: +(g.fade || 0).toFixed(2), fadeT: g.fadeT || 0, end: g.endSeq && g.endSeq.stage, cam: [c.position.x, c.position.y, c.position.z].map(v => +v.toFixed(2)), fov: +c.fov.toFixed(1), size: w + 'x' + h, ui: document.querySelector('#overlay').className, wipe: (document.querySelector('#wipe') || {}).className }); }
+      if (lum / n < 12 && B.black.length < 30) { const m = g.match, c = gfx.camera; let noBloom = null; if (gfx.bloom) { gfx.bloom.enabled = false; orig(0); let l2 = 0; for (const [fx, fy] of [[0.2, 0.2], [0.5, 0.5], [0.8, 0.8]]) { gl.readPixels(Math.floor(w * fx), Math.floor(h * fy), 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); l2 += px[0] + px[1] + px[2]; } noBloom = Math.round(l2 / 3); gfx.bloom.enabled = true; } if (B.black.length < 3) B.img = (B.img || []).concat([r.domElement.toDataURL('image/jpeg', 0.7)]); B.black.push({ noBloom, since: { resize: B.frames - B.lastResize, flip: B.frames - B.lastFlip, settle: B.frames - B.lastSettle }, flipNow: g.arena && g.arena.root ? +g.arena.root.rotation.y.toFixed(2) : null, lum: Math.round(lum / n), t: +g.time.toFixed(2), ph: m.phase, phT: +(m.phaseT || 0).toFixed(2), cine: g.cine && g.cine.kind, rep: !!g.replay, fade: +(g.fade || 0).toFixed(2), fadeT: g.fadeT || 0, end: g.endSeq && g.endSeq.stage, cam: [c.position.x, c.position.y, c.position.z].map(v => +v.toFixed(2)), fov: +c.fov.toFixed(1), size: w + 'x' + h, ui: document.querySelector('#overlay').className, wipe: (document.querySelector('#wipe') || {}).className }); }
       return out; };
     return 'started'; })()`));
   const secs = +(E.SECS || 120);
   for (let s = 0; s < secs; s += 10) { await sleep(10000); const st = await ev(`JSON.stringify({ f: window.__bf.frames, b: window.__bf.black.length, rz: window.__bf.resizes, pts: window.__app.game.match.history.length, ph: window.__app.game.match.phase })`); console.log('BF', s + 10, st); }
   console.log(await ev(`JSON.stringify({ frames: window.__bf.frames, resizes: window.__bf.resizes, sizes: [...window.__bf.sizes], black: window.__bf.black })`));
+  const fs = await import('node:fs'); const n = await ev('(window.__bf.img || []).length'); for (let k = 0; k < n; k++) { const d = await ev('window.__bf.img[' + k + ']'); fs.writeFileSync('/tmp/rally-work/black' + k + '.jpg', Buffer.from(d.split(',')[1], 'base64')); }
 }
