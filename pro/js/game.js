@@ -817,7 +817,10 @@ export class Game {
         case 'bounce': {
           const b = m.ball, sp = e.speed;
           if (!e.dead || sp > 4) fx.mark(e.x, e.z, b.vx, b.vz, sp);
-          if (fx.bounced) fx.bounced(e.x, e.z);
+          // (the bounce into the streak only in live play: the point's dead ball rolls on under a replay, and its bounces went into the
+          // replay's streak - lines from the replayed ball to wherever the dead one was; he said "there are weird ball streak glitches on
+          // the replay")
+          if (fx.bounced && !this.replay && !e.dead) fx.bounced(e.x, e.z);
           const s = A.spec.surface;
           if (s === 'clay') fx.puff(e.x, 0.02, e.z, Math.min(10, 3 + sp * 0.25) | 0, { speed: 0.5 + sp * 0.03, size: 0.10, life: 0.55, alpha: 0.45, vx: b.vx, vz: b.vz });
           else if (e.line && s === 'grass') fx.puff(e.x, 0.02, e.z, 7, { speed: 0.6, size: 0.09, life: 0.5, alpha: 0.6, color: '#ffffff', vx: b.vx, vz: b.vz });

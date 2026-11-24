@@ -1785,3 +1785,7 @@ still in the air, both in a stroke's finish, for two or three frames.
   his average pace to a fifth over it as he times it (it was to 27% over), and no forehand or backhand goes faster than about half as
   fast again as his average. The bot as Nadal against Djokovic: first serves median 182-189 km/h, at most his 217 (they had been 203
   and 225); forehands 118-131, backhands 118-130 (127 and 114 his averages; they had been 138 and 141); Djokovic's 114-125.
+- **Replays' streak** (he said "there are weird ball streak glitches on the replay"): the point's dead ball rolls on under a replay, and
+  since the bounce went into the streak (above), each of its bounces put a point where it was into the streak the replay was drawing:
+  lines from the replayed ball to wherever the dead one was. Only a live ball's bounces go in now, and none during a replay (a replay
+  forced after a winner: the streak's biggest step 0.31 m).
