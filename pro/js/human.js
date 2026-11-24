@@ -276,8 +276,11 @@ export class Human {
           // other way round)
           const shownDrop = fk < 0 && p.stroke && p.stroke.kind === 'drop' && p.stroke.__kind0;
           const own = fk < 0 && cy < 1.75 && (vin < 22 || shownDrop) ? 'drop' : fk > 0 && oppUp ? 'lob' : null, deep = fk > 0 && !oppUp;
+          // (↓ held on a ball too quick or too high to take the pace off is the short angle: crosscourt, or to the side an arrow
+          // holds, landing near the side line about the service line - he said "there are no short + wide shots")
+          const angle = fk < 0 && !own;
           const ch = own ? null : this.choice;
-          const kind = own || (ch ? (deep && !/^(drive|flat|loop)$/.test(ch.kind) ? 'drive' : ch.kind) : 'drive');
+          const kind = own || (angle ? 'drive' : ch ? (deep && !/^(drive|flat|loop)$/.test(ch.kind) ? 'drive' : ch.kind) : 'drive');
           if (!outOfReach && this.prepGone !== m.incoming) m.prep(i, kind);   // the racket goes back at once (if he can get to it, and has not let it go)
           const tauC = this.tau != null ? this.tau + TIMING.swing : null;     // seconds until the ball is on him
           const fire = tauC != null ? tauC <= TIMING.swing + 0.012 : Math.hypot(m.ball.x - p.x, m.ball.z - p.z) < 3.0;     // early presses wait for the right moment; late ones go at once, late
@@ -292,7 +295,10 @@ export class Human {
             let X = lat ? lat * latX : clamp(chX, -(COURT.halfW - this.safe[0]), COURT.halfW - this.safe[0]), D = chD, power = ch ? ch.power : 0.74;
             // his own drop shot dies just over the net, his lob lands deep; with no angle held, both go away from the other man
             const away = -Math.sign(opp.x * s || 1);
-            if (own === 'drop') { X = lat ? lat * (COURT.halfW - 1.5) : away * (COURT.halfW - 1.9); D = -2.1; power = 0.4; }
+            // (the game's short angle, aimed the other way, is a deep ball that way)
+            if (ch && ch.ang && lat && Math.sign(chX) !== lat && !angle) D = -(COURT.halfLen - Math.max(2.4, this.safe[1] + 1.6));
+            if (angle) { const side = lat || -Math.sign(p.x * s || 1); X = side * (COURT.halfW - Math.max(0.6, this.safe[0] + 0.3)); D = -5.3; power = 0.6; }
+            else if (own === 'drop') { X = lat ? lat * (COURT.halfW - 1.5) : away * (COURT.halfW - 1.9); D = -2.1; power = 0.4; }
             else if (own === 'lob') { X = lat ? lat * (COURT.halfW - 1.6) : away * 1.5; D = -(COURT.halfLen - 1.7); power = 0.55; }
             else if (deep) D = -(COURT.halfLen - Math.max(1.3, this.safe[1] + 0.8));
             this.aim.X = X; this.aim.D = D;

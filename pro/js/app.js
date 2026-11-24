@@ -131,7 +131,7 @@ class App {
   }
   how() {
     const classic = this.set.controls === 'classic';
-    const K = classic ? [['W A S D', 'Move'], ['Space', 'Toss · Serve · Hit'], ['Hold ← or →', 'As you swing: angle'], ['Hold ↑ / ↓', 'As you swing: lob or deep · drop shot'], ['Hold ↑ / ↓', 'As you serve: kick · slice'], ['Space at the top', 'Of the toss: more pace'], ['V', 'Camera'], ['Tab', 'Statistics'], ['M', 'Sound'], ['Esc', 'Pause']]
+    const K = classic ? [['W A S D', 'Move'], ['Space', 'Toss · Serve · Hit'], ['Hold ← or →', 'As you swing: angle'], ['Hold ↑ / ↓', 'As you swing: lob or deep · drop shot (off a quick ball: short angle)'], ['Hold ↑ / ↓', 'As you serve: kick · slice'], ['Space at the top', 'Of the toss: more pace'], ['V', 'Camera'], ['Tab', 'Statistics'], ['M', 'Sound'], ['Esc', 'Pause']]
       : [['Mouse', 'Aim'], ['Tap', 'Rally ball'], ['Hold', 'Drive · longer is harder'], ['Release', 'As the ring closes'], ['Right button', 'Slice'], ['Shift', 'Flat'], ['Q', 'Lob'], ['E', 'Drop shot'],
         ['W A S D', 'Move'], ['Space', 'Split step'], ['Click · Click', 'Toss · Serve'], ['V', 'Camera'], ['Tab', 'Statistics'], ['Esc', 'Pause']];
     this.screen(this.bar('Controls', `<span class="chips">${[['classic', 'Classic'], ['mouse', 'Mouse']].map(([k, n]) => `<span class="chip ${this.set.controls === k ? 'on' : ''}" data-ctl="${k}">${n}</span>`).join('')}</span>`) + `<div class="keys">${K.map(([k, t]) => `<kbd>${k}</kbd><span>${t}</span>`).join('')}</div>`, '', true);

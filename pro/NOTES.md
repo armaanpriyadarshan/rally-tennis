@@ -1603,3 +1603,11 @@ still in the air, both in a stroke's finish, for two or three frames.
   way. The season's panel ("The Tour", and the year-end one) shows the year month by month, each event a chip in its surface's
   colour with its tier's dot (and his result once played), what each kind of event is worth, and the field by career win rate.
   (app.js courtSvg is the event panel's court, shared.)
+- **Short angles** (he said "balls never go anything but deep. like there are no short + wide shots"): every rally target was
+  1.7-3.8 m inside the baseline; the one short angle was the computer's, attacking from inside the court; and the few balls that
+  did land short and wide (4% of rally balls, tools/classicbot.mjs now prints where rally balls land) were deep balls gone astray.
+  ai.js: in a neutral rally a crosscourt short angle, landing near the side line about the service line, chosen most from out wide
+  (an angle answers an angle) and by heavy-topspin forehands, 5-29% of the time by the situation; the attacking short angle is his
+  own game's choice too. human.js: ↓ held on a ball too quick or too high to drop is a short angle (crosscourt, or to the side an
+  arrow holds); the game's short angle aimed the other way is a deep ball that way. Measured (300 points, Nadal v Djokovic, Tour):
+  short angles 4% → 7% of rally balls on both sides, points won 61% → 60%.

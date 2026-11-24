@@ -260,7 +260,7 @@ export class AI {
     // (a man whose forehand is his weapon plays it as one, whatever his aggression overall: Nadal's measured aggression is the
     // tour's lowest, 0.19, and taken for his forehand too it looped back most balls, a quarter of them two metres over the net)
     const agg = pl.wing === 'fh' && prof.fhAgg != null ? prof.fhAgg : prof.agg;
-    const T = (X, D, kind, power) => ({ kind, power, tx: X * sgn, tz: D * sgn });
+    const T = (X, D, kind, power, ang) => ({ kind, power, tx: X * sgn, tz: D * sgn, ang: !!ang });
     let goNet = this.goNet;
 
     // ---- at the net ----
@@ -311,8 +311,9 @@ export class AI {
         return T(open * (HW - r.range(1.2, 1.8)), -r.range(1.5, 2.7), 'drop', 0.4);
       // the short angle crosscourt, from inside the court: it lands near the side line in front of the service line and
       // goes off the court, dragging him with it
-      if (cpu && cD < 11.4 && Math.abs(cX) > 0.6 && r.u() < 0.18 + agg * 0.2)
-        return T(-Math.sign(cX) * (HW - r.range(0.45, 0.8)), -r.range(4.6, 6.2), 'drive', 0.62);
+      // (his own game's choice too, now: it never chose one for him, and he said "balls never go anything but deep")
+      if (cD < 11.4 && Math.abs(cX) > 0.6 && r.u() < 0.18 + agg * 0.2)
+        return T(-Math.sign(cX) * (HW - r.range(0.45, 0.8)), -r.range(4.6, 6.2), 'drive', 0.62, true);
       // into the open court, almost always when he is out of position
       const dir = r.u() < (cpu ? 0.72 + Math.min(0.24, oOut * 0.2) : 0.72) ? open : -open;
       const short = cD < 8.8;
@@ -323,6 +324,13 @@ export class AI {
       return T(dir * (HW - mX), -(HL - mD), kind, Math.min(1, lerp(AIT.atkP0, AIT.atkP1, agg) + (cpu ? 0.06 : 0)));
     }
     // ---- neutral: build the point ----
+    // the short angle: crosscourt, landing near the side line about the service line, so that it runs on off the court and takes
+    // him with it - off a ball he is set for, most often from out wide (an angle answers an angle) and by the heavy topspin
+    // forehands, Nadal's and Alcaraz's; some in every man's rallies (he said "balls never go anything but deep. like there are no
+    // short + wide shots": they were 4% of rally balls, all of them a deep ball gone astray)
+    { const wideK = clamp((Math.abs(cX) - 1.0) / 2.4, 0, 1), spinK = pl.wing === 'fh' ? clamp(((prof.fhRpm || 2600) - 2400) / 1400, 0, 1) : 0.3 * clamp(((prof.bhRpm || 1800) - 1600) / 1000, 0, 1);
+      const pA = (0.05 + 0.13 * wideK + 0.07 * spinK + 0.04 * agg) * (cD < 13.2 ? 1 : 0.3) * (h < 1.6 ? 1 : 0.4);
+      if (Math.abs(cX) > 0.4 && pl.slack > 0.04 && r.u() < pA) return T(-Math.sign(cX) * (HW - r.range(0.4, 0.95)), -r.range(4.3, 6.4), 'drive', 0.58, true); }
     const u = r.u();
     let X;
     // building the point: a man out of position is moved again, into the space he has left
