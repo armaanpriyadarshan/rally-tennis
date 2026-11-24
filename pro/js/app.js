@@ -301,7 +301,7 @@ class App {
     const n = lv => TOURNAMENTS.filter(t => t.level === lv).length, sf = k => TOURNAMENTS.filter(t => t.surface === k).length;
     const pts = lv => { const t = TOURNAMENTS.find(x => x.level === lv); return t && t.points ? Number(t.points.W || 0).toLocaleString('en-GB') : '—'; };
     const tile = (k, v, sub) => `<div class="tl"><span class="lab">${k}</span><b>${v}</b>${sub ? `<i>${sub}</i>` : ''}</div>`;
-    const field = PLAYERS.map(p => p.id).sort((a, b) => (PLAYERS[b].facts.win?.overall || 0) - (PLAYERS[a].facts.win?.overall || 0));
+    const field = PLAYERS.map(p => p.id).sort((a, b) => ratingsOf(b).ovr - ratingsOf(a).ovr);
     const me = S ? S.human : this.sel.p0;
     const rows = field.map((id, i) => { const f = PLAYERS[id].facts; return `<div class="${id === me ? 'me' : ''}"><small>${i + 1}</small><b>${esc(pname(id))}</b><i>${esc(f.country || '')}</i><em>${f.slams ? f.slams + (f.slams === 1 ? ' major' : ' majors') : ''}</em></div>`; }).join('');
     const head = S ? `<span class="lab">Year end · ${S.results.filter(r => r.human === 'W').length} titles</span><b>No. ${S.rankOf(S.human)}</b><span class="lab">${esc(pname(S.human))} · ${S.pts[S.human]} points</span>`

@@ -183,7 +183,7 @@ function us(A, spec, K) {
     const each = T.lift / T.suites;
     const c = TX.canvas(2048, 64), g = c.getContext('2d'); g.fillStyle = '#0f2050'; g.fillRect(0, 0, 2048, 64);
     g.fillStyle = '#ffffff'; g.font = '700 34px "Helvetica Neue", Helvetica, Arial, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
-    const words = ['ARTHUR ASHE STADIUM', 'MERIDIAN', 'NEW YORK', 'VOLTA', 'NORTHLINE', 'KESTREL AIR'];
+    const words = ['ARTHUR ASHE STADIUM', 'AMERICAN EXPRESS', 'NEW YORK', 'Emirates', 'IBM', 'USOPEN.ORG'];   // (the suites' fascias as they read: venues.js BRANDS)
     words.forEach((w, i) => g.fillText(w, (i + 0.5) * 2048 / words.length, 34));
     const t = TX.tex(c, { aniso: 8 }); t.wrapS = THREE.RepeatWrapping;
     const m = K.mat('#ffffff', { map: t, roughness: 0.5, emissive: new THREE.Color('#ffffff'), emissiveMap: t, emissiveIntensity: A.night ? 0.55 : 0.12 });

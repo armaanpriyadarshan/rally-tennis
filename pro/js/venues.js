@@ -6,7 +6,8 @@
 // Signage is the venue's own words and invented partner names — no real brands.
 import * as THREE from 'three';
 
-const PARTNERS = ['MERIDIAN', 'VOLTA', 'NORTHLINE', 'ARCADIA', 'HALCYON', 'OSTRA', 'KESTREL AIR', 'LUMEN'];
+// (an exhibition away from the tour's courts: the tour's own partners, as the ATP's boards show them; every event has its own, BRANDS below)
+const PARTNERS = ['ATP TOUR', 'Emirates', 'LEXUS', 'Lavazza', 'Infosys', 'PIF', 'Peroni', 'Hublot'];
 
 // A photograph shows a sunlit surface after the camera's exposure and tone curve. The
 // renderer does the same to whatever colour a surface is given, so the sampled colour is
@@ -124,6 +125,47 @@ export function sunElevation(key, hours) {
   return Math.asin(Math.sin(lat) * Math.sin(dec) + Math.cos(lat) * Math.cos(dec) * Math.cos(H)) / R;
 }
 
+// What each event really shows round its show court, 2025-26 (he said "from stadium to stadium the logos are all the same and generic and
+// fake instead of looking like that stadium"; a research pass over Tennis TV stills, tournament photographs and partner pages, in
+// ~/.cache/rally-research/branding.md). Most courts are now LED walls in one colour with every partner in white; a few boards keep
+// their own colours (Emirates white on red, Rolex white on its green). `back`: the word on the wall behind the baseline; `side`: the
+// partners along the walls, most prominent first; `wall`: where the wall colour differed (kept a shade darker, as the photographed
+// walls are, in shade); `clock`: the clock's maker; `drink`: the players' fridge; `ground`: a name painted behind the baseline.
+const E = { t: 'Emirates', fg: '#ffffff', bg: '#d71921', font: 'Georgia, "Times New Roman", serif', weight: 'italic 700' };
+const RX = { t: 'ROLEX', fg: '#ffffff', bg: '#006039', font: 'Georgia, "Times New Roman", serif', spacing: 8 };
+const w = t => ({ t });
+const BRANDS = {
+  ao:  { back: w('KIA'), side: ['KIA', E, 'INFOSYS', 'DUNLOP', 'CyberCX', 'NB', 'GUOJIAO 1573'], clock: 'ROLEX', ribbon: 'AUSTRALIAN OPEN' },
+  rot: { back: w('ROTTERDAM'), side: ['ABN·AMRO', 'LEXUS', 'ABN·AMRO', 'ROTTERDAM'], wall: '#0d0d10' },
+  dal: { back: w('NEXO DALLAS OPEN'), side: ['NEXO', 'Baker Tilly', 'SUB-ZERO', 'WOLF', 'COVE', 'LEXUS'], wall: '#2f2c2a', ground: 'DALLAS' },
+  doh: { back: w('ExxonMobil'), side: ['ExxonMobil', RX, 'Doha Bank', 'FIFTY ONE EAST', 'fnac'], wall: '#23479b', clock: 'ROLEX' },
+  rio: { back: w('Claro'), side: [{ t: 'Claro', fg: '#ffffff', bg: '#da291c' }, 'RIO OPEN', 'Seara', 'LIDER', 'XP', 'Mubadala', 'Shell', 'ENGIE'], wall: '#14223c' },
+  dub: { back: w('Dubai Duty Free'), side: ['Dubai Duty Free', E, 'J.P. Morgan', RX, 'Mercedes-Benz', 'evian'], wall: '#1d3a8f', clock: 'ROLEX' },
+  aca: { back: w('telcel'), side: ['telcel', 'HSBC', 'PEPSI', 'GNP', 'SEARS', 'OPPO', 'Haier', 'GATORADE'], ground: 'ACAPULCO' },
+  iw:  { back: w('BNP PARIBAS'), side: ['BNP PARIBAS', RX, E, 'BMW', 'PIF', 'HOLOGIC', 'motorola', 'FAGE'], clock: 'ROLEX', ground: 'INDIAN WELLS' },
+  mia: { back: w('Cadillac'), side: ['Itaú', 'Cadillac', 'PIF', 'PIRELLI', 'LACOSTE', 'PARMIGIANO REGGIANO', 'betway'], wall: '#10152a' },
+  mc:  { back: RX, side: ['BNP PARIBAS', E, 'MONACO TELECOM', 'DUNLOP', 'MALONGO', 'YOKOHAMA', 'GENERALI', 'LANSON'], wall: '#0c4d31', clock: 'ROLEX' },
+  bar: { back: w('Sabadell'), side: ['Sabadell', 'MANGO', 'LA VANGUARDIA', 'DUNLOP', 'nilox', 'VEOLIA', 'CEPSA'] },
+  mun: { back: w('BMW OPEN by bitpanda'), side: ['bitpanda', 'Allianz', 'RADO', 'KoRo', 'Stadtsparkasse München', 'DAIKIN'], clock: 'RADO' },
+  mad: { back: w('MUTUA MADRID OPEN'), side: ['Mutua', E, 'Mercedes-Benz', 'Estrella Damm', 'COSENTINO', 'HOLOGIC', 'PIF', 'LACOSTE'], wall: '#b8392a', ground: 'MADRID' },
+  rom: { back: w('BNL BNP PARIBAS'), side: ['REALE MUTUA', 'EA7 EMPORIO ARMANI', 'BMW', 'Frecciarossa', E, RX, 'Peroni'], wall: '#3a4455', clock: 'ROLEX' },
+  ham: { back: w('BITPANDA HAMBURG OPEN'), side: ['bitpanda', 'Unzer', 'MB Energy', E] },
+  rg:  { back: w('BNP PARIBAS'), side: ['ISDIN', 'Renault', 'ALL ACCOR', E, 'ENGIE', 'Infosys'], clock: 'ROLEX', drink: 'Perrier', drinkCol: '#0a7a3c' },
+  hal: { back: w('bwin'), side: ['terra', 'WORTMANN AG', 'bwin', { t: 'HYLO', fg: '#2c8a3e', bg: '#e4e6e8' }, 'bitpanda', 'VELTINS', 'ROBINSON'], wall: '#1b473b' },
+  que: { back: w('HSBC CHAMPIONSHIPS'), side: ['HSBC', 'LEXUS', 'Infosys', 'Schweppes', 'Haier', 'LTA'], wall: '#b0141d' },
+  wim: { clock: 'ROLEX', drink: 'evian', drinkCol: '#e4007c' },
+  was: { back: w('MUBADALA DC OPEN'), side: ['MUBADALA', 'Har-Tru', 'MUBADALA', 'DC OPEN'] },
+  can: { back: w('NATIONAL BANK OPEN'), side: ['National Bank', 'Rogers', 'Mercedes-Benz', 'Sobeys', 'IRIS', 'Stella Artois', 'Canadian Tire', 'Wilson'] },
+  cin: { back: w('CINCINNATI OPEN'), side: ['Credit One Bank', 'Secret', 'Fifth Third Bank', 'DOBEL', E, 'Cadillac', 'Western & Southern'], wall: '#26348f', clock: 'ROLEX' },
+  us:  { back: w('US OPEN'), side: ['CHASE', 'J.P. Morgan', E, 'AMERICAN EXPRESS', 'IBM', RX, 'Cadillac'], clock: 'ROLEX' },
+  tok: { back: w('KINOSHITA GROUP JAPAN OPEN'), side: ['EQT', E, 'LAND ROVER', 'Lavazza', 'YONEX', 'asics', 'FILA', 'AMERICAN EXPRESS'] },
+  bei: { back: w('CHINA OPEN'), side: ['Mercedes-Benz', 'CITIC BANK', 'Lenovo ThinkPad', 'Casarte', 'luckin coffee', 'FILA'], ground: 'BEIJING' },
+  sha: { back: RX, side: [{ t: 'Heineken', fg: '#ffffff', bg: '#00843d' }, 'Mercedes-Benz', { t: 'AMERICAN EXPRESS', fg: '#ffffff', bg: '#006fcf' }, 'ROYAL CARIBBEAN', 'SHUI JING FANG'], clock: 'ROLEX' },
+  bas: { back: w('SWISS INDOORS BASEL'), side: [E, { t: 'SHARP', fg: '#e60012', bg: '#ffffff' }, { t: 'IWB', fg: '#0060a9', bg: '#ffffff' }, 'PEUGEOT', 'J. SAFRA SARASIN', 'bitpanda', 'evian'], clock: 'RADO', ground: 'BASEL' },
+  vie: { back: w('ERSTE BANK OPEN'), side: ['ERSTE BANK', 'WIENER STÄDTISCHE', 'win2day', 'BMW', 'RADO', 'Red Bull'], clock: 'RADO' },
+  par: { back: RX, side: ['VEOLIA', 'Haier', 'LEXUS', 'LACOSTE', 'evian', E], clock: 'ROLEX', ribbon: '#ROLEXPARISMASTERS' },
+  fin: { back: w('NITTO ATP FINALS'), side: ['Nitto', 'Intesa Sanpaolo', E, 'Lavazza', 'LEXUS', 'EA7', 'Haier', 'Red Bull'], wall: '#0f1526' },
+};
 export function venueSpec(key, weather, surface) {
   const v = VENUES[key] || VENUES.default;
   const out = { ...BASE, ...v, weather: weather || 'clear', key };
@@ -135,5 +177,16 @@ export function venueSpec(key, weather, surface) {
   out.own = !!v.court;
   out.city = out.city || 'RALLY';
   if (!out.backText) out.backText = [out.city];
+  // (its own partners, wordmark, wall colour, clock and drink: BRANDS above)
+  const B = BRANDS[key];
+  if (B) {
+    if (B.side) out.boards = B.side.map(b => typeof b === 'string' ? b : { ...b });
+    if (B.back) { out.backText = [{ ...B.back }]; delete out.backTextSize; }
+    if (B.wall) out.wall = B.wall;
+    if (B.ribbon) out.ribbonText = B.ribbon;
+    if (B.ground) out.groundText = B.ground;
+    if (B.clock) out.clockBrand = B.clock;
+    if (B.drink) { out.drink = B.drink; out.drinkCol = B.drinkCol; }
+  }
   return out;
 }

@@ -376,10 +376,11 @@ export function strength(id, surface, key) { const w = clamp(eventRate(id, key, 
 // entry to the next, and by the event: Nadal at Roland Garros, the grass players at Wimbledon. `rnd` gives 0..1.
 export function eventSeeding(ids, T, rnd, form = 0.35) {
   const g = () => { let u = 0; while (u === 0) u = rnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * rnd()); };
-  // (his win rate here as it is, up to 98.5%: the match model caps it at 93%, which would rank Nadal at Roland Garros, 112-4,
-  // level with anyone else above 93)
-  const lo = id => { const w = clamp(eventRate(id, T.key, T.surface).rate / 100, 0.3, 0.985); return Math.log(w / (1 - w)) + (levelOf(id) - 84) * 0.07; };
-  return ids.map(id => ({ id, s: lo(id) + form * g() })).sort((a, b) => b.s - a.s).map(x => x.id);
+  // (by his level, then how much better or worse he does at this event than anywhere - Nadal at Roland Garros, the grass players at
+  // Wimbledon, a quarter of a level point a percent - and this week's form; it went by career win rate, and he said "thiem should not
+  // be below kyrgios")
+  const lv = id => levelOf(id) + 0.25 * eventEdge(id, T.key, T.surface).pct;
+  return ids.map(id => ({ id, s: lv(id) + 4 * form * g() })).sort((a, b) => b.s - a.s).map(x => x.id);
 }
 
 // ---------- tournaments ----------

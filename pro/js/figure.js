@@ -1483,7 +1483,10 @@ export class Figure {
     // that bent both arms, hands at the waist, elbows out behind: a gunslinger's stance from the camera behind him. (Eased in
     // and out; not in a reaction, which places its own hands, nor waiting to serve.)
     // (not while he is still running out the point: hanging straight down at a sprint, the free hand sat on his hip)
-    { const want = !live && !this.posed && !serverWait ? (1 - Math.max(this.reactK || 0, this.touchK || 0)) * (1 - sm(sw / 0.2)) * (1 - sm((speed - 2.0) / 1.5)) : 0, wH = clamp(ease(this, 'hangW', want, 13, dt), 0, 1) * ((1 - Math.max(this.reactK || 0, this.touchK || 0)));   /* (and let go of with the reaction's own weight, not after it on its own spring: a fist pumped up to the chin was held 8 cm down by the hanging arm still letting go) */
+    // (and not once he is walking: the walk's own arms then, the elbows a little bent and swinging with the legs - held straight
+    // down at the hang as he walked to the net after the match, his hands swung a fifth of a metre and the arms looked frozen;
+    // he said "their arms get frozen weirdly")
+    { const want = !live && !this.posed && !serverWait ? (1 - Math.max(this.reactK || 0, this.touchK || 0)) * (1 - sm(sw / 0.2)) * (1 - sm((speed - 2.0) / 1.5)) * (1 - (this.strollK || 0) * sm((speed - 0.5) / 0.5)) : 0, wH = clamp(ease(this, 'hangW', want, 13, dt), 0, 1) * ((1 - Math.max(this.reactK || 0, this.touchK || 0)));   /* (and let go of with the reaction's own weight, not after it on its own spring: a fist pumped up to the chin was held 8 cm down by the hanging arm still letting go) */
       if (wH > 0.001) { const shs = [shL, shR]; for (let i = 0; i < 2; i++) { const hy = shs[i].y - (D.upper + D.fore) * 0.97; if (tgt[i].y > hy) tgt[i].y = lerp(tgt[i].y, hy, wH); } } }
     // running flat out, or strolling between points, the arms are the clip's own: they swing
     // (coming out of a stroke the arms are handed to the run as the stroke lets go of them, not at once below some mark, and

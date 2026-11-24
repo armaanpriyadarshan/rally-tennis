@@ -241,7 +241,8 @@ export class Season {
   }
   field() { return PLAYERS.filter(p => this.pool === 'all' || p.active || p.id === this.human).map(p => p.id); }
   // before any points exist: career strength, with this season's form on top, so each season opens with its own order
-  baseOrder() { const s = {}; for (const id of this.field()) { const w = Math.min(0.93, PLAYERS[id].overall / 100); s[id] = Math.log(w / (1 - w)) + 1.6 * (this.form[id] || 0); }
+  // (by his level - data.js LEVEL - and the season's form, not his career win rate: by that Kyrgios opened above Thiem)
+  baseOrder() { const s = {}; for (const id of this.field()) s[id] = levelOf(id) + 6 * (this.form[id] || 0);
     return this.field().sort((a, b) => s[b] - s[a]); }
   ranking() { const base = this.base; return this.field().sort((a, b) => (this.pts[b] - this.pts[a]) || (base.indexOf(a) - base.indexOf(b))); }
   rankOf(id) { return this.ranking().indexOf(id) + 1; }

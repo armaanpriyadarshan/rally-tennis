@@ -1722,3 +1722,23 @@ still in the air, both in a stroke's finish, for two or three frames.
   wing's pace and spin against his own era's rackets; how much court he covers; points won at the net and how often he goes), with
   his weapon and his weakness as the charting research names them (Djokovic's return, Federer's forehand, Edberg's forehand).
   data.js ratingsOf. The pick grid shows the overall.
+- **Each stadium's own branding** (he said "from stadium to stadium the logos are all the same and generic and fake instead of looking
+  like that stadium"): the eight invented partners (Meridian, Halcyon, Ostra...) on every wall are gone. venues.js BRANDS, from a
+  research pass over Tennis TV stills, tournament photographs and partner pages for all 30 events (2025-26; ~/.cache/rally-research/
+  branding.md): each court's word behind the baseline (KIA at Melbourne, MUTUA MADRID OPEN, HSBC CHAMPIONSHIPS at Queen's, ROLEX at
+  Monte-Carlo and Shanghai, BNP PARIBAS at Roland Garros and Indian Wells...), its partners along the walls, white on the LED colour
+  as most courts now are, with the few boards that keep their own colours (Emirates white on red, Rolex on its green, Heineken,
+  SHARP, IWB); wall colours corrected where they were wrong (Madrid's red, Queen's HSBC red, Rio's navy, Doha's blue, Miami's
+  near-black, Cincinnati's indigo, the Finals' black); the names painted behind the baseline (INDIAN WELLS, MADRID, DALLAS,
+  ACAPULCO, BEIJING, BASEL); the clock's maker (ROLEX, RADO at Munich, Basel and Vienna); Perrier in the fridges at Roland Garros,
+  evian at Wimbledon (which still carries almost no advertising). Arthur Ashe's suites read AMERICAN EXPRESS, Emirates, IBM. An
+  exhibition away from the tour's courts shows the ATP's own partners. Brand names are lettered in their colours, not drawn as their
+  logos.
+- **Seeding by level** (he said "fix the initial seedings based on attributes and not just career win %... thiem should not be below
+  kyrgios"): a season opens in order of level and the season's form (data.js LEVEL), not career win rate (Kyrgios's 62.9% had put
+  him above Thiem's 61.7%); a tournament seeds by level, his record at the event against his record anywhere (a quarter of a level
+  point a percent: Nadal first at Roland Garros) and the week's form. The season panel's field is in order of overall rating.
+- **Arms on the walk after the match** (he said "the players' walking pose is still really weird sometimes after the game. like
+  their arms get frozen weirdly"): walking to the net and the chairs, both arms were held straight down at the hang meant for
+  standing between points, the hands swinging a fifth of a metre; once he walks, the walk's own arms take over (the elbows a little
+  bent, swinging with the legs).

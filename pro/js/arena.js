@@ -370,7 +370,7 @@ export function buildArena(spec, opt = {}) {
         g.lineCap = 'round'; g.lineWidth = 9; g.beginPath(); g.moveTo(150, 192); g.lineTo(150 + Math.sin(ha) * 56, 192 - Math.cos(ha) * 56); g.stroke();
         g.lineWidth = 6; g.beginPath(); g.moveTo(150, 192); g.lineTo(150 + Math.sin(ma) * 84, 192 - Math.cos(ma) * 84); g.stroke();
         // serve clock, and beneath it the last serve's speed (the shot clock and the speed of serve share one box at tour events)
-        g.fillStyle = 'rgba(255,255,255,0.86)'; g.font = '700 22px "Helvetica Neue", Helvetica, Arial, sans-serif'; g.textAlign = 'center'; g.fillText('OFFICIAL TIME', 150, 350); g.fillText('SHOT CLOCK', 384, 112);
+        g.fillStyle = 'rgba(255,255,255,0.86)'; g.font = '700 22px "Helvetica Neue", Helvetica, Arial, sans-serif'; g.textAlign = 'center'; g.fillText(spec.clockBrand || 'OFFICIAL TIME', 150, 350); g.fillText('SHOT CLOCK', 384, 112);
         if (speed != null) { g.fillStyle = '#ffffff'; g.font = '700 40px "Helvetica Neue", Helvetica, Arial, sans-serif'; g.fillText(String(speed), 362, 318); g.font = '700 20px "Helvetica Neue", Helvetica, Arial, sans-serif'; g.fillStyle = 'rgba(255,255,255,0.75)'; g.fillText('KM/H', 438, 318); }
         g.fillStyle = '#060807'; g.fillRect(296, 136, 176, 132);
         // (a changeover's 90 seconds and a set break's 120 as minutes and seconds, smaller to fit)
