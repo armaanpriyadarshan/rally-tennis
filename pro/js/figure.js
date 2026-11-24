@@ -491,11 +491,12 @@ export class Figure {
       // game turns into a volley at the net) changes where the ball goes, not the arms, once the swing is under way; swapped
       // a sixth of a second before contact, the arms were thrown from one swing's shape to another's at the ball.
       { const ue = st.tc != null ? t - st.tc : st.tcPlan != null ? t - st.tcPlan : -9;
-        // (but a drive turned into a drop shot or a lob as he lets go, ↓ or ↑ held with the press, is shown as one until a tenth of a
-        // second before the ball, eased across from the drive's shape over that time: locked a third of a second out, every drop shot
-        // the player called himself was swung as a drive)
-        const lateOwn = st.__dk != null && st.kind !== st.__dk && /^(drive|flat|loop|lob|drop)$/.test(st.__dk) && /^(drop|lob)$/.test(st.kind) && ue < -0.1;
-        if (lateOwn && ue >= -0.3 && this.poseLast && this.lpLast) { this.xfT = t; this.xfD = clamp(-ue * 0.75, 0.06, 0.2); this.xfPose = this.poseLast; (this.xfLP || (this.xfLP = new Float32Array(N3))).set(this.lpLast); }
+        // (but a drive turned into a drop shot or a lob as he lets go, ↓ or ↑ held with the press, is shown as one right up to the
+        // ball, eased across from the drive's shape in what time is left: locked a third of a second out, every drop shot the player
+        // called himself was swung as a drive; and locked a tenth out, so was every one called on the moment that is Perfect, 0.08 s
+        // before the ball - he said "sometimes dropshots dont trigger the animations")
+        const lateOwn = st.__dk != null && st.kind !== st.__dk && /^(drive|flat|loop|lob|drop)$/.test(st.__dk) && /^(drop|lob)$/.test(st.kind) && ue < 0.02;
+        if (lateOwn && ue >= -0.3 && this.poseLast && this.lpLast) { this.xfT = t; this.xfD = clamp(-ue * 0.75, 0.04, 0.2); this.xfPose = this.poseLast; (this.xfLP || (this.xfLP = new Float32Array(N3))).set(this.lpLast); }
         if (st.__dk == null || st.kind === 'serve' || st.kind === 'smash' || st.__dk === 'serve' || st.__dk === 'smash' || ue < -0.3 || lateOwn) st.__dk = st.kind;
         // A groundstroke begun with under a third of a second to the ball, nothing set up for it (pressed late, or a ball the
         // planner had not prepared him for), is played as what a player does then: a short blocked swing, the racket taken back

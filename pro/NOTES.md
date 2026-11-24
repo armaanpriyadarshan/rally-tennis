@@ -1563,3 +1563,8 @@ still in the air, both in a stroke's finish, for two or three frames.
   them; a few no-op products of the folding (`* 1`, `Math.max(1, sm(…))`); tools/out (2 MB of intermediate clips nothing reads).
   The game's JS is about 650 lines shorter. Verified after each stage: the seven seeded bot matches byte for byte, the browser
   fingerprint hash for hash, and the app's match end and trophy without errors.
+- **Drop shots shown as drop shots again** (he said "sometimes dropshots dont trigger the animations"): a drop (or lob) called with
+  the press, ↓ held, was shown as one only if it came more than 0.1 s before the ball; since Perfect moved to 0.08 s before it, a drop
+  called on the moment never did - 10 of 10 in a browser test pressing Space with ↓ as the ring closed were swung as drives. Now the
+  switch is taken right up to contact, eased in over what time is left (at least 0.04 s): 10 of 10 shown as drops, filmed from the
+  side (the short, low, open-faced finish, not the forehand's wrap).
