@@ -86,8 +86,10 @@ export class Human {
       const side = m.deuceSide ? 1 : -1, bx = p.x * s;
       if (!this.placed || this.placedNo !== m.score.pointNo) { this.placed = true; this.placedNo = m.score.pointNo; }
       // (at his ordinary pace, not a crawl: he said "the walk to move side to side preserve should be normal speed not slow" - the
-      // input was halved and the server held to 1.6 m/s, so it went at 0.8; `__srvMoveOld`)
-      p.move.x = mv.x * s * 1; p.srvFree = true;
+      // input was halved and the server held to 1.6 m/s, so it went at 0.8. With ← → as well as A D: nothing is aimed until he serves,
+      // and with W A S D alone to move he said "you cant walk side to side before serving anymore")
+      const mvS = classic && inp.move ? inp.move() : mv;
+      p.move.x = mvS.x * s; p.srvFree = true;
       const lim = side > 0 ? [0.15, COURT.halfW + 0.2] : [-COURT.halfW - 0.2, -0.15];
       if ((bx <= lim[0] && mv.x < 0) || (bx >= lim[1] && mv.x > 0)) p.move.x = 0;
       p.x = clamp(bx, lim[0], lim[1]) * s;

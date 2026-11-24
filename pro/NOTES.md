@@ -1537,3 +1537,14 @@ still in the air, both in a stroke's finish, for two or three frames.
   round the court, 4% quicker to react, 2% more pace (data.js DIFFICULTY). classicbot (which now gives the opponent the level's speed,
   reaction and pace as the game does, not only its errors), Nadal v Djokovic, 400 points: Tour, pressing on the moment, 86% → 79% of
   points; pressing 0.04 s late, 52% → 47%; Challenger 69% → 66% (late).
+- **Cleanup, first stage: the development switches removed.** ~560 reads of `globalThis.__…` (414 switches, none ever set by the game -
+  only by the tools here, to compare an old behaviour or try a number) were resolved to what the shipped game sees and the code
+  behind the old behaviours deleted, by a formatting-preserving transform (recast; it folds `!unset`, `unset ?? v`, known tests,
+  the constants that follow and their branches, and keeps the comments of what it unwraps); five leftovers by hand. Verified
+  identical before and after: seven seeded classicbot matches (players, levels, surfaces, assist, wind, net play, draws and
+  profiles) byte for byte, and tools/steps_determinism.mjs (a seeded match in the browser: every bone of both men, the racket,
+  the ball and the camera every 15 frames, then the end of the match) hash for hash; the app's own match end, trophy and results
+  run without errors. The NOTES above still name the switches as history; they no longer exist.
+- **← → move him before the serve again** (he said "also you cant walk side to side before serving anymore"): with W A S D to move,
+  the arrows only aimed - but nothing is aimed until he serves. Before the toss both move him; the serve is aimed by what is held as
+  he serves, as it always was.
