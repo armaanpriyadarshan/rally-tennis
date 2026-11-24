@@ -424,7 +424,7 @@ export class Figure {
     else
       { const dx = p.vx - this.vS[0], dz = p.vz - this.vS[1], dl = Math.hypot(dx, dz), mx = 18 * dt; if (dl > mx) { this.vS[0] += dx * mx / dl; this.vS[1] += dz * mx / dl; } else { this.vS[0] = p.vx; this.vS[1] = p.vz; } }
     if (this.vS[0] !== p.vx || this.vS[1] !== p.vz) p = Object.assign(Object.create(p), { vx: this.vS[0], vz: this.vS[1] });
-    const H = this.H, s = p.sgn, hs = this.hs, t = m.t, D = this.D, person = this.person;
+    const H = this.H, s = p.sgn, hs = this.hs, t = m.t + (m.tAfter || 0), D = this.D, person = this.person;   /* (tAfter: the end of the match, game.js endFrame) */
     const speed = this.lastSpeed = Math.hypot(p.vx, p.vz);
     const base = s > 0 ? 0 : Math.PI;                      // facing the net
     if (!this.inited) { this.lockF = [{ on: false }, { on: false }]; this.pvx = this.pvz = null; this.ax = this.az = 0; this.slideT = 0;

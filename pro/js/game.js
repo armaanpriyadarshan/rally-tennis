@@ -130,7 +130,11 @@ export class Game {
     // the last ball goes on as any dead ball does, bouncing on and rolling to the wall: the match is no longer stepped once this has
     // begun, at the moment the point is decided - often its bounce - and it hung there (he said "the ball freezes on bounce for the
     // match point")
-    this.endAcc = (this.endAcc || 0) + Math.min(dt, 0.05); let ns = 0; while (this.endAcc >= STEP && ns++ < 40) { m.deadBall(STEP); this.endAcc -= STEP; }
+    this.endAcc = (this.endAcc || 0) + Math.min(dt, 0.05); let ns = 0; while (this.endAcc >= STEP && ns++ < 40) { m.deadBall(STEP); m.tAfter = (m.tAfter || 0) + STEP; this.endAcc -= STEP; }
+    // (and the players' own clock goes on with it (figure.js reads m.t + m.tAfter; m.t, the match's length, stays where the last point
+    // ended it): a blend into the next pose begun in the match's last step was timed by m.t and stood still at its start, the body
+    // held in that one frame's stride as he walked to the net - he said "the opponent player still loads like this shit after a
+    // match instead of walking")
     if (m.events.length) this.drain();
     const I = this.input; if (I && (I.pressed.has('Space') || I.pressed.has('Enter'))) { I.takePressed(); I.takeEdges(); if (!S.skipT || this.time - S.skipT > 0.4) { S.skipT = this.time; this.endSkip(); } }
     if (S.stage === 'cel') {
@@ -567,7 +571,7 @@ export class Game {
           const b = { ...a.ball, x: L(a.ball.x, c.ball.x), y: L(a.ball.y, c.ball.y), z: L(a.ball.z, c.ball.z) };
           this.replayStrokes(a, c, u);
           const P = [0, 1].map(i => Object.assign(Object.create(live.players[i]), a.p[i], { x: L(a.p[i].x, c.p[i].x), z: L(a.p[i].z, c.p[i].z), vx: L(a.p[i].vx, c.p[i].vx), vz: L(a.p[i].vz, c.p[i].vz) }));
-          const m = Object.assign(Object.create(live), { t: tt, phase: a.phase, phaseT: a.phase === c.phase ? L(a.phaseT, c.phaseT) : a.phaseT, ball: b, players: P, incoming: a.inc,
+          const m = Object.assign(Object.create(live), { t: tt, tAfter: 0, phase: a.phase, phaseT: a.phase === c.phase ? L(a.phaseT, c.phaseT) : a.phaseT, ball: b, players: P, incoming: a.inc,
             score: Object.assign(Object.create(live.score), { server: a.server }) });
           for (let i = 0; i < 2; i++) this.fig[i].update(pdt, P[i], m);
         } }
@@ -577,7 +581,7 @@ export class Game {
       const b = { ...a.ball, x: L(a.ball.x, c.ball.x), y: L(a.ball.y, c.ball.y), z: L(a.ball.z, c.ball.z) };
       this.replayStrokes(a, c, u);
       const P = [0, 1].map(i => Object.assign(Object.create(live.players[i]), a.p[i], { x: L(a.p[i].x, c.p[i].x), z: L(a.p[i].z, c.p[i].z), vx: L(a.p[i].vx, c.p[i].vx), vz: L(a.p[i].vz, c.p[i].vz) }));
-      const m = Object.assign(Object.create(live), { t: rp.t, phase: a.phase, phaseT: a.phase === c.phase ? L(a.phaseT, c.phaseT) : a.phaseT, ball: b, players: P, incoming: a.inc,
+      const m = Object.assign(Object.create(live), { t: rp.t, tAfter: 0, phase: a.phase, phaseT: a.phase === c.phase ? L(a.phaseT, c.phaseT) : a.phaseT, ball: b, players: P, incoming: a.inc,
         score: Object.assign(Object.create(live.score), { server: a.server }) });
       const sdt = dt * rp.speed;
       for (let i = 0; i < 2; i++) this.fig[i].update(sdt, P[i], m);

@@ -1820,3 +1820,9 @@ still in the air, both in a stroke's finish, for two or three frames.
   angles opening up with where he stands, everything else.
 - The line judges at Roland Garros are gone (he said "get rid of the line judges bro they look so eerie"): eight seated figures, still,
   along the walls. The court has the umpire and the six ball kids, as everywhere else.
+- After a match a player could walk to the net frozen in one stride, sliding over the court (he said "the opponent player still
+  loads like this shit after a match instead of walking"). The figures' blends into a new pose (figure.js xfT/xfK) are timed by the
+  match clock, and the match is no longer stepped once it is over: a blend begun in its last step stood still at its start, the
+  whole body held in that frame's pose. The players' clock now runs on through the end sequence (game.js endFrame, m.tAfter, added in
+  figure.js; m.t, the match's length on the stats card, is left as the last point ended it). Measured on ten finished matches: three
+  had a man frozen (feet fixed under him, 0 cm of lift), none now (both men's feet lift 14 cm a step, all twenty).
