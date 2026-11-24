@@ -1028,9 +1028,13 @@ export class Match {
       // especially on clay, not enough bounce or topspin feel": struck alike, everyone's went fast and low. And the top pace a little
       // lower: "the speed boost is lowk too much", 1.36 times his average at Perfect, now 1.27)
       const sH = kind === 'flat' ? 0 : clamp((wingRpm - 2900) / 700, 0, 1);
-      v = wingKmh / 3.6 * lerp(0.88, 1.2, Q) * (kind === 'flat' ? 1.06 : 1) * (loopy ? 0.82 : 1) * (1 - 0.18 * clamp((0.5 - h) / 0.5, 0, 1)) * (1 - 0.12 * sH);
+      // (an ordinary strike at his own average pace and a Perfect one about a quarter over it, as the tour's winners are: straight from 0.88 to
+      // 1.2 of it, a Perfect forehand from Nadal on the line came back off Djokovic's racket - he said "even when i hit perfect shots on
+      // the lines as nadal against djokovic nothing is a winner")
+      v = wingKmh / 3.6 * (0.9 + 0.35 * Q * Q) * (kind === 'flat' ? 1.06 : 1) * (loopy ? 0.82 : 1) * (1 - 0.18 * clamp((0.5 - h) / 0.5, 0, 1)) * (1 - 0.12 * sH);
       top = kind === 'flat' ? wingRpm * lerp(0.45, 0.6, Q) : Math.min(4500, wingRpm * lerp(1.0, 1.22, Q) * (1 + 0.32 * sH) * (loopy ? 1.15 : 1));
-      minClear = (loopy ? lerp(1.4, 1.0, Q) : lerp(1.0, 0.3, Q) + 0.9 * sH * lerp(1, 0.8, Q)) * (prof.arcS || 1);
+      // (a Perfect heavy-topspin drive comes through lower and quicker, a weapon: its margin over the net a third less than a rally ball's)
+      minClear = (loopy ? lerp(1.4, 1.0, Q) : lerp(1.0, 0.3, Q) + 0.9 * sH * lerp(1, 0.8, Q) * (1 - 0.3 * pf)) * (prof.arcS || 1);
       topMax = kind === 'flat' ? top * 1.25 : Math.max(top, Math.min(5000, top * 1.45)); }   /* (5000 rpm at most: as hard as Nadal ever spun one, he said) */   // (to keep a hard ball in, more spin before less pace)
     const p0 = { x: b.x, y: b.y, z: b.z };
     let sol = null;
@@ -1057,7 +1061,9 @@ export class Match {
     const steady = lerp(1.28, 0.92, prof.cons) * this.diffScale[p.i] * (it.sigma || 1) * clean;
     // a clean swing takes the level's share off the routine part of the spread only: off an easy ball it goes where it
     // was sent, while what makes a ball hard (pace, width, running, a stretch) is still all there
-    const k = strike ? sig * this.diffScale[p.i] * (this.strikeK ? this.strikeK[p.i] : 1) * (it.sigma || 1) * lerp(1.15, 0.9, prof.cons) * (0.12 + 1.3 * Math.pow(1 - Q, 1.2)) * (1 + 0.5 * clamp(diff / 1.5, 0, 1))
+    // (the Tour level's wider spread for a person's strokes - he said holding an arrow made every shot perfect - is mostly for the
+    // mistimed: a Perfect one goes nearly where it was meant, as near the line as he aimed)
+    const k = strike ? sig * this.diffScale[p.i] * lerp(this.strikeK ? this.strikeK[p.i] : 1, 1.35, pf) * (it.sigma || 1) * lerp(1.15, 0.9, prof.cons) * (0.12 + 1.3 * Math.pow(1 - Q, 1.2)) * (1 + 0.5 * clamp(diff / 1.5, 0, 1))
       : (st.auto ? sig * steady * (1 + diff) * this.press(p) : sig * (steady / clean) * (clean + diff)) * (1 - 0.4 * easyT) * (1 - 0.82 * pf * (1 - 0.5 * clamp(diff / 1.5, 0, 1)));   // (and nearer his aim; Perfect most of all, less so off a hard ball)
     // timing drags the ball: early pulls it across the body, late pushes it wide
     const pull = -clamp(tim, -0.11, 0.13) * TUNE.timPull * (relX >= 0 ? 1 : -1) * p.hs * p.sgn;

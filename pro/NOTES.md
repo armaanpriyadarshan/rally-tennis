@@ -1795,3 +1795,10 @@ still in the air, both in a stroke's finish, for two or three frames.
   and until when on hover) and in a draw; the season screen's news log is gone; a walkover reads W/O by the man who gave it, a
   retirement RET. after his score, each with the cross; and every finished event (played, simulated or skipped) keeps its draw, opened
   from the calendar read-only. (The week's late withdrawals are now decided before the rankings are drawn, so theirs show at once.)
+- **Perfect shots on the line are winners again** (he said "the issue with the speed change is now even when i hit perfect shots on
+  the lines as nadal against djokovic nothing is a winner"): a person's strike now runs from his average pace (an ordinary one) to about
+  a quarter over it (Perfect), curved toward the top; a Perfect heavy-topspin drive clears the net by a third less (Nadal's had been
+  held a metre over it, and came through slow); and the Tour level's wider spread for a person's strokes is mostly for the mistimed - a
+  Perfect one goes nearly where it was meant. The bot as Nadal against Djokovic, at Tour: timed within about 0.05 s (nine in ten
+  Perfect) 76% of points, 106 winners in 300, its Perfect drives 141 km/h at the median, 0.5 m inside the line, 1% out; timed loosely
+  (one in seven Perfect) 31%, 16% of rally balls out. (Narrowing the Perfect window is the way to make Tour harder for a good timer.)
