@@ -207,8 +207,16 @@ export function profileFor(id, surface, key) {
   const eK = ELITE_K[P.facts.name];
   if (eK) { b.cons = clamp(b.cons + 0.07 * eK, 0.1, 0.98); b.speed *= 1 + 0.03 * eK; b.accel *= 1 + 0.04 * eK; b.react *= 1 - 0.06 * eK;
     b.fhKmh *= 1 + 0.025 * eK; b.bhKmh *= 1 + 0.025 * eK; b.s1Kmh *= 1 + 0.015 * eK; b.firstIn = clamp(b.firstIn + 0.02 * eK, 0.45, 0.8); }
+  b.tempo = tempoOf(P.facts.name);
   return b;
 }
+// How long each man takes between points, from the end of one to his serve (seconds): measured at the Australian Opens of 2014-16
+// for Monfils 14.1, Kyrgios 14.9, Federer 17.3, Djokovic 21.3, Murray 24.0 and Nadal 24.9; the rest estimated from how they are
+// known to play (Agassi and Edberg quick, Zverev, Tsitsipas and Medvedev slow). The serve clock goes by it (sim.js beginReady).
+const TEMPO = { Monfils: 14.1, Kyrgios: 14.9, Federer: 17.3, Djokovic: 21.3, Murray: 24.0, Nadal: 24.9, Alcaraz: 19.5, Sinner: 20.5, Sampras: 17.5, Agassi: 16.5,
+  Lendl: 21.5, Borg: 17.5, McEnroe: 18.5, Connors: 19.5, Laver: 15.5, Wawrinka: 22.0, Zverev: 23.0, Thiem: 21.5, Medvedev: 21.0, Tsitsipas: 23.0, 'del Potro': 22.0,
+  Roddick: 16.5, Becker: 20.0, Edberg: 15.5, Ivanisevic: 17.0, Wilander: 19.0, Kuerten: 19.0, Hewitt: 20.0 };
+export const tempoOf = name => TEMPO[name] || 20;
 const ELITE_K = { Alcaraz: 1, Sinner: 1.6, Djokovic: 1.3, Nadal: 2.2, Federer: 2.5 };   // (the bot at Tour then wins 33-37% of points from them, 42% from Medvedev, the hardest of the rest)
 // and in simulated matches and seeding (season.js gameProb, eventSeeding): percentage points more service games held and broken
 export const isElite = id => PLAYERS[id] && ELITE_K[PLAYERS[id].facts.name] != null;

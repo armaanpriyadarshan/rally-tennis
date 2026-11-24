@@ -124,6 +124,7 @@ export class Match {
     this.phaseT = 0;
     this.timer = 2.5;
     this.serveClock = 25;
+    this.gapKind = 'warm'; this.pointEndT = 0; this.violations = [0, 0];   // (the serve clock: what kind of break comes before the next serve, and when the last point ended)
     this.ends = 0;
     this.gamesInSet = 0;
     this.incoming = null;                            // prediction of the ball now in flight
@@ -171,6 +172,7 @@ export class Match {
 
   awardPoint(w) {
     const s = this.score, f = this.fmt, l = 1 - w;
+    this.gapKind = 'point'; this.pointEndT = this.t;
     if (s.server !== w && this.isBreakPoint()) this.players[w].stats.bpWon++;
     s.p[w]++; s.pointNo++;
     this.players[w].stats.pts++;
@@ -199,13 +201,14 @@ export class Match {
       if (s.setsWon[w] > f.bestOf / 2) { s.over = true; s.winner = w; this.emit('match', { winner: w }); return; }
       if (total % 2 === 1) this.changeEnds(true);
       else this.emit('setBreak', {});
+      this.gapKind = 'set';
       if (f.tbAt === 0) { s.tb = true; s.tbStart = s.server; }
     } else {
       if (total % 2 === 1) this.changeEnds(total > 1);
       if (!s.tb && s.g[0] === f.tbAt && s.g[1] === f.tbAt) { s.tb = true; s.tbStart = s.server; this.emit('tiebreak', {}); }
     }
   }
-  changeEnds(sit) { this.ends++; this.env.flip = -this.env.flip; this.emit('changeEnds', { sit: !!sit }); }
+  changeEnds(sit) { this.ends++; this.env.flip = -this.env.flip; this.gapKind = sit ? 'sit' : 'ends'; this.emit('changeEnds', { sit: !!sit }); }
 
   // ---------- point lifecycle ----------
   setSpots() {
@@ -234,7 +237,20 @@ export class Match {
     this.ritual = ritualFor(sv.prof.name, this.rng.u());
     for (const p of this.players) p.walk = false;
     this.rally = 0; this.touchedBy = [false, false];
-    this.emit('ready', { server: sv.i, serveNum: this.score.serveNum });
+    // The serve clock as the tour runs it (he said "make the clock actually function as it does irl"): the umpire starts it about two
+    // and a half seconds after the point, at 25 seconds (90 at a changeover, 120 at a set break), and it stops when the server starts
+    // his motion; a second serve is not timed. The game cuts out most of the time between points, so here it comes back at what the
+    // server would really have left - by how long he takes (data.js TEMPO: Nadal used nearly all of it, Monfils a little over half) -
+    // and counts down from there. `skipped`: the real time the cut left out, for the stadium's clock.
+    { const kind = this.gapKind, el = this.t - this.pointEndT, tempo = sv.prof.tempo || 20, u = this.rng.u();
+      const base = { point: 25, ends: 25, sit: 90, set: 120, warm: 25 }[kind];
+      const gap = kind === 'point' ? tempo + 2 * (u - 0.5) : kind === 'ends' ? tempo + 14 : kind === 'sit' ? 92 - 2 - 5 * u : kind === 'set' ? 122 - 3 - 7 * u : kind === 'second' || kind === 'let' ? 5 + 3 * u : kind === 'warm' ? 20 : 0;
+      // (his own serve: his own time, the whole 25 seconds from the umpire's call, less what has really gone by - after a changeover
+      // or a set break, the last 25 of it)
+      const mine = this.ctl && this.ctl[sv.i] && this.ctl[sv.i].isHuman;
+      this.serveClock = base == null ? null : mine ? Math.max(5, Math.min(25, base + 2.5 - el)) : Math.max(1, Math.min(base, base + 2.5 - gap + 2.6));
+      this.skipped = mine ? (base > 25 ? base - 25 : 0) + (kind === 'second' || kind === 'let' ? Math.max(0, gap - el) : 0) : Math.max(0, gap - 2.6 - el); this.gapKind = 'let'; }
+    this.emit('ready', { server: sv.i, serveNum: this.score.serveNum, skipped: this.skipped || 0 });
   }
   // The toss: released from the off hand at full stretch, peaking a little above contact.
   toss(i) {
@@ -453,7 +469,16 @@ export class Match {
         break;
       }
       case 'ready': {
-        this.serveClock -= dt;
+        if (this.serveClock != null) {
+          this.serveClock -= dt;
+          // out of time (only a person can be: the computer always serves in time): the first time a warning, after that his first
+          // serve is lost, as the tour's rules have it
+          if (this.serveClock <= 0 && this.ctl && this.ctl[s.server] && this.ctl[s.server].isHuman && !this.online) {
+            this.serveClock = null; const v = ++this.violations[s.server];
+            this.emit('violation', { who: s.server, warning: v === 1 });
+            if (v > 1) { this.faultIn('time'); break; }
+          } else if (this.serveClock < 0) this.serveClock = 0;
+        }
         const sv = this.players[s.server], h = sv.prof.height;
         // bouncing the ball before the serve is animation; the ball rides the hand
         b.x = sv.x + sv.sgn * sv.hs * -0.28; b.z = sv.z - sv.sgn * 0.3; b.y = h * 0.52;
@@ -678,7 +703,7 @@ export class Match {
     const s = this.score, sv = this.players[s.server];
     this.ball.live = false;
     if (s.serveNum === 1) {
-      s.serveNum = 2;
+      s.serveNum = 2; this.gapKind = 'second'; this.pointEndT = this.t;
       this.emit('fault', { why, serveNum: 1, ...(d || {}) });
       this.phase = 'over'; this.timer = this.quick ? 0.8 : 1.3; this.nextGap = this.quick ? 0.2 : 1.6; this.phaseT = 0;
     } else {

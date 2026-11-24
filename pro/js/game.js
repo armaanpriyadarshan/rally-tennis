@@ -71,6 +71,9 @@ export class Game {
       if (indoor) { env.indoor = true; env.windX = env.windZ = 0; }
     }
     this.env = env;
+    // when the match starts, the venue's own time (hours): a day match between 11 and half past three, a night session at 7 (Roland
+    // Garros' at a quarter past 8), a later one now and then; and seven minutes for the walk-on, the toss and the four-minute warm-up
+    { const night = !!(W && W.night), u = Math.random(); this.tod0 = (night ? (T && T.key === 'rg' ? 20.25 : 19) + (u < 0.3 ? 1.5 : 0) : 11 + Math.floor(u * 10) * 0.5 + Math.random() * 0.2) + 7 / 60; this.todSkip = 0; this.clockHeld = null; }
     const surf = spec.surface, D = DIFFICULTY[cfg.online ? 1 : cfg.difficulty == null ? 1 : cfg.difficulty];
     const p0 = profileFor(cfg.p0, surf, T && T.key), p1 = profileFor(cfg.p1, surf, T && T.key);
     if (!cfg.demo && !cfg.online) { p1.speed *= D.speed; p1.react *= D.react; p1.s1Kmh *= D.pace; p1.s1Max *= D.pace; p1.s2Kmh *= D.pace; p1.fhKmh *= D.pace; p1.bhKmh *= D.pace; }
@@ -354,7 +357,11 @@ export class Game {
     if (this.arena.crowd && this.arena.crowd.watch) this.arena.crowd.watch(b.x, b.z, m.phase === 'live' && b.visible);
     if (this.arena.watchBall) this.arena.watchBall(b.x, b.y, b.z, (m.phase === 'live' || m.phase === 'toss') && b.visible);
     if (this.arena.staffWatch) this.arena.staffWatch(m, this);              // ball kids and umpire follow the match (staff.js)
-    if (this.arena.setServeClock) this.arena.setServeClock(m.phase === 'ready' ? Math.max(0, Math.ceil(m.serveClock)) : null);
+    // the serve clock (sim.js beginReady), held where it stopped as he starts his motion; the time of day at the venue, moving with
+    // the match and with the real time the cuts between points leave out (a set is the best part of an hour on it)
+    if (this.arena.setServeClock) { if (m.phase === 'ready' && m.serveClock != null) this.clockHeld = Math.max(0, Math.ceil(m.serveClock)); else if (m.phase !== 'toss') this.clockHeld = null;
+      this.arena.setServeClock(this.clockHeld); }
+    if (this.arena.setClock && this.tod0 != null) this.arena.setClock((this.tod0 + (m.t + (this.todSkip || 0)) / 3600) % 24);
     this.arena.update(sdt, this.time);
     // sweat comes with the games played, sooner on a hot day and in a long rally, hardly at all under a roof
     if (!this.paused && m.score && m.score.sets) {
@@ -815,6 +822,7 @@ export class Game {
     for (let i = 0; i < ev.length; i++) {
       const e = ev[i];
       switch (e.type) {
+        case 'ready': this.todSkip = (this.todSkip || 0) + (e.skipped || 0); break;
         case 'hit': {
           if (e.who === 0 && this.camMode === 'fp') this.cam.kick = (e.kind === 'serve' ? 1.6 : 1) * (0.5 + e.power) * 0.5;
           if (e.who === 0 && this.human && e.timing != null) this.hud.timing = { t: this.time, v: e.timing, shank: e.shank };

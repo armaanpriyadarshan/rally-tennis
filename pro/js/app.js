@@ -522,7 +522,8 @@ class App {
         break;
       case 'bounce': if (e.first && !e.dead && e.miss != null && Math.abs(e.miss) < 0.07) this.lineCall(e, g); break;
       case 'whiff': if (e.who === 0) this.fb(e.relZ > 1 ? 'Early' : e.relZ < -0.3 ? 'Late' : 'Missed', '#ff6a4d'); break;
-      case 'fault': this.tab(m.score.server, e.serveNum === 2 ? '<b>Double</b> fault' : '<b>Fault</b>', true, 1.5); break;
+      case 'fault': if (e.why !== 'time') this.tab(m.score.server, e.serveNum === 2 ? '<b>Double</b> fault' : '<b>Fault</b>', true, 1.5); break;
+      case 'violation': this.tab(e.who, e.warning ? '<b>Time violation</b> · Warning' : '<b>Time violation</b> · First serve lost', true, 2.4); break;
       case 'let': this.tab(m.score.server, '<b>Let</b>', true, 1.3); break;
       case 'point': {
         const good = { ace: `<b>Ace</b> ${Math.round(e.speed * 3.6)} km/h`, winner: '<b>Winner</b>', serviceWinner: '<b>Service</b> winner' }[e.why], bad = { net: '<b>Net</b>', long: '<b>Out</b>', wide: '<b>Out</b>' }[e.why];

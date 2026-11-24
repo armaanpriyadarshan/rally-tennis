@@ -362,16 +362,19 @@ export function buildArena(spec, opt = {}) {
         // dial
         g.fillStyle = '#f4f1e6'; g.beginPath(); g.arc(150, 192, 112, 0, 7); g.fill(); g.strokeStyle = '#b79a4a'; g.lineWidth = 12; g.stroke();
         g.strokeStyle = '#1a1d1c'; g.lineWidth = 5; for (let i = 0; i < 12; i++) { const a = i * Math.PI / 6; g.beginPath(); g.moveTo(150 + Math.sin(a) * 88, 192 - Math.cos(a) * 88); g.lineTo(150 + Math.sin(a) * 100, 192 - Math.cos(a) * 100); g.stroke(); }
-        const hr = A.clockHour == null ? 14.2 : A.clockHour, ha = hr % 12 / 12 * Math.PI * 2, ma = (hr % 1) * Math.PI * 2;
+        const hr = A.clockHour == null ? 14.2 : A.clockHour, ha = hr % 12 / 12 * Math.PI * 2, ma = (hr % 1) * Math.PI * 2;   // (the venue's time of day: game.js setClock)
         g.lineCap = 'round'; g.lineWidth = 9; g.beginPath(); g.moveTo(150, 192); g.lineTo(150 + Math.sin(ha) * 56, 192 - Math.cos(ha) * 56); g.stroke();
         g.lineWidth = 6; g.beginPath(); g.moveTo(150, 192); g.lineTo(150 + Math.sin(ma) * 84, 192 - Math.cos(ma) * 84); g.stroke();
         // serve clock
         g.fillStyle = 'rgba(255,255,255,0.86)'; g.font = '700 26px "Helvetica Neue", Helvetica, Arial, sans-serif'; g.textAlign = 'center'; g.fillText('OFFICIAL TIME', 384, 96);
         g.fillStyle = '#060807'; g.fillRect(296, 136, 176, 132);
-        g.fillStyle = v != null && v <= 5 ? '#ff5a3c' : '#ffd23c'; g.font = '700 104px "Helvetica Neue", Helvetica, Arial, sans-serif'; g.textBaseline = 'middle'; g.fillText(v == null ? '--' : String(v).padStart(2, '0'), 384, 206); g.textBaseline = 'alphabetic';
+        // (a changeover's 90 seconds and a set break's 120 as minutes and seconds, smaller to fit)
+        const txt = v == null ? '--' : v >= 60 ? `${Math.floor(v / 60)}:${String(v % 60).padStart(2, '0')}` : String(v).padStart(2, '0');
+        g.fillStyle = v != null && v <= 5 ? '#ff5a3c' : '#ffd23c'; g.font = `700 ${txt.length > 2 ? 70 : 104}px "Helvetica Neue", Helvetica, Arial, sans-serif`; g.textBaseline = 'middle'; g.fillText(txt, 384, 206); g.textBaseline = 'alphabetic';
         ct.needsUpdate = true;
       };
-      let shown; A.setServeClock = v => { if (v === shown) return; shown = v; draw(v); };
+      let shown, shownMin = -1; A.setServeClock = v => { if (v === shown) return; shown = v; draw(v); };
+      A.setClock = h => { const mn = Math.floor(h * 60); if (mn === shownMin) return; shownMin = mn; A.clockHour = (mn / 60) % 24; draw(shown); };
       draw(null); shown = null;
       const cab = lit(std({ color: body, roughness: 0.45 })), face = new THREE.MeshBasicMaterial({ map: ct, color: new THREE.Color().setScalar(night ? 1.0 : 0.82) });
       const span = (hx - F.rc) * 2;

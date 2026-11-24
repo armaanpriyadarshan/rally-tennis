@@ -1640,3 +1640,13 @@ still in the air, both in a stroke's finish, for two or three frames.
     scores 6-4 25%, 6-3 23%, 7-6 17%, 6-2 15% (25/23/19/13). The five above the rest a point more (ELITE_SIM 5) for the new
     day-to-day swing: 54% of titles, 68% of majors, 19 of 20 year-end No. 1s.
   - The season's save is new (rallypro.season.v3): a season begun before this starts again.
+- **The clocks work as at a tournament** (he said "make the clock actually function as it does irl"): the stadium clock had its
+  hands fixed at 2:12 and the serve clock showed 25 and counted only while the server waited. Now the clock face is the venue's
+  time of day: a day match starts between 11 and half past three, a night session at 7 (Roland Garros 8:15), seven minutes for
+  the walk-on, toss and four-minute warm-up, and it moves with the match and with the real time the cuts between points leave
+  out (a long first game is six minutes on it). The serve clock is the tour's: started about 2.5 s after the point at 25 s (90 at
+  a changeover, 120 at a set break, shown as minutes), held where it stopped as the server starts his motion, blank for a second
+  serve; after the cut it shows what the server would really have left, by how long he takes between points (data.js TEMPO:
+  measured for Monfils 14.1 s, Kyrgios 14.9, Federer 17.3, Djokovic 21.3, Murray 24.0, Nadal 24.9; the rest estimated), so Nadal
+  serves with 3-4 s left, Monfils with 15. His own serve gets the full 25 s; let it run out and it is a time violation, the first
+  a warning, after that the first serve lost (the computer always serves in time).
