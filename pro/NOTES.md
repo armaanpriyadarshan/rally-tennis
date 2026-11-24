@@ -1754,3 +1754,7 @@ still in the air, both in a stroke's finish, for two or three frames.
   hardest (48-54%), Medvedev 62%, Kyrgios 73%, Tsitsipas 77%. In a match no man plays below a level of 72.
 - The ratings on a card run from under the YOU/OPPONENT badge to under the overall ("the start of the stat should be aligned with the
   you/opponent and end should be aligned with the ovr").
+- **Walking before the serve walks again** (he said "the walking side by side pre serve should have the walking animation like it did
+  before"): raised to 4 m/s when he asked for it at ordinary pace, the move went past the walk's top speed (2.2 m/s) and he slid in
+  his stance. Now a brisk walk, up to 3 m/s (the old pace was 1.6), and while he waits to serve the walk is kept on up to that pace:
+  measured holding D, the walk fully on at 3 m/s.

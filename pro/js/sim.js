@@ -567,7 +567,7 @@ export class Match {
       if (u > -0.16 && u < 0.2 && !st.waiting) top *= st.onRun ? 0.75 : 0.42;
     }
     if (st && st.kind === 'serve' && !(st.done && this.t > st.tEnd + 0.22)) top = 0;   // rooted until he lands from the serve
-    if (this.phase === 'ready' && p.i === this.score.server) top = Math.min(top, p.srvFree ? 4.0 : 1.6); /* (a person moving to where he will serve from goes at his ordinary pace, human.js) */
+    if (this.phase === 'ready' && p.i === this.score.server) top = Math.min(top, p.srvFree ? 3.0 : 1.6); /* (a person moving to where he will serve from goes at a brisk walk, human.js - at up to 4 m/s the walk was too quick for its steps and he slid there in his stance; he said "the walking side by side pre serve should have the walking animation like it did before") */
     let mx = p.move.x, mz = p.move.z;
     // (waiting on a ball still in front of him, he goes for it: to where it will be on his racket's side, not the spot his plan
     // had - a drop shot that checks after its bounce stops short of that)
