@@ -1548,3 +1548,10 @@ still in the air, both in a stroke's finish, for two or three frames.
 - **← → move him before the serve again** (he said "also you cant walk side to side before serving anymore"): with W A S D to move,
   the arrows only aimed - but nothing is aimed until he serves. Before the toss both move him; the serve is aimed by what is held as
   he serves, as it always was.
+- **The computer no longer swings at air on short balls** (he said "also for some reason the computer misses slow short balls"):
+  of his slow short balls (landing inside the service line, under 95 km/h, over the net), the computer swung at air on 13 of 37:
+  its swing went at its plan's moment while it was still short of a drop shot that checked after its bounce. sim.js: a computer's
+  swing now waits (up to 0.8 s) on a ball still in front of him or still coming past him out of reach, while he runs for the
+  ball itself rather than his plan's spot; if he cannot get there, or the ball went by long ago, the swing is given up instead of
+  played at the air. On those balls: winners off them 17 → 23, air swings 13 → 1, not reached 1 → 6; the computer's air swings in
+  600 points 34 → 12.

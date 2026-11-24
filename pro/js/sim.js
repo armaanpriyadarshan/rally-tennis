@@ -488,7 +488,22 @@ export class Match {
         this.flyLive(dt);
         for (const p of this.players) {
           const st = p.stroke;
-          if (st && !st.done && st.tc != null && this.t >= st.tc) { if (this.online && p.i === 1) { st.done = true; st.tEnd = this.t; } else this.resolveStroke(p); }
+          if (st && !st.done && st.tc != null && this.t >= st.tc) {
+            // (the computer's swing waits for a ball still well in front of him - a drop shot he is running in to - rather than going
+            // at its planned moment into thin air, as it did on a third of his slow short balls; he goes on running in while it
+            // waits, up to 0.6 s; he said "the computer misses slow short balls")
+            // (and for one still coming past him out of reach to the side; and if he cannot get to it, or it went by long ago - a planned
+            // swing for a ball that took another path - he does not swing at the air: of the computer's 34 swings at air in 600 points,
+            // a third were balls 1.25 m in front, a third out to the side, the rest a metre to thirteen behind him)
+            const b = this.ball;
+            if (st.auto && !this.online && b.live && b.lastHit !== p.i && b.bounces < 2) {
+              const relZ = (p.z - b.z) * p.sgn, lat = Math.abs(b.x - p.x), reachM = REACH.max * ((p.prof && p.prof.height || 1.85) / 1.85);
+              const front = relZ > REACH.front - 0.05, wide = lat > reachM * 0.95 && relZ > -0.3;
+              if ((front || wide) && (st.wait || 0) < 0.8) { st.tc = this.t + STEP; st.wait = (st.wait || 0) + STEP; st.waiting = true; continue; }
+              if (front || wide || relZ < -(REACH.back + 0.6)) { st.done = true; st.tEnd = this.t; st.waiting = false; p.stroke = null; continue; }
+            }
+            st.waiting = false;
+            if (this.online && p.i === 1) { st.done = true; st.tEnd = this.t; } else this.resolveStroke(p); }
         }
         break;
       }
@@ -519,11 +534,15 @@ export class Match {
     // feet are planted through the hit
     if (st && st.tc != null && st.kind !== 'serve') {
       const u = this.t - st.tc;
-      if (u > -0.16 && u < 0.2) top *= st.onRun ? 0.75 : 0.42;
+      if (u > -0.16 && u < 0.2 && !st.waiting) top *= st.onRun ? 0.75 : 0.42;
     }
     if (st && st.kind === 'serve' && !(st.done && this.t > st.tEnd + 0.22)) top = 0;   // rooted until he lands from the serve
     if (this.phase === 'ready' && p.i === this.score.server) top = Math.min(top, p.srvFree ? 4.0 : 1.6); /* (a person moving to where he will serve from goes at his ordinary pace, human.js) */
-    let mx = p.move.x, mz = p.move.z; const m = Math.hypot(mx, mz);
+    let mx = p.move.x, mz = p.move.z;
+    // (waiting on a ball still in front of him, he goes for it: to where it will be on his racket's side, not the spot his plan
+    // had - a drop shot that checks after its bounce stops short of that)
+    if (st && st.waiting && this.ball.live) { const b = this.ball, tx = b.x - (st.wing === 'fh' ? 1 : -1) * p.hs * p.sgn * 0.65, tz = b.z + p.sgn * 0.45, dx = tx - p.x, dz = tz - p.z, dl = Math.hypot(dx, dz); if (dl > 0.05) { mx = dx / dl; mz = dz / dl; } }
+    const m = Math.hypot(mx, mz);
     if (m > 1) { mx /= m; mz /= m; }
     // players move best forward and sideways; backpedalling is slower
     const back = mz * p.sgn > 0 ? 0.82 : 1;
