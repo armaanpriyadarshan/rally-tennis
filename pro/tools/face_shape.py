@@ -1,5 +1,5 @@
 # How one man's face differs in shape from the library head he wears, as offsets at landmarks for
-# js/facewarp.js. The face landmarker finds its 478 landmarks (with an estimate of depth) in each
+# js/facewarp.js (removed from the game on 2026-11-23: its heads are baked now). The face landmarker finds its 478 landmarks (with an estimate of depth) in each
 # photograph of him and in a square-on picture of the head itself; each photograph is turned,
 # scaled and moved onto the head's landmarks (a similarity fit, which removes the pose and the size),
 # the differences are averaged over the photographs (expressions count for less where they move

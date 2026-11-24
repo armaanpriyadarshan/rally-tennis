@@ -47,7 +47,6 @@ export const SURFACES = {
   clay:  { name: 'Clay',  mu: 0.76, e: 0.845, noise: 0.006, lineMu: 0.48, plow: 0.085 },   // the tape is slick: a ball off the line skids
   grass: { name: 'Grass', mu: 0.56, e: 0.740, noise: 0.012, lineMu: 0.50, plow: 0.000 },
 };
-export function courtPace(s) { return 100 * (1 - s.mu) + 150 * (0.81 - s.e); }
 
 // Build an environment from venue facts. `pace` shifts the surface around its family
 // default (positive = quicker court). Air density follows altitude and temperature,

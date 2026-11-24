@@ -241,7 +241,6 @@ export function eventSeeding(ids, T, rnd, form = 0.35) {
   const lo = id => { const w = clamp(eventRate(id, T.key, T.surface).rate / 100, 0.3, 0.985); return Math.log(w / (1 - w)) + (isElite(id) ? 0.8 : 0); };
   return ids.map(id => ({ id, s: lo(id) + form * g() })).sort((a, b) => b.s - a.s).map(x => x.id);
 }
-export function winProb(a, b, surface, key) { const sa = strength(a, surface, key), sb = strength(b, surface, key); return sa / (sa + sb); }
 
 // ---------- tournaments ----------
 const LEVEL_NAME = { slam: 'Grand Slam', m1000: 'Masters 1000', finals: 'Tour Finals', '500': 'ATP 500' };
@@ -272,7 +271,6 @@ export const TOURNAMENTS = TOUR_FACTS.map((t, id) => {
     inner: t.inner, outer: t.outer, balls: t.balls, backdrop: t.backdrop, stats: { ace: t.ace, rally: t.rallyLen, hold: t.hold },
   };
 });
-export const tournamentByKey = k => TOURNAMENTS.find(t => t.key === k);
 
 // Playing conditions for the physics. Wind inside a bowl is a fraction of the open-field
 // reading the weather stations give.

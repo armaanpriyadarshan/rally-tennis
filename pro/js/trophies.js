@@ -346,4 +346,3 @@ export function buildTrophy(key, renderer) {
   g.userData.grip = grip; g.userData.key = key;
   return g;
 }
-export const TROPHY_KEYS = Object.keys(B);

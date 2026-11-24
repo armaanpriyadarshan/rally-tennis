@@ -36,43 +36,6 @@ export function poseSeated(person, variant, lean, yaw, seatY) {
   person.arm.updateWorldMatrix(false, true);
 }
 // Stand at ease: feet apart, hands behind the back — a ball kid waiting, or kneel by the net post.
-// the knee of a leg from hip to ankle with these lengths, bent toward `pole`
-function kneeFor(hip, ankle, l1, l2, pole) {
-  const d = ankle.clone().sub(hip), L = Math.min(d.length(), (l1 + l2) * 0.999); d.normalize();
-  const x = (l1 * l1 - l2 * l2 + L * L) / (2 * L), h = Math.sqrt(Math.max(0, l1 * l1 - x * x));
-  const p = pole.clone().addScaledVector(d, -pole.dot(d)).normalize();
-  return hip.clone().addScaledVector(d, x).addScaledVector(p, h);
-}
-export function poseStanding(person, kneel) {
-  const D = person.dim;
-  // kneeling, the hips sit as high as the down knee lets them: its thigh reaches from the hip to the ground
-  const backZ = 0.10, hipY = kneel ? 0.065 + Math.sqrt(Math.max(0.01, D.thigh * D.thigh - backZ * backZ - 0.0064)) : D.hipY - 0.012;
-  const lean = new THREE.Quaternion().setFromAxisAngle(_right, kneel ? -0.22 : -0.03);
-  person.setTrunk(_V(0, hipY, 0), _I, lean);
-  for (const [S, sx] of [['L', -1], ['R', 1]]) {
-    const hip = person.jointPos(S + '_Thigh', _V(0, 0, 0)); let knee, ankle;
-    if (kneel && sx > 0) {
-      // the down knee on the court a little behind the hip, the shin flat along the ground behind it
-      knee = _V(hip.x + 0.08, 0.065, hip.z + backZ); knee.sub(hip).setLength(D.thigh).add(hip);
-      ankle = knee.clone().add(_V(0.02, 0.0, 1).normalize().multiplyScalar(D.shank)); ankle.y = Math.max(ankle.y, D.ankle * 0.9);
-    } else if (kneel) {
-      // the up leg: its foot flat on the ground in front, the knee raised over it
-      ankle = _V(hip.x - 0.10, D.ankle, hip.z - Math.min(0.42, D.shank * 0.85));
-      knee = kneeFor(hip, ankle, D.thigh, D.shank, _V(0, 0.6, -1).normalize());
-    } else {
-      ankle = _V(hip.x + sx * 0.07, D.ankle, 0);
-      knee = kneeFor(hip, ankle, D.thigh, D.shank, _V(0, 0, -1));
-    }
-    person.setLimb(S, 'leg', knee, ankle, _I, hip, _qa, _qb); person.drive(S + '_Foot', _I); person.drive(S + '_Toe0', _I);
-    const sh = person.jointPos(S + '_UpperArm', _V(0, 0, 0));
-    const el = sh.clone().addScaledVector(_up, -0.27).addScaledVector(_right, sx * 0.05).addScaledVector(_fwd, kneel ? 0.08 : -0.06);
-    const wr = kneel ? el.clone().addScaledVector(_fwd, 0.2).addScaledVector(_up, -0.16) : el.clone().addScaledVector(_up, -0.16).addScaledVector(_right, -sx * 0.12).addScaledVector(_fwd, -0.16);
-    const Ff = person.setLimb(S, 'arm', el, wr, lean, sh, _qa, _qb); person.drive(S + '_Hand', Ff); person.setFingers(S, 0.4);
-  }
-  person.drive('Neck', lean); person.drive('Head', _I);
-  person.chestQ = lean.clone();
-  person.arm.updateWorldMatrix(false, true);
-}
 
 // Draw the sheet from a set of avatars (done once, offline: tools/README.md). Every avatar
 // appears twice, sitting differently and sometimes in a hat.

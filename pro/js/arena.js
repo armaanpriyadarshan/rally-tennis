@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { WEATHER, skyLight, makeSkyDome } from './skies.js';
 import { COURT, netHeightAt } from './physics.js';
 import * as TX from './textures.js';
-import { crowdCards, poseSeated, poseStanding } from './crowd.js';
+import { crowdCards, poseSeated } from './crowd.js';
 import { Person } from './people.js';
 import { buildHair } from './hair.js';
 import { KID_HEADS } from './looks.js';

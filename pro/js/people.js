@@ -390,7 +390,7 @@ function headMaterial(M, look) {
   return m;
 }
 
-const _q = new THREE.Quaternion(), _q2 = new THREE.Quaternion(), _v = new THREE.Vector3(), _v2 = new THREE.Vector3(), _m = new THREE.Matrix4();
+const _q = new THREE.Quaternion(), _q2 = new THREE.Quaternion(), _v = new THREE.Vector3();
 const YAW180 = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI);
 const B = n => 'Bip01_' + n;
 
@@ -652,27 +652,6 @@ export class Person {
     m.needsUpdate = true;
   }
   // Freeze the figure as posed: its skinned meshes become ordinary ones and the skeleton is
-  // dropped. For people who hold one position all match, this costs a fraction of a live figure.
-  freeze() {
-    this.root.updateMatrixWorld(true);
-    const out = new THREE.Group(), v = new THREE.Vector3(), n = new THREE.Vector3();
-    for (const me of this.meshes) {
-      me.skeleton.update();
-      const g0 = me.geometry, pos = g0.attributes.position, nor = g0.attributes.normal, P = new Float32Array(pos.count * 3), N = new Float32Array(pos.count * 3);
-      for (let i = 0; i < pos.count; i++) {
-        v.fromBufferAttribute(pos, i); n.fromBufferAttribute(nor, i).multiplyScalar(0.01).add(v);
-        me.applyBoneTransform(i, v); me.applyBoneTransform(i, n); n.sub(v).normalize();
-        v.applyMatrix4(me.matrixWorld); n.transformDirection(me.matrixWorld);
-        P[i * 3] = v.x; P[i * 3 + 1] = v.y; P[i * 3 + 2] = v.z; N[i * 3] = n.x; N[i * 3 + 1] = n.y; N[i * 3 + 2] = n.z;
-      }
-      const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(P, 3)); g.setAttribute('normal', new THREE.BufferAttribute(N, 3));
-      if (g0.attributes.uv) g.setAttribute('uv', g0.attributes.uv); if (g0.attributes.aBindY) g.setAttribute('aBindY', g0.attributes.aBindY); if (g0.attributes.aBind) g.setAttribute('aBind', g0.attributes.aBind); g.setIndex(g0.index);
-      const m = new THREE.Mesh(g, me.material); m.castShadow = me.castShadow; m.receiveShadow = true; m.matrixAutoUpdate = false; out.add(m);
-    }
-    // whatever was fixed to the bones (a cap) comes along where it now sits
-    for (const o of this.headGear) { o.updateMatrixWorld(true); const c = o.clone(); c.matrix.copy(o.matrixWorld); c.matrix.decompose(c.position, c.quaternion, c.scale); out.add(c); }
-    return out;
-  }
   setFirstPerson(on) { for (const me of this.meshes) if (me.userData.head) me.visible = !on; for (const o of this.headGear) o.visible = !on; }
   // Fix a rigid object to a bone. `pos` and `quat` are where it sits on the body at rest,
   // in body space and real metres.
@@ -691,14 +670,6 @@ export class Person {
     b.add(obj); if (bone === 'Head') this.headGear.push(obj);
     return obj;
   }
-  // change colouring in place (used when one model stands in for a whole crowd)
-  setTint(skin, hair) {
-    if (this.M.plain) return;
-    const w = new THREE.Color(skin);
-    for (const m of [this.body, this.head]) { const b = m.userData.base; m.userData.U.uSkinTint.value.setRGB(w.r / b.r, w.g / b.g, w.b / b.b); }
-    this.head.userData.U.uHair.value.set(hair); this.head.userData.U.uSkinCol.value.copy(w);
-  }
-  setLook(look) { if (this.M.plain) return; kitUniforms(look, this.body.userData.U); }
 
   // Give a bone a world orientation `F` measured from its rest pose (F = identity leaves it at rest).
   drive(name, F) {

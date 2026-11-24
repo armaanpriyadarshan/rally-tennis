@@ -222,9 +222,6 @@ export const WEATHER = {
   roof:      { name: 'Roof closed',      sky: null, temp: 0, hum: 0, wind: 0, lamps: 1, night: true, indoor: true },
 };
 // `hour`: how long after solar noon that weather's match is played; the photograph is tilted so
-// its sun stands where the real one would over that court on that date.
-export const DAY_WEATHER = ['clear', 'fair', 'broken', 'overcast', 'hazy', 'afternoon', 'sunset'];
-export const NIGHT_WEATHER = ['evening', 'dusk', 'night', 'nightCloud'];
 
 // What the weather is likely to be at a venue: hot dry places are clear, northern ones cloudy.
 export function rollWeather(T, session, rnd) {

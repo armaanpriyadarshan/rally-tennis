@@ -1,6 +1,6 @@
 // Rally Pro — the ball as you see it: felt, motion streak, marks on the court, dust.
 import * as THREE from 'three';
-import { BALL, COURT } from './physics.js';
+import { BALL } from './physics.js';
 import { sunMask } from './arena.js';
 import { ballTexture, ballNormal, blobTexture } from './textures.js';
 

@@ -1,7 +1,6 @@
 // Rally Pro — the match engine: rules, scoring, players, contact and the error model.
 // Pure logic. Rendering and audio only ever read this state and drain `match.events`.
-import { COURT, BALL, clamp, lerp, makeRng, makeEnv, stepWind, makeBall, copyBall, flyStep, bounce, predict,
-         solveShot, solveSpeed, fire, netHeightAt, inCourt, inServiceBox, missBy, onALine } from './physics.js';
+import { COURT, BALL, clamp, lerp, makeRng, makeEnv, stepWind, makeBall, flyStep, bounce, predict, solveShot, solveSpeed, fire, netHeightAt, inCourt, inServiceBox, missBy, onALine } from './physics.js';
 
 export const STEP = 1 / 240;
 const _carry = makeBall();                         // scratch ball for checking where a struck ball would come down
@@ -151,14 +150,6 @@ export class Match {
     if (s.tb) return [String(a), String(b)];
     if (a >= 3 && b >= 3) { if (a === b) return ['40', '40']; return a > b ? ['AD', ''] : ['', 'AD']; }
     return [PT[Math.min(a, 3)], PT[Math.min(b, 3)]];
-  }
-  callText() {
-    const s = this.score, a = s.p[s.server], b = s.p[1 - s.server];
-    const W = ['Love', 'Fifteen', 'Thirty', 'Forty'];
-    if (s.tb) { if (a === b) return `${a} all`; return a > b ? `${a} ${b}, ${this.players[s.server].prof.name}` : `${b} ${a}, ${this.players[1 - s.server].prof.name}`; }
-    if (a >= 3 && b >= 3) { if (a === b) return 'Deuce'; return 'Advantage ' + this.players[a > b ? s.server : 1 - s.server].prof.name; }
-    if (a === b) return W[a] + ' all';
-    return W[a] + ' ' + W[b];
   }
   isBreakPoint() {
     const s = this.score; if (s.tb) return false;

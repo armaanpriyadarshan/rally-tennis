@@ -14,7 +14,6 @@ import { buildHair } from './hair.js';
 import { Loco, J, ANKLE_H, N3, mix, strokeClip, sampleAt } from './motion.js';
 import { PLAYER_MOTION } from './playermotion.js';
 import { PLAYER_MOTION_ALTS } from './playeralts.js';
-import { CELEB_MOTION } from './celebmotion.js';
 import { LOCO, LOCO_JOINTS } from './locodata.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
@@ -52,15 +51,6 @@ export const GAIT = {
   drop: 0.10, drop0: 1.6, drop1: 3.2, crouchRun: 0.09,     // how much lower the hips ride when driving sideways; and below standing height running straight
   hop: 0.105, hopT: 0.30, land: 0.07, landT: 0.30, wide: 1.5,
 };
-// Step rate, ground contact and ankle lift for a speed and a direction (k: 1 sideways, 0 straight).
-export function gaitAt(speed, k, between) {
-  const G = GAIT, run = sm((speed - G.run0) / (G.run1 - G.run0));
-  const cad = between ? G.walk0 + G.walk1 * speed : G.cad0 + lerp(G.cadF, G.cad1, k) * speed;
-  const dutyS = clamp(G.duty0 - speed * G.duty1, G.dutyMin, G.dutyMax);
-  const dutyF = lerp(clamp(G.dutyW0 - G.dutyW1 * speed, 0.4, 0.62), clamp(G.dutyR0 - G.dutyR1 * speed, G.dutyRMin, 0.4), between ? 0 : run);
-  const liftS = clamp(G.lift0 + speed * G.lift1, G.liftMin, G.liftMax), liftF = clamp(G.liftF0 + speed * G.liftF1, G.liftFMin, G.liftFMax);
-  return { cad, duty: lerp(dutyF, dutyS, k), lift: lerp(liftF, liftS, k) * (between ? 0.6 : 1), run: run * (1 - k) * (between ? 0 : 1) };
-}
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const clamp = THREE.MathUtils.clamp, lerp = THREE.MathUtils.lerp;
@@ -177,8 +167,7 @@ function follow(cur, tgt, F, dt, thr, first, al = 0.6, be = 0.5) {
 // forward from those. (Turns of the arm are limited against this, the frame they are seen in: measured against the chest's
 // own turn, which runs ahead of the skeleton's in a fast twist, an arm held to 36 degrees a frame there still swung 46
 // against the body as it is drawn.)
-const _sbF = new THREE.Vector3(), _sbR = new THREE.Vector3(); const _lgR = new THREE.Vector3(), _lgF = new THREE.Vector3(); const _fcC = new THREE.Vector3(), _fcR = new THREE.Vector3(), _fcW = new THREE.Vector3(); const _stX2 = new THREE.Vector3();
-const _laT = new THREE.Vector3(), _laF = new THREE.Vector3(), _laD = new THREE.Vector3(), _laQ = new THREE.Quaternion();
+const _sbF = new THREE.Vector3(), _sbR = new THREE.Vector3(); const _lgR = new THREE.Vector3(), _lgF = new THREE.Vector3(); const _fcC = new THREE.Vector3(), _fcR = new THREE.Vector3(), _fcW = new THREE.Vector3(); const _laT = new THREE.Vector3(), _laF = new THREE.Vector3(), _laD = new THREE.Vector3(), _laQ = new THREE.Quaternion();
 const _lpO0 = new THREE.Vector3(), _lpO1 = new THREE.Vector3(), _rkQi = new THREE.Quaternion(), _rkQ = new THREE.Quaternion(), _rkQ2 = new THREE.Quaternion(), _rkD = new THREE.Vector3(), _rkN = new THREE.Vector3(), _rgSh = new THREE.Vector3(), _rr1 = new THREE.Vector3(), _rr2 = new THREE.Vector3(), _rr3 = new THREE.Vector3(), _rr4 = new THREE.Vector3(), _rr5 = new THREE.Vector3(), _rr6 = new THREE.Vector3();
 const _ecP = new THREE.Vector3(), _ecU = new THREE.Vector3(), _ecA = new THREE.Vector3(), _ecB = new THREE.Vector3(), _ecF = new THREE.Vector3(), _ecS = new THREE.Vector3(), _ecE = new THREE.Vector3(), _ecW = new THREE.Vector3(), _ecX = new THREE.Vector3(), _ecT = new THREE.Vector3(), _ecQ = new THREE.Vector3();
 function bodyFrame(person, pelvis, cR, cU, cF) {
@@ -679,15 +668,6 @@ export class Figure {
         const bow = Math.sin(Math.PI * clamp(k, 0, 1)) * 0.26; if (bow > 0.001) for (const hk of ['R', 'L']) if (R[hk][1] > 1.3) pose[hk] = [pose[hk][0], pose[hk][1], pose[hk][2] + bow];
       }
     }
-    // At the end of a match (game.js, endSequence): the winner's celebration, the loser's walk off in his head, or the trophy held up.
-    // The game sets this.celeb = { kind, u, k } each frame; kind picks a track below, u is its clock, k how far it holds the body.
-    // (with a tracked celebration playing, the body and both arms are the footage's; the racket alone is set here, held up in front
-    // of him along his forearm as players hold it pumping a fist - he showed Alcaraz doing it - and the other hand let off the throat.
-    // Pointed straight up by the keys over an arm thrown up, it stood out of his hand like a flagpole)
-    // The fist pump, from the footage: the arm only. The free hand goes where Nadal's free fist went, measured against his chest,
-    // frame by frame, at Barcelona (celebmotion.js celeb_fists); the racket is held upright and low in front, as in the picture he
-    // showed of Alcaraz; the body and legs are his own walk to the net. (The whole tracked body was tried: the tracker swapped his
-    // hands and he turned a third of a circle walking to his chair, and played on the figure he twisted side-on with his arms crossed.)
     // Both arms up, the racket in his hand: nothing more (he said "the celebration should literally just be holding hands up with
     // racket in hands"). The hands go up beside the head in a V and stay there; the racket is where a fist round its handle leaves
     // it with the arm up and the palm turned in, its head up over his shoulder and leaning back, not stood straight up out of his
@@ -701,16 +681,6 @@ export class Figure {
       const bl = (a, b) => a.map((v, q) => v + (b[q] - v) * k);
       pose = { ...pose, L: bl(pose.L, Lp), R: bl(pose.R, Rp), dir: dir.map(v => v / dl), nrm: [1, 0, 0], lgrip: (pose.lgrip || 0) * (1 - k), elbows: (pose.elbows || 0) * (1 - k) };
       this.reactK = Math.max(this.reactK, k); this.reactFist = 1; this.reactShout = 0; this.reactPoint = 0; this.reactPole = null; this.upOpen = 0; }   /* (a fist, a real one: he said "should be fists") */
-    else if (this.celebArm && this.celebArm.k > 0.001) { const C = CELEB_MOTION.celeb_fists, k = clamp(this.celebArm.k, 0, 1);
-      if (C && C.J) { const n = C.J.pelvis.length / 3, x = clamp(this.celebArm.u * 60, 0, n - 1.001), f0 = Math.floor(x), w = x - f0;
-        const g = (nm, c) => C.J[nm][f0 * 3 + c] * (1 - w) + C.J[nm][(f0 + 1) * 3 + c] * w;
-        const mx = (g('lsho', 0) + g('rsho', 0)) / 2, mz = (g('lsho', 2) + g('rsho', 2)) / 2; let ax = g('rsho', 0) - g('lsho', 0), az = g('rsho', 2) - g('lsho', 2); const al = Math.hypot(ax, az) || 1; ax /= al; az /= al;
-        const fx = -az, fz = ax, hx = g('rhand', 0) - mx, hz = g('rhand', 2) - mz;
-        const side = hx * ax + hz * az, fwd = hx * fx + hz * fz, h = g('rhand', 1);
-        const Lp = [-clamp(Math.abs(side), 0.04, 0.26), clamp(h + 0.12, 0.95, 1.5), clamp(fwd + 0.12, 0.14, 0.42)], Rp = [0.2, 0.98, 0.22], dR = [0.12, 0.92, 0.35];
-        const bl = (a, b) => a.map((v, q) => v + (b[q] - v) * k);
-        pose = { ...pose, L: bl(pose.L, Lp), R: bl(pose.R, Rp), dir: bl(pose.dir, dR), nrm: pose.nrm || [1, 0, 0], lgrip: (pose.lgrip || 0) * (1 - k) };
-        this.reactK = Math.max(this.reactK, k); this.reactFist = 1; this.reactShout = 0; } }
     // On the walk to the net a right-hander passes his racket to his left hand, to shake with his right (game.js sets this.handover
     // = { u }, seconds since it began): the racket brought across in front of him at the waist, the left hand onto the handle just
     // above the right; at 0.35 s it is the left hand's (this.shakeSwap), the right lets go, and the racket is let down to hang by his
@@ -731,9 +701,9 @@ export class Figure {
       this.reactK = Math.max(this.reactK, k); this.reactFist = 0; this.reactShout = 0; this.reactPoint = 0; this.reactPole = null; }
     // The trophy (game.js beginTrophy sets this.trophyHold = { u, w, y, curl }: the clock, half the span between its two grip points
     // - its handles, or its sides where it has none - their height above its foot, and how far the fingers close). Held in both hands
-    // at the chest, lifted up past the front of his face, held up over his head and a little in front, clear of it (his arms do not reach high enough for a
-    // trophy's foot to clear the top of his head straight above it), swayed
-    // a little, brought down to the chest. The hands go where the grip points are, the palms facing in; game.js placeTrophy puts the
+    // at the chest, lifted up past the front of his face, held up over his head and a little in front, clear of it (his arms do not
+    // reach high enough for a trophy's foot to clear the top of his head straight above it), swayed a little, brought down to the
+    // chest. The hands go where the grip points are, the palms facing in; game.js placeTrophy puts the
     // trophy where the palms then are. (Before, a pose for a cup in general: the hands on its front, the right still a racket-hand's
     // fist turned the wrong way and the left open, and over his head its foot went into his head - he said "the hands are fucked up
     // on the trophy screen".)
@@ -744,16 +714,6 @@ export class Figure {
       const y = lerp(1.2, yTop, up) + 0.012 * Math.sin(u * 2.1) * up, f = lerp(0.33, fT, up) + 0.14 * Math.sin(Math.PI * up), sw = 0.025 * Math.sin(u * 1.3) * up, st = T.w < 0.08 ? 0.042 : 0;
       pose = { ...pose, R: [hw + sw, y + st, f], L: [-hw + sw, y - st, f], lgrip: 0, elbows: 0, lean: 0.02 - 0.06 * up, head: 0.06 + 0.3 * up, twist: 0, crouch: 0.02, stance: 0.27 };
       this.reactK = 1; this.reactFist = 0; this.reactShout = 0; this.reactPoint = 0; this.reactPole = null; }
-    if (this.celebClip && this.celebClip.k > 0.001) { const cc = strokeClip({ celeb: CELEB_MOTION }, 'celeb', 'celeb_' + this.celebClip.kind, this.lefty);
-      if (cc) { const S = sampleAt(cc, clamp(this.celebClip.u, cc.span[0], cc.span[1]), this._celS || (this._celS = new Float32Array(N3))), sd = this.lefty ? 'l' : 'r', e = J[sd + 'elb'], w = J[sd + 'wri'];
-        const fx = (S[w * 3] - S[e * 3]) * this.hs, fy = S[w * 3 + 1] - S[e * 3 + 1], fz = S[w * 3 + 2] - S[e * 3 + 2], hi = S[w * 3 + 1] > 1.6;
-        let dx = fx * (hi ? 0.8 : 0.35) + 0.14, dy = fy * (hi ? 0.8 : 0.35) + (hi ? 0.25 : 1.0), dz = fz * (hi ? 0.8 : 0.35) + 0.1; const l = Math.hypot(dx, dy, dz) || 1;
-        const k = clamp(this.celebClip.k, 0, 1), d0 = pose.dir || [0, -0.6, 0.8];
-        pose = { ...pose, dir: [d0[0] + (dx / l - d0[0]) * k, d0[1] + (dy / l - d0[1]) * k, d0[2] + (dz / l - d0[2]) * k], nrm: pose.nrm || [1, 0, 0], lgrip: (pose.lgrip || 0) * (1 - k) };
-        this.reactK = Math.max(this.reactK, k); this.reactShout = 0; } }
-    if (this.celeb && CELEB[this.celeb.kind]) { const C = this.celeb, T = CELEB[C.kind], k = clamp(C.k, 0, 1);
-      if (k > 0.001) { const R = T.at(C.u, this); pose = blendPose(pose, R, k); this.reactK = Math.max(this.reactK, k); this.reactShout = 0;   /* (the face is left as it is: he said "dont do anything with the face") */ this.reactFist = T.fist || 0; this.reactPoint = 0; this.reactPole = null;
-        const bow = Math.sin(Math.PI * k) * 0.26; if (bow > 0.001 && k < 0.999) for (const hk of ['R', 'L']) if (R[hk][1] > 1.3) pose[hk] = [pose[hk][0], pose[hk][1], pose[hk][2] + bow]; } }
     // The small things players do between points. After a point that is nothing to shout about, now and then: a wipe of the
     // forehead with the wristband, a look down at the strings, a twirl of the racket in the hand as he turns away. Waiting
     // to receive, now and then a spin of the racket in his hands. (Without them, between the points every man stood or walked
@@ -983,10 +943,6 @@ export class Figure {
     this.wasSrvWait = serverWait;
     if (!serverWait && !srvSt) this.addrW = 0;
     if (this.dbgOn) { if (sw - (this.swPrevD || 0) > 0.35 && dt > 0) (this.popLog || (this.popLog = [])).push({ t: +t.toFixed(3), from: +(this.swPrevD || 0).toFixed(2), to: +sw.toFixed(2), same: st === this.popSt, isP: st === p.stroke, isLast: st === p.lastStroke, isPrev: st === this.prevSt, kind: st && st.kind, wing: st && st.wing, t0: st && st.t0 != null ? +(t - st.t0).toFixed(3) : null, tc: st && st.tc != null ? +(t - st.tc).toFixed(3) : null, u: +u.toFixed(3), cancelK: +cancelK.toFixed(2), deferIn: +deferIn.toFixed(3), xin: this.xin, ph: m.phase, auto: st && st.auto, done: st && st.done, prev: this.popInfo, dtNow: +dt.toFixed(4), tPrev: this.popT }); this.swPrevD = sw; this.popSt = st; this.popT = +t.toFixed(3); this.popInfo = st ? { kind: st.kind, wing: st.wing, tc: st.tc != null ? +(t - st.tc).toFixed(3) : null, isP: st === p.stroke, isLast: st === p.lastStroke, sw: +sw.toFixed(2), ph: m.phase } : { none: true, ph: m.phase, pS: !!p.stroke, pSdone: p.stroke ? p.stroke.done : null, pStc: p.stroke && p.stroke.tc != null ? +(t - p.stroke.tc).toFixed(3) : null, pSkind: p.stroke ? p.stroke.kind : null }; }
-    // the end of a match: a celebration tracked from footage of a real one (celebmotion.js), played on its own clock through the same
-    // path as a stroke's clip, the whole body and both arms (game.js sets this.celebClip = { kind, u, k })
-    if (this.celebClip && this.celebClip.k > 0.001) { const cc = strokeClip({ celeb: CELEB_MOTION }, 'celeb', 'celeb_' + this.celebClip.kind, this.lefty);
-      if (cc) { OC = cc; cu = clamp(this.celebClip.u, cc.span[0], cc.span[1]); const k = clamp(this.celebClip.k, 0, 1); clipW = Math.max(clipW * (1 - k), k); clipWA = Math.max(clipWA * (1 - k), k); } }
     this.clipW = clipW; this.swNow = sw; if (this.dbgOn) { this.dbgClipS = OC && clipW > 0.001 ? Float32Array.from(sampleAt(OC, cu, this._dbgS || (this._dbgS = new Float32Array(N3)))) : null; this.dbgClipW = clipW; this.dbgClipWA = clipWA; } if (this.dbgOn) this.ocDbg = OC ? { id: OC.id, span: OC.span.map(x => +x.toFixed(2)), cu: +cu.toFixed(2), n: OC.n, pick: st && st.clipPick ? st.clipPick.i + ':' + st.clipPick.sit : '-' } : null;                         // (swNow: read by the transition checks in /tmp tools)
     // the arms: the clip's, except inside a partial clip's contact window
     let armW = clipWA; if (OC && OC.armZone && armW > 0) { const z = OC.armZone, zk = 1 - sm5((cu - (z[0] - 0.14)) / 0.14) * (1 - sm5((cu - z[1]) / 0.14));   /* (the arms go over to the keys and back over a seventh of a second each way, not an eighth of one: a snap at the speed of the swing) */
@@ -3100,54 +3056,6 @@ export class Figure {
     P.blob.rotation.z = -(base - this.yaw);
   }
 
-  // Feet either stay planted (and step when the body leaves them behind) or cycle in a gait.
-  stepFeet(dt, p, m, pose, fwd, right, speed, between, air) {
-    const H = this.H, st = (pose.stance || 0.3) * H;
-    const moving = speed > 0.45;
-    this.gaitW = damp(this.gaitW, moving ? 1 : 0, moving ? 12 : 9, dt);
-    const vx = p.vx, vz = p.vz, vdx = speed > 1e-3 ? vx / speed : 0, vdz = speed > 1e-3 ? vz / speed : 0;
-    const latK = right.x * vdx + right.z * vdz, fwdK = fwd.x * vdx + fwd.z * vdz, w = this.gaitW * (between ? 0.5 : 1);
-    // backing up is stepped like the sideways shuffle, not run like a sprint
-    const kS = between ? Math.abs(latK) : Math.max(Math.abs(latK), clamp(-fwdK, 0, 1));
-    // cadence rises with speed, far more slowly than the ground covered: the steps get long
-    const ga = gaitAt(speed, kS, between), cad = ga.cad, duty = ga.duty;
-    if (moving) this.gait = (this.gait + cad * dt) % 1;
-    // across the direction of travel the feet close in to a runner's narrow track
-    const px = right.x - vdx * latK, pz = right.z - vdz * latK, pl = Math.hypot(px, pz);
-    const narrow = lerp(1, Math.min(1, GAIT.track * H / Math.max(1e-3, st * pl)), this.gaitW * sm(speed / 2.4) * (1 - Math.abs(latK)) * (fwdK < 0 && !between ? 0.4 : 1));
-    const trail = lerp(GAIT.trailF, GAIT.trail, kS) * Math.min(1, speed / 2);
-    for (let i = 0; i < 2; i++) {
-      const sx = i === 0 ? -1 : 1, f = this.feet[i];
-      // where this foot wants to be at rest; on the move, the part of the stance that lies along
-      // the direction of travel closes up to the measured spacing — leading foot a little ahead
-      // of the hips, trailing foot well behind — so the feet pass each other instead of straddling
-      const along = sx * st * latK, alongGo = lerp(along, (sx * latK * GAIT.lead - trail) * H, w);
-      const hx = p.x + px * sx * st * narrow + vdx * alongGo, hz = p.z + pz * sx * st * narrow + vdz * alongGo;
-      // gait position: down and still on the ground for `duty`, then swung through
-      const ph = (this.gait + (i === 0 ? 0 : 0.5)) % 1;
-      const stride = speed * duty / cad;                                // ground covered while this foot is down
-      let rel, lift;
-      if (ph < duty) { rel = 0.5 - ph / duty; lift = 0; }
-      else { const u = (ph - duty) / (1 - duty); rel = -0.5 + sm(u); lift = Math.sin(Math.pow(u, 0.85) * Math.PI) * ga.lift * H; }
-      const gx = hx + vdx * rel * stride, gz = hz + vdz * rel * stride;
-      if (this.gaitW > 0.98) { f.p.x = gx; f.p.z = gz; f.lift = lift; f.planted = false; }
-      else if (this.gaitW > 0.02) { f.p.x = lerp(f.p.x, gx, this.gaitW * 0.5); f.p.z = lerp(f.p.z, gz, this.gaitW * 0.5); f.lift = lift * this.gaitW; f.planted = false; }
-      else {
-        // standing: leave the foot where it is until it is out of place, then step it home
-        if (!f.step) {
-          const e = Math.hypot(f.p.x - hx, f.p.z - hz), other = this.feet[1 - i];
-          if (e > 0.11 * H && !other.step) f.step = { t: 0, fx: f.p.x, fz: f.p.z };
-          f.lift = damp(f.lift, 0, 30, dt);
-        } else {
-          f.step.t += dt / 0.17; const w = Math.min(1, f.step.t);
-          f.p.x = lerp(f.step.fx, hx, sm(w)); f.p.z = lerp(f.step.fz, hz, sm(w)); f.lift = Math.sin(w * Math.PI) * 0.045 * H;
-          if (w >= 1) f.step = null;
-        }
-      }
-      f.lift = Math.max(f.lift, air * H * 0.9);
-      f.p.y = 0;
-    }
-  }
 }
 
 // ---------- maths ----------
@@ -3292,8 +3200,8 @@ const _m = new THREE.Matrix4(), _a = V(), _b = V(), _c = V(), _hu = V(), _hu2 = 
 const _pa = V(), _pb = V(), _pc = V();
 const _sgR = V(), _sgU = V(), _sgF = V(), _sgA = V(), _sgB = V(), _sgA2 = V(), _sgB2 = V(), _sgC = V();
 const _rgP = V(), _rgM = V(), _rg1 = V(), _rg2 = V(), _rg3 = V(), _rg4 = V(), _rgE = V(), _rgQ = new THREE.Quaternion(), _rgQ2 = new THREE.Quaternion(), _rgA = new THREE.Quaternion(), _rgB = new THREE.Quaternion();
-const _rpA = V(), _rpB = V(), _rpC = V(), _rpD = V(), _rpQ = new THREE.Quaternion(), _inF = V(), _inT = V(), _acA = V(), _acB = V(), _acC = V(), _rlA = V(), _rlD = V(), _rlQ = V(), _rlP = V(), _rlB = V(), _rlC = V(), _rlE = V(), _rlR = new THREE.Quaternion(), _rlS = new THREE.Quaternion(), _hdD = V(), _hdT = V(), _hdJ = V(), _hdA = V(), _hdB = V(), _hdC = V(), _hdV = V(), _hdS = V(), _hdR = V(), _hdQ = V(), _hdW = V(), _hdP = V(), _hdU = V(), _hdN = V(), _hdO = V(), _hdQq = new THREE.Quaternion(), _hrA = V(), _hrB = V(), _hrC = V(), _sfT = [V(), V()], _kpH = V(), _kpF = V(), _kpO = V(), _kpK = V(), _lpK0 = V(), _lpK1 = V(), _lpP = V(), _lpM = V(), _lpN = V(), _lsA = V(), _lsB = V(), _lsC = V(), _lsD = V(), _lsE = V(), _lsF = V(), _lsG = V(), _lsH = V(), _stM = V(), _stA = V(), _stR = V(), _stX = V(), _stF = V(), _stQ = V(), _bcF = V(), _bcM = V(), _ptI = V(), _ptM = V(), _ptD = V(), _ptQ = new THREE.Quaternion(), _shF = V(), _qT1 = new THREE.Quaternion(), _qT2 = new THREE.Quaternion(), _hzK2 = V(), _hzQ = new THREE.Quaternion(), _hzD = V(), _hzE = V(), _hzN = V(), _hzM = V(), _hzK = V(), _qPt = new THREE.Quaternion(), _qPt2 = new THREE.Quaternion(), _qCarry = new THREE.Quaternion(), _wlR = V(), _gp0 = V(), _rc1 = V(), _rc2 = V(), _bx = V(), _br = V(), _bf = V(), _bh = V(), _bq = V(), _bq2 = V(), _bp0 = V(), _bp1 = V(), _be = V(), _bm = V(), _cq = V();
-const _iq = new THREE.Quaternion(), _iq2 = new THREE.Quaternion();      // (into a stroke from where the arms were)   // (the arms kept out of the body)          // (the elbow's swing about the arm)
+const _rpQ = new THREE.Quaternion(), _inF = V(), _inT = V(), _acA = V(), _acB = V(), _acC = V(), _rlA = V(), _rlD = V(), _rlQ = V(), _rlP = V(), _rlB = V(), _rlC = V(), _rlE = V(), _rlR = new THREE.Quaternion(), _rlS = new THREE.Quaternion(), _hdD = V(), _hdT = V(), _hdJ = V(), _hdA = V(), _hdB = V(), _hdC = V(), _hdV = V(), _hdS = V(), _hdR = V(), _hdQ = V(), _hdW = V(), _hdP = V(), _hdU = V(), _hdN = V(), _hdO = V(), _hdQq = new THREE.Quaternion(), _hrA = V(), _hrB = V(), _hrC = V(), _sfT = [V(), V()], _kpH = V(), _kpF = V(), _kpO = V(), _kpK = V(), _lpK0 = V(), _lpK1 = V(), _lpP = V(), _lpM = V(), _lpN = V(), _lsA = V(), _lsB = V(), _lsC = V(), _lsD = V(), _lsE = V(), _lsF = V(), _lsG = V(), _lsH = V(), _stM = V(), _stA = V(), _stR = V(), _stX = V(), _stF = V(), _stQ = V(), _bcF = V(), _bcM = V(), _ptI = V(), _ptM = V(), _ptD = V(), _ptQ = new THREE.Quaternion(), _shF = V(), _qT1 = new THREE.Quaternion(), _qT2 = new THREE.Quaternion(), _hzK2 = V(), _hzQ = new THREE.Quaternion(), _hzD = V(), _hzE = V(), _hzN = V(), _hzM = V(), _hzK = V(), _qPt = new THREE.Quaternion(), _qPt2 = new THREE.Quaternion(), _qCarry = new THREE.Quaternion(), _wlR = V(), _gp0 = V(), _rc1 = V(), _rc2 = V(), _bx = V(), _br = V(), _bf = V(), _bh = V(), _bq = V(), _bq2 = V(), _bp0 = V(), _bp1 = V(), _be = V(), _bm = V(), _cq = V();
+const _iq2 = new THREE.Quaternion();      // (into a stroke from where the arms were)   // (the arms kept out of the body)          // (the elbow's swing about the arm)
 function damp(a, b, k, dt) { return a + (b - a) * (1 - Math.exp(-k * dt)); }
 function dampAngle(a, b, k, dt) { let d = b - a; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; return a + d * (1 - Math.exp(-k * dt)); }
 // two-bone IK: the middle joint of a chain from `a` to `t`, bent toward `pole`
@@ -3526,63 +3434,6 @@ const FH_SLICE = track([
 // out from the leg and half way to level, forty-five degrees forward and tipped out, the wrist cocked to hold it there, as
 // nobody holds a racket while pumping the other fist. `__hangOld` before load.)
 const HANG = { R: [0.27, 0.91, 0.12], dir: [0.04, -0.90, 0.43], nrm: [1, 0, 0] };   /* (the hand where it was, out from the hip: drawn in to it, McEnroe's forearm went into his side) */
-// The end of a match. Winning: both arms up in a V and held (the racket in the hand, pointing up), a crouched double fist pump and the
-// roar into the arms up, or the arms spread out to the crowd and a hand on the heart; losing, head down, hands hanging. The trophy:
-// held in both hands at the chest, lifted over the head and held there, brought down to the chest again. (Hand places as everywhere
-// here: [x right, y up, f forward] for a 1.85 m right-hander, R the racket hand.)
-const CELEB = {
-  arms: Object.assign(track([
-    { u: 0.00, ...HANG, L: [-0.22, 0.95, 0.12], twist: 0, lean: 0.06, crouch: 0.04, stance: 0.26, lgrip: 0, head: 0.0 },
-    { u: 0.40, R: [0.42, 2.02, 0.16], L: [-0.42, 2.02, 0.16], dir: [0.25, 0.95, 0.15], nrm: [1, 0, 0], twist: 0, lean: -0.08, crouch: 0.02, stance: 0.30, lgrip: 0, head: 0.38 },
-    { u: 1.20, R: [0.44, 1.96, 0.14], L: [-0.44, 1.96, 0.14], dir: [0.25, 0.95, 0.15], nrm: [1, 0, 0], twist: 0.08, lean: -0.06, crouch: 0.04, stance: 0.30, lgrip: 0, head: 0.32 },
-    { u: 2.00, R: [0.43, 2.03, 0.16], L: [-0.43, 2.03, 0.16], dir: [0.25, 0.95, 0.15], nrm: [1, 0, 0], twist: -0.08, lean: -0.08, crouch: 0.02, stance: 0.30, lgrip: 0, head: 0.40 },
-    { u: 2.90, R: [0.40, 1.94, 0.15], L: [-0.40, 1.94, 0.15], dir: [0.25, 0.95, 0.15], nrm: [1, 0, 0], twist: 0, lean: -0.04, crouch: 0.03, stance: 0.29, lgrip: 0, head: 0.30 },
-    { u: 3.80, R: [0.30, 1.05, 0.18], L: [-0.26, 1.02, 0.14], dir: [0.1, -0.5, 0.85], nrm: [1, 0, 0], twist: 0, lean: 0.04, crouch: 0.03, stance: 0.27, lgrip: 0, head: 0.10 },
-    { u: 4.80, ...HANG, L: [-0.22, 0.95, 0.12], twist: 0, lean: 0.06, crouch: 0.03, stance: 0.25, lgrip: 0, head: 0.05 },
-  ]), { shout: 0, fist: 0.6 }),
-  fists: Object.assign(track([
-    { u: 0.00, ...HANG, L: [-0.22, 0.95, 0.12], twist: 0, lean: 0.06, crouch: 0.04, stance: 0.27, lgrip: 0, head: 0.0 },
-    { u: 0.30, R: [0.30, 1.22, 0.30], L: [-0.30, 1.24, 0.30], dir: [0.3, 0.6, 0.75], nrm: [1, 0, 0], twist: 0, lean: 0.30, crouch: 0.20, stance: 0.38, lgrip: 0, head: 0.25 },
-    { u: 0.55, R: [0.30, 0.98, 0.22], L: [-0.30, 0.98, 0.22], dir: [0.3, 0.3, 0.9], nrm: [1, 0, 0], twist: 0, lean: 0.38, crouch: 0.26, stance: 0.40, lgrip: 0, head: 0.20 },
-    { u: 0.80, R: [0.30, 1.26, 0.30], L: [-0.30, 1.26, 0.30], dir: [0.3, 0.6, 0.75], nrm: [1, 0, 0], twist: 0, lean: 0.30, crouch: 0.20, stance: 0.40, lgrip: 0, head: 0.28 },
-    { u: 1.05, R: [0.30, 0.98, 0.22], L: [-0.30, 0.98, 0.22], dir: [0.3, 0.3, 0.9], nrm: [1, 0, 0], twist: 0, lean: 0.38, crouch: 0.26, stance: 0.40, lgrip: 0, head: 0.20 },
-    { u: 1.70, R: [0.40, 1.98, 0.14], L: [-0.40, 1.98, 0.14], dir: [0.25, 0.95, 0.15], nrm: [1, 0, 0], twist: 0, lean: -0.06, crouch: 0.04, stance: 0.31, lgrip: 0, head: 0.40 },
-    { u: 2.90, R: [0.42, 2.02, 0.16], L: [-0.42, 2.02, 0.16], dir: [0.25, 0.95, 0.15], nrm: [1, 0, 0], twist: 0.06, lean: -0.08, crouch: 0.03, stance: 0.30, lgrip: 0, head: 0.36 },
-    { u: 3.80, R: [0.30, 1.05, 0.18], L: [-0.26, 1.02, 0.14], dir: [0.1, -0.5, 0.85], nrm: [1, 0, 0], twist: 0, lean: 0.04, crouch: 0.03, stance: 0.27, lgrip: 0, head: 0.10 },
-    { u: 4.80, ...HANG, L: [-0.22, 0.95, 0.12], twist: 0, lean: 0.06, crouch: 0.03, stance: 0.25, lgrip: 0, head: 0.05 },
-  ]), { shout: 0, fist: 1 }),
-  crowd: Object.assign(track([
-    { u: 0.00, ...HANG, L: [-0.22, 0.95, 0.12], twist: 0, lean: 0.06, crouch: 0.04, stance: 0.26, lgrip: 0, head: 0.0 },
-    { u: 0.45, R: [0.72, 1.48, 0.10], L: [-0.72, 1.48, 0.10], dir: [0.85, 0.45, 0.2], nrm: [0, 0, 1], twist: 0.25, lean: -0.04, crouch: 0.02, stance: 0.30, lgrip: 0, head: 0.25 },
-    { u: 1.40, R: [0.72, 1.52, 0.08], L: [-0.72, 1.52, 0.08], dir: [0.85, 0.45, 0.2], nrm: [0, 0, 1], twist: -0.30, lean: -0.04, crouch: 0.02, stance: 0.30, lgrip: 0, head: 0.28 },
-    { u: 2.30, R: [0.70, 1.50, 0.10], L: [-0.70, 1.50, 0.10], dir: [0.85, 0.45, 0.2], nrm: [0, 0, 1], twist: 0.25, lean: -0.04, crouch: 0.02, stance: 0.30, lgrip: 0, head: 0.25 },
-    { u: 2.90, R: [0.32, 1.00, 0.16], L: [-0.04, 1.34, 0.17], dir: [0.1, -0.5, 0.85], nrm: [1, 0, 0], twist: 0, lean: 0.04, crouch: 0.02, stance: 0.27, lgrip: 0, head: 0.12 },
-    { u: 3.90, R: [0.30, 1.00, 0.16], L: [-0.04, 1.34, 0.17], dir: [0.1, -0.5, 0.85], nrm: [1, 0, 0], twist: 0, lean: 0.06, crouch: 0.02, stance: 0.27, lgrip: 0, head: 0.08 },
-    { u: 4.80, ...HANG, L: [-0.22, 0.95, 0.12], twist: 0, lean: 0.06, crouch: 0.03, stance: 0.25, lgrip: 0, head: 0.05 },
-  ]), { shout: 0, fist: 0 }),
-  lost: Object.assign(track([
-    { u: 0.00, ...HANG, L: [-0.22, 0.95, 0.12], twist: 0, lean: 0.06, crouch: 0.04, stance: 0.24, lgrip: 0, head: 0.0 },
-    { u: 0.80, R: [0.26, 0.76, 0.04], L: [-0.24, 0.82, 0.04], dir: [0.05, -0.8, 0.6], nrm: [1, 0, 0], twist: 0, lean: 0.20, crouch: 0.02, stance: 0.18, lgrip: 0, head: -0.50 },
-    { u: 4.80, R: [0.26, 0.76, 0.04], L: [-0.24, 0.82, 0.04], dir: [0.05, -0.8, 0.6], nrm: [1, 0, 0], twist: 0, lean: 0.18, crouch: 0.02, stance: 0.18, lgrip: 0, head: -0.45 },
-  ]), { shout: 0, fist: 0 }),
-  trophy: Object.assign(track([
-    { u: 0.00, R: [0.15, 1.24, 0.34], L: [-0.15, 1.24, 0.34], dir: [0, -0.3, 0.95], nrm: [1, 0, 0], twist: 0, lean: 0.02, crouch: 0.02, stance: 0.26, lgrip: 0, head: 0.05 },
-    { u: 0.90, R: [0.15, 1.26, 0.34], L: [-0.15, 1.26, 0.34], dir: [0, -0.3, 0.95], nrm: [1, 0, 0], twist: 0, lean: 0.02, crouch: 0.04, stance: 0.27, lgrip: 0, head: 0.10 },
-    { u: 1.30, R: [0.155, 1.72, 0.50], L: [-0.155, 1.72, 0.50], dir: [0, 0.6, 0.8], nrm: [1, 0, 0], twist: 0, lean: -0.02, crouch: 0.03, stance: 0.28, lgrip: 0, head: 0.25 },   // (up in front of his face, not through it)
-    { u: 1.70, R: [0.155, 2.10, 0.14], L: [-0.155, 2.10, 0.14], dir: [0, 0.9, 0.4], nrm: [1, 0, 0], twist: 0, lean: -0.06, crouch: 0.02, stance: 0.29, lgrip: 0, head: 0.40 },
-    { u: 2.60, R: [0.155, 2.04, 0.15], L: [-0.155, 2.04, 0.15], dir: [0, 0.9, 0.4], nrm: [1, 0, 0], twist: 0.05, lean: -0.05, crouch: 0.03, stance: 0.29, lgrip: 0, head: 0.36 },
-    { u: 3.50, R: [0.155, 2.11, 0.14], L: [-0.155, 2.11, 0.14], dir: [0, 0.9, 0.4], nrm: [1, 0, 0], twist: -0.05, lean: -0.06, crouch: 0.02, stance: 0.29, lgrip: 0, head: 0.42 },
-    { u: 5.20, R: [0.155, 2.06, 0.14], L: [-0.155, 2.06, 0.14], dir: [0, 0.9, 0.4], nrm: [1, 0, 0], twist: 0, lean: -0.05, crouch: 0.03, stance: 0.29, lgrip: 0, head: 0.36 },
-    { u: 5.75, R: [0.155, 1.74, 0.52], L: [-0.155, 1.74, 0.52], dir: [0, 0.6, 0.8], nrm: [1, 0, 0], twist: 0, lean: -0.02, crouch: 0.03, stance: 0.28, lgrip: 0, head: 0.22 },
-    { u: 6.30, R: [0.15, 1.30, 0.32], L: [-0.15, 1.30, 0.32], dir: [0, -0.3, 0.95], nrm: [1, 0, 0], twist: 0, lean: 0.02, crouch: 0.02, stance: 0.27, lgrip: 0, head: 0.12 },
-    { u: 20.0, R: [0.15, 1.30, 0.32], L: [-0.15, 1.30, 0.32], dir: [0, -0.3, 0.95], nrm: [1, 0, 0], twist: 0, lean: 0.02, crouch: 0.02, stance: 0.27, lgrip: 0, head: 0.12 },
-  ]), { shout: 0, fist: 0 }),
-};
-// which celebration each man is known for (Djokovic's arms to the crowd, Nadal's fists, Federer's arms up); anyone else by chance
-const CELEB_STYLE = { Nadal: 'fists', Alcaraz: 'fists', Djokovic: 'crowd', Sinner: 'arms', Federer: 'arms', Sampras: 'arms', Agassi: 'crowd', Lendl: 'arms', Borg: 'arms',
-  McEnroe: 'fists', Connors: 'fists', Laver: 'arms', Murray: 'fists', Wawrinka: 'fists', Zverev: 'arms', Thiem: 'fists', Medvedev: 'arms', Tsitsipas: 'crowd', 'del Potro': 'arms',
-  Roddick: 'fists', Kyrgios: 'crowd', Monfils: 'crowd', Becker: 'fists', Edberg: 'arms', Ivanisevic: 'arms', Wilander: 'arms', Kuerten: 'crowd', Hewitt: 'fists' };
-export function celebFor(fig) { return CELEB_STYLE[fig.look && fig.look.name] || ['arms', 'fists', 'crowd'][Math.floor(Math.random() * 3)]; }
 const REACT_ANIM = {
   // (the fist pump as players do it: the fist up to the chin with the elbow tucked down by the ribs, then pulled hard down to
   // the hip, the trunk crunching forward into it, twice. It was a fist held out at the stomach, the forearm level, moving a

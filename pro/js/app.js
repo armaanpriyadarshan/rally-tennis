@@ -4,7 +4,7 @@ import { Gfx, QUALITY } from './render.js';
 import { Game } from './game.js';
 import { Input } from './input.js';
 import { Audio } from './audio.js';
-import { PLAYERS, TOURNAMENTS, DIFFICULTY, ROUND_NAME, playerByName, lookAt, surfaceEdge, eventEdge, SURFACE_PLAY, kitEvent, eventSeeding, pickField } from './data.js';
+import { PLAYERS, TOURNAMENTS, DIFFICULTY, playerByName, lookAt, eventEdge, SURFACE_PLAY, kitEvent, eventSeeding, pickField } from './data.js';
 import { loadPerson } from './people.js';
 import { renderPortraits } from './portraits.js';
 import { PORTRAIT_FILES } from './portraitfiles.js';
@@ -26,8 +26,6 @@ const SFC = { hard: 'var(--hard)', clay: 'var(--clay)', grass: 'var(--grass)' };
 const RND = { R16: 'Round 1', QF: 'Quarter-final', SF: 'Semi-final', F: 'Final' };
 const wait = ms => new Promise(r => setTimeout(r, ms));
 // Run from the developer's own machine, the game keeps a play log (keys pressed for a shot and what came of them)
-// and hands it to the local server, so a control that misbehaves can be seen as it was played. Nowhere else.
-const KIT_EVENTS = ['ao', 'rg', 'wim', 'us'];
 const LOCAL = location.hostname === '127.0.0.1' || location.hostname === 'localhost';
 
 const SAVE = 'rallypro.settings.v1';

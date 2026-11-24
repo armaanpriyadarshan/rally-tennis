@@ -1,7 +1,7 @@
 // Rally Pro — one match on screen: builds the venue, runs the engine at a fixed step,
 // turns its events into pictures and sound, and maps the player's hands onto a racket.
 import * as THREE from 'three';
-import { Match, STEP, TIMING, FORMATS } from './sim.js';
+import { Match, STEP } from './sim.js';
 import { mirrorBall } from './net.js';
 import { AI } from './ai.js';
 import { COURT, BALL } from './physics.js';
@@ -10,14 +10,13 @@ import { SightGrid } from './sight.js';
 import { insideCourt } from './staff.js';
 import { venueSpec } from './venues.js';
 import { WEATHER, loadSkyTexture } from './skies.js';
-import { Figure, celebFor } from './figure.js';
-import { CELEB_MOTION } from './celebmotion.js';
+import { Figure } from './figure.js';
 import { buildTrophy } from './trophies.js';
 import { loadPerson, loadAvatar } from './people.js';
 import { loadCrowdAtlas } from './crowd.js';
 import { loadSurface } from './textures.js';
 import { BallFx } from './ballfx.js';
-import { PLAYERS, profileFor, envFor, DIFFICULTY, ROUND_NAME, lookAt } from './data.js';
+import { profileFor, envFor, DIFFICULTY, ROUND_NAME, lookAt } from './data.js';
 import { Human } from './human.js';
 // how much of the point a replay's figures are run through unseen before it opens (their springs warmed: about 40 ms for both)
 const REPLAY_PRE = 0.5;
@@ -31,8 +30,6 @@ const _v = new THREE.Vector3(), _w = new THREE.Vector3();
 // the big ones; the handles at 27 cm, where his hands hold it.
 const _held = new THREE.Vector3();          // the bounced ball's place: its own vector, since the camera reuses _w before the ball is drawn
 
-// the cut from the celebration and the walk to the handshake at the net, seconds after the last point
-const SHAKE_CUT = 3.9;
 export class Game {
   constructor(gfx, o = {}) {
     this.gfx = gfx; this.input = o.input || null; this.ui = o.ui || null; this.audio = o.audio || null;
@@ -105,10 +102,10 @@ export class Game {
   stop() { this.running = false; if (this.audio) this.audio.stopMatch(); }
 
   // ---------- the end of a match ----------
-  // He asked for "celebrations after matches and a trophy scene if you win". The match is held where it ended; the winner celebrates
-  // as he is known to (figure.js CELEB), the loser hangs his head, the picture going in close on the winner; and if it is the player's
-  // title, a wipe to the trophy: him on the court with it held up over his head, confetti coming down, the camera going slowly round.
-  // Space or Enter moves it on. onDone is called when it is over (the results come up over it, and it plays on behind them).
+  // He asked for "celebrations after matches and a trophy scene if you win". The winner puts both arms up, racket in hand (figure.js
+  // celebArm), both walk to the net and shake hands, then go to their chairs; at 4.6 s the results come up over it (it plays on
+  // behind them), or, for the player's title, a cut to the trophy: him on the court with it held up over his head, confetti coming
+  // down, the camera going slowly round. Space or Enter moves it on. onDone is called when it is over.
   endSequence(o = {}) {
     const m = this.match, w = m.score.winner; if (w == null || w < 0) { if (o.onDone) o.onDone(); return; }
     const ck = 'fists'; this.endSeq = { t: 0, who: w, trophy: !!o.trophy, onDone: o.onDone || null, stage: 'cel', kind: ck === 'fists' ? 'fists' : 'arms', done: false };   // (the fist pumped at the chest and the racket up in front, as he showed: Nadal's, tracked, for every man; the arms thrown up came out a flagpole)
@@ -127,7 +124,7 @@ export class Game {
       // both arms up with the racket in his hand, held, and brought down as he walks on (he said "the celebration should literally
       // just be holding hands up with racket in hands"); `__celebFistOld` for Nadal's tracked fist pump
       const kc = sm((S.t - 0.15) / 0.5) * (1 - sm((S.t - 2.7) / 0.6));
-      wf.celeb = null; wf.celebClip = null; wf.celebArm = { kind: 'up', u: S.t, k: kc }; lf.celeb = null; lf.celebArm = null;
+      wf.celebArm = { kind: 'up', u: S.t, k: kc }; lf.celebArm = null;
       // ...not cut to: they walk all the way (he said "dont teleport the players to the shake they should walk for it"), each
       // straight to his place at the net, a step from it and a little to his left; a right-hander passes his racket to his left hand
       // on the way (the winner once his arms are down, the loser soon after he sets off: figure.js handover); when both are there,
@@ -156,8 +153,8 @@ export class Game {
       } else if (S.t >= tEnd && !S.done) { S.done = true; if (S.onDone) S.onDone(); }
     } else {
       S.t2 += dt; const wf = this.fig[S.who];
-      wf.celeb = null; wf.trophyHold = { u: S.t2, ...(this.trophyObj ? this.trophyObj.userData.grip : { y: 0.27, w: 0.15, curl: 0.82 }) };
-      wf.celebClip = null; wf.celebArm = null; wf.shake = null; wf.shakeSwap = false; wf.handover = null;
+      wf.trophyHold = { u: S.t2, ...(this.trophyObj ? this.trophyObj.userData.grip : { y: 0.27, w: 0.15, curl: 0.82 }) };
+      wf.celebArm = null; wf.shake = null; wf.shakeSwap = false; wf.handover = null;
       this.confettiStep(dt);
       if (S.t2 >= 7.4 && !S.done) { S.done = true; if (S.onDone) S.onDone(); }
     }
@@ -166,12 +163,6 @@ export class Game {
   walkTo(i, tx, tz, v, dt) {
     const p = this.match.players[i], dx = tx - p.x, dz = tz - p.z, d = Math.hypot(dx, dz), sp = Math.min(v * Math.min(1, d / 0.8), d / Math.max(dt, 1e-3));
     if (d < 0.01 || sp < 0.01) { p.vx = 0; p.vz = 0; return; }
-    p.vx = dx / d * sp; p.vz = dz / d * sp; p.x += p.vx * dt; p.z += p.vz * dt;
-  }
-  // one man's walk to the net: straight to a metre short of it, a little to one side, at speed v (m/s), stopping smoothly
-  netWalk(i, v, dt, side) {
-    const p = this.match.players[i], tx = side * (p.sgn > 0 ? 1 : -1), tz = p.sgn * 1.1, dx = tx - p.x, dz = tz - p.z, d = Math.hypot(dx, dz);
-    const sp = v * Math.min(1, d / 0.8); if (d < 0.05 || sp < 0.01) { p.vx = 0; p.vz = 0; return; }
     p.vx = dx / d * sp; p.vz = dz / d * sp; p.x += p.vx * dt; p.z += p.vz * dt;
   }
   beginTrophy() {
@@ -228,7 +219,7 @@ export class Game {
     this.endSeq = null;
     if (this.trophyObj) this.trophyObj.visible = false;
     if (this.confetti) this.confetti.mesh.visible = false;
-    for (const f of this.fig || []) { f.celeb = null; f.celebClip = null; f.celebArm = null; f.shake = null; f.shakeSwap = false; f.handover = null; f.trophyHold = null; if (f.group) f.group.visible = true; if (f.racket) f.racket.visible = true; }
+    for (const f of this.fig || []) { f.celebArm = null; f.shake = null; f.shakeSwap = false; f.handover = null; f.trophyHold = null; if (f.group) f.group.visible = true; if (f.racket) f.racket.visible = true; }
   }
 
   setCamera(mode) {

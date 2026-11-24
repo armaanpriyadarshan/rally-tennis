@@ -240,18 +240,6 @@ export function blobTexture(size, inner, outer) {
   return tex(c, { clamp: true });
 }
 
-// A row-of-seats pattern for the stands: one repeat = one seat wide, one row deep.
-export function seatTexture(seatCol, treadCol, seed) {
-  const s = 128, c = canvas(s, s), g = c.getContext('2d'), r = rng32(seed);
-  g.fillStyle = shade(treadCol, 1); g.fillRect(0, 0, s, s);
-  // seat back (top of tile = uphill)
-  g.fillStyle = shade(seatCol, 1.0); g.beginPath(); g.roundRect(10, 18, s - 20, 62, 10); g.fill();
-  g.fillStyle = shade(seatCol, 0.72); g.beginPath(); g.roundRect(10, 72, s - 20, 34, 8); g.fill();
-  g.fillStyle = 'rgba(0,0,0,0.35)'; g.fillRect(0, 108, s, 20);
-  g.fillStyle = 'rgba(255,255,255,0.10)'; g.fillRect(12, 20, s - 24, 6);
-  void r;
-  return tex(c, { aniso: 8 });
-}
 
 // One seat wide: the back of a moulded stadium seat (and, lower, the front edge of its pan),
 // with clear air between it and the next one so a row reads as seats rather than a wall.
@@ -289,8 +277,3 @@ export function textTexture(text, o = {}) {
   return t;
 }
 
-// Fabric weave normal, shared by clothing and towels.
-let _fabric = null;
-export function fabricNormal() { if (!_fabric) _fabric = tex(normalFromHeight(fbmField(128, 128, 55, { base: 64, octaves: 2, gain: 0.9 }), 1.6), { data: true }); return _fabric; }
-let _skin = null;
-export function skinNormal() { if (!_skin) _skin = tex(normalFromHeight(fbmField(128, 128, 56, { base: 48, octaves: 3, gain: 0.7 }), 0.7), { data: true }); return _skin; }

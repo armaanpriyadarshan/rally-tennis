@@ -54,7 +54,7 @@ const runT = (d, v) => (d < v * v / 6.5 ? 2 * Math.sqrt(d / 6.5) : d / v + v / 6
 // ---------- scratch ----------
 const _inv = new THREE.Matrix4(), _m4 = new THREE.Matrix4();
 const _q = new THREE.Quaternion(), _q2 = new THREE.Quaternion(), _qa = new THREE.Quaternion(), _qb = new THREE.Quaternion(), _qc = new THREE.Quaternion(), _qP = new THREE.Quaternion(), _qC = new THREE.Quaternion(), _qH = new THREE.Quaternion(), _qN = new THREE.Quaternion();
-const _a = V(), _b = V(), _c = V(), _d = V(), _e = V(), _f = V(), _g = V(), _h = V(), _pel = V(), _spine = V(), _eye = V(), _pole = V(), _sh = V(), _el = V(), _wr = V(), _hip = V(), _an = V(), _kn = V(), _w = V();
+const _a = V(), _b = V(), _c = V(), _d = V(), _e = V(), _f = V(), _g = V(), _h = V(), _pel = V(), _spine = V(), _pole = V(), _sh = V(), _el = V(), _wr = V(), _hip = V(), _an = V(), _kn = V(), _w = V();
 const _fx = V(), _fy = V(), _fz = V();
 // the direction from joint a to joint b of a pose, in the body's own frame (x right, y up, forward -z)
 function cd(P, a, b, out) { return out.set(P[b * 3] - P[a * 3], P[b * 3 + 1] - P[a * 3 + 1], P[a * 3 + 2] - P[b * 3 + 2]).normalize(); }
