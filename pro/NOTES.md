@@ -1774,6 +1774,7 @@ still in the air, both in a stroke's finish, for two or three frames.
   and little scatter. At Tour now: no pulling in, the held arrow goes to 0.5 m inside the line, and his groundstrokes scatter 2.6 times
   as much (data.js DIFFICULTY strike; serves unchanged). The bot as Nadal against Djokovic: timed to Perfect, 5% of rally balls out
   or in the net and 64% of points (it had been 1% and 75%); timed loosely, 12% and 45%.
-- **Side to side before the serve** (he said "on the preserve i meant the walk should be like the normal walking animation like side
-  to side. not whatever it is now"): moving along the line he no longer turns to walk there; he stays square to the net and steps side
-  to side as in a rally's movement, the racket in front, up to 3 m/s.
+- **Walking before the serve** (he said "not side stepping. like the same walk as before the match starts and after the match ends"):
+  moving along the line to choose his spot he walks there as he walks on before the match and to the net after it - turned the way
+  he is going, the racket hanging, the arms swinging - at a brisk walk, up to 2 m/s (at 3 the walk was hurried into a speed-walk, at
+  4 he slid there in his stance). (A side-stepping version, square to the net, was tried and taken out the same hour.)

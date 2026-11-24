@@ -578,7 +578,7 @@ export class Figure {
     // (a server moving along the baseline to choose his spot walks there, turned the way he is going, and settles into his
     // stance only once he stops: held in the side-on serving stance and slid sideways, the legs ran a sideways gait under it,
     // lunging, scissoring and splaying into the splits as he changed direction)
-    const srvWalkK = this.srvWalkK = serverWait ? damp(this.srvWalkK || 0, sm((Math.hypot(p.vx, p.vz) - 0.08) / 0.3) * ((1 - sm((Math.hypot(p.vx, p.vz) - 3.1) / 0.6))), 10, dt) : 0; /* (and quicker than a walk, his legs and arms are his run's) */
+    const srvWalkK = this.srvWalkK = serverWait ? damp(this.srvWalkK || 0, sm((Math.hypot(p.vx, p.vz) - 0.08) / 0.3) * ((1 - sm((Math.hypot(p.vx, p.vz) - 2.2) / 0.6))), 10, dt) : 0; /* (and quicker than a walk, his legs and arms are his run's) */
     // (he turns and runs from two and a half metres a second, not three and a fifth, and pumps his arms from three, not nearly four:
     // a run to a ball well wide, behind or in front of him began as a quick sideways shuffle of three steps a second and went
     // on with the racket held out in front of him at chest height, as if already taking it back)
@@ -598,10 +598,9 @@ export class Figure {
       // walking to his mark to serve he walks as anyone does between points, arms down, racket hanging in his hand, ball in the
       // other; the set-up's turn of the chest and its stance come on only as he stops (walked in the set-up pose, the chest was
       // turned well round to the racket side and the feet kept the serving stance as he walked along the line)
-      // (moving along the line to choose his spot he faces the net and goes side to side as he moves in a rally, the ready stance
-      // over the play's own sideways steps - he said "on the preserve i meant the walk should be like the normal walking animation
-      // like side to side": turned to walk there, he strolled along the line sideways on to the net)
-      if (srvWalkK > 0.001) basePose = blendPose(basePose, this.ready(t, { live: false, wait: true }), srvWalkK); }
+      // (the same walk as walking on before the match and to the net after it - he said "like the same walk as before the match starts
+      // and after the match ends", not the side steps of a rally)
+      if (srvWalkK > 0.001) basePose = blendPose(basePose, this.stroll(t, speed), srvWalkK); }
     else {
       // the racket stays in front in both hands until he is flat out; only then do the arms pump
       basePose = this.ready(t, { live: m.phase === 'live', wait: m.phase !== 'live' });
@@ -776,7 +775,7 @@ export class Figure {
       // (and straight back, faster than a backpedal goes, he drops a foot back and turns side-on to run, to his forehand side unless
       // he is already going a little across: the arrow held back sent him backpedalling at four metres a second, facing the net)
       if (lf < -0.5 && Math.abs(lx) <= 0.25 * speed) { const bk = sm((speed - 2.6) / 0.9); if (bk > 0.001) { if (!this.backSide || Math.abs(lx) > 0.12 * speed) this.backSide = Math.abs(lx) > 0.12 * speed ? Math.sign(lx) : (hs > 0 ? 1 : -1); yawT = lerp(yawT, this.backSide * 1.25 * turnSus, bk); } } else if (!(lf < -0.5)) this.backSide = 0;
-    } else if (between && speed > 0.5) { yawT = Math.atan2(p.vx * s, -p.vz * s); }   /* (waiting to serve he stays square to the net and moves side to side, below) */
+    } else if ((between || serverWait) && speed > (serverWait ? (this.srvWalking ? 0.08 : 0.15) : 0.5)) { yawT = Math.atan2(p.vx * s, -p.vz * s); }
     if (rcvWalk) yawT = Math.atan2(p.vx * s, -p.vz * s);
     // Going forward and across at once at a jog or more (moved with the arrows, up and to one side), he runs the diagonal turned
     // toward it, as a player runs in to a short ball wide of him: the turn above waits for two and a half metres a second and
@@ -1117,7 +1116,7 @@ export class Figure {
     // court because the cycle runs at the pace its feet cover the ground. (Run through the locks and catch-up steps kept for
     // play, the walker's planted foot was held down a beat long, the body went on, the hips sank to reach it and a step of the
     // game's own, short and low, took over: both feet off the court a hand's breadth apart, the knees bent, every few steps.)
-    { const want = (between && !serverWait || rcvWalk) && !this.posed && !(st && sw > 0.05) ? clamp(this.loco.w.up, 0, 1) * sm((speed - 0.35) / 0.4) * (1 - sm((speed - (serverWait ? 3.1 : 2.2)) / 0.6)) * (sm((Math.cos(this.yaw - Math.atan2(p.vx * s, -p.vz * s)) + 0.5) / 0.3)) : 0;   /* (not stepping back facing the net: walked forwards under a body going backwards, laid out the way he went, the walk turned half round under him in a sixth of a second; that is play's backpedal) */   /* (and walking along the line to serve: left to play's footwork, it walked there on bent knees with catch-up steps) */   /* (only on the walk back, 'between': brought in as the point ended, while he was still pulling up out of a run, play's running feet were thrown across to the walk's in a few frames) */   /* (walking, not standing: stood still after a point, the feet are play's, planted where they are) */
+    { const want = (between && !serverWait || (serverWait && this.srvWalking) || rcvWalk) && !this.posed && !(st && sw > 0.05) ? clamp(this.loco.w.up, 0, 1) * sm((speed - 0.35) / 0.4) * (1 - sm((speed - 2.2) / 0.6)) * (sm((Math.cos(this.yaw - Math.atan2(p.vx * s, -p.vz * s)) + 0.5) / 0.3)) : 0;   /* (not stepping back facing the net: walked forwards under a body going backwards, laid out the way he went, the walk turned half round under him in a sixth of a second; that is play's backpedal) */   /* (and walking along the line to serve: left to play's footwork, it walked there on bent knees with catch-up steps) */   /* (only on the walk back, 'between': brought in as the point ended, while he was still pulling up out of a run, play's running feet were thrown across to the walk's in a few frames) */   /* (walking, not standing: stood still after a point, the feet are play's, planted where they are) */
       // (from the moment he sets off, turning or not: the walk's own plants (below) hold the standing foot while he turns over it.
       // Taken up only once he faced the way he was going, the play's footwork turned him, its far foot
       // stepping first across the near one, the shins through each other; taken up while turning without the plants, the planted
@@ -1500,7 +1499,7 @@ export class Figure {
     // steps to a volley is made with the racket held up in front in both hands, and pumping for each dart, the arms flicked
     // between the two at every step)
     const sustain = this.pumpSus;
-    const walkSv = 0; /* (moving along the line to serve he carries the racket as in a rally's side steps, not a stroll's swing) */
+    const walkSv = serverWait ? (this.srvWalkK || 0) : 0; /* (walking to serve: the arms swing as they do strolling between points) */
     const free = ease(this, 'armFree', strolling ? 1 - Math.max(this.reactK || 0, this.touchK || 0) : lerp(sm((speed - gP0) / (gP1 - gP0)) * sustain * (1 - sm(sw / 0.4)), 1, walkSv), strolling || walkSv > 0.5 ? 7 : this.sinceSw < 0.5 ? 8 : 19, dt); /* (after a point the arms loosen slowly) */
     const sh = [shL, shR], cEl = _el2, cWr = _wr2, CJ = ARM_J;
     // the way each knee bends (see below): a function, so either leg's can be had while the other is solved
