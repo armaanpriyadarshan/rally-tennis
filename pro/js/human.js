@@ -283,18 +283,17 @@ export class Human {
             // (swung on the side the ball will be: a wind-up begun for one side, the ball coming through on the other, was swung on the
             // wrong side, a forehand at a ball going by his backhand - "if theyre close to a ball but miss sometimes its the wrong animation")
             if (rch && p.stroke && !p.stroke.done && p.stroke.wing && p.stroke.wing !== rch.side && Math.abs(rch.relX) > 0.35) p.stroke.wing = rch.side;
-            // the angle is his if he holds one; otherwise the game's choice of where
-            const chX = ch ? ch.tx * s : 0, chD = ch ? ch.tz * s : -(COURT.halfLen - Math.max(2.4, this.safe[1] + 1.6));
+            // the angle is his if he holds one
+            // (no aim but his own: with no arrow held the ball goes down the middle and deep - the game used to choose where for him,
+            // crosscourt, into the open court, a short angle; he said "there shouldnt be autoaim on my shots")
+            const chX = 0, chD = -(COURT.halfLen - Math.max(2.4, this.safe[1] + 1.6));
             const aimF = clamp(((this.aimHDir === lat ? this.aimHDur : 0) - 0.05) / 0.35, 0, 1);
             const latX = 1.3 + (COURT.halfW - this.safe[0] - 0.3 - 1.3) * aimF;
-            let X = lat ? lat * latX : clamp(chX, -(COURT.halfW - this.safe[0]), COURT.halfW - this.safe[0]), D = chD, power = ch ? ch.power : 0.74;
-            // his own drop shot dies just over the net, his lob lands deep; with no angle held, both go away from the other man
-            const away = -Math.sign(opp.x * s || 1);
-            // (the game's short angle, aimed the other way, is a deep ball that way)
-            if (ch && ch.ang && lat && Math.sign(chX) !== lat && !angle) D = -(COURT.halfLen - Math.max(2.4, this.safe[1] + 1.6));
+            let X = lat ? lat * latX : chX, D = chD, power = ch ? ch.power : 0.74;
+            // his own drop shot dies just over the net, his lob lands deep; with no angle held, both straight down the middle
             if (angle) { const side = lat || -Math.sign(p.x * s || 1); X = side * (COURT.halfW - Math.max(0.6, this.safe[0] + 0.3)); D = -5.3; power = 0.6; }
-            else if (own === 'drop') { X = lat ? lat * (COURT.halfW - 1.5) : away * (COURT.halfW - 1.9); D = -2.1; power = 0.4; }
-            else if (own === 'lob') { X = lat ? lat * (COURT.halfW - 1.6) : away * 1.5; D = -(COURT.halfLen - 1.7); power = 0.55; }
+            else if (own === 'drop') { X = lat ? lat * (COURT.halfW - 1.5) : 0; D = -2.1; power = 0.4; }
+            else if (own === 'lob') { X = lat ? lat * (COURT.halfW - 1.6) : 0; D = -(COURT.halfLen - 1.7); power = 0.55; }
             else if (deep) D = -(COURT.halfLen - Math.max(1.3, this.safe[1] + 0.8));
             this.aim.X = X; this.aim.D = D;
             // (how long before this moment Space was pressed: an early press is held and goes now, as it always has, but only one

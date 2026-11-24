@@ -1758,3 +1758,8 @@ still in the air, both in a stroke's finish, for two or three frames.
   before"): raised to 4 m/s when he asked for it at ordinary pace, the move went past the walk's top speed (2.2 m/s) and he slid in
   his stance. Now a brisk walk, up to 3 m/s (the old pace was 1.6), and while he waits to serve the walk is kept on up to that pace:
   measured holding D, the walk fully on at 3 m/s.
+- **No aiming but his own** (he said "there shouldnt be autoaim on my shots"): with no arrow held, his ball went where the game chose
+  for him - crosscourt, into the open court, now and then a short angle - and his drop shots and lobs away from the other man. Now
+  with no arrow it goes down the middle, deep (a drop shot or a lob, down the middle); the arrows aim it as before, the ↓ short angle
+  still goes crosscourt unless an arrow says otherwise. (What kind of shot - drive, loop - is still read from the ball; the level's
+  margin inside the lines, Club and Challenger, stays.)
