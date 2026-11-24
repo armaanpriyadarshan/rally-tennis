@@ -206,11 +206,11 @@ export function profileFor(id, surface, key, o = {}) {
   b.net = clamp(b.net * S.net, 0, 0.9); b.sv = clamp(b.sv * S.sv, 0, 0.9); b.drop = clamp(b.drop * S.drop, 0, 0.2); b.slice = clamp(b.slice * S.slice, 0, 0.6);
   b.agg = clamp(b.agg + S.agg, 0.05, 0.97); if (b.fhAgg != null) b.fhAgg = clamp(b.fhAgg + S.agg, 0.05, 0.97);
   b.adv = adv;
-  // His level (LEVEL below): steadier, quicker to the ball and off the mark, a little more pace and a surer first serve the higher it
+  // His level (LEVEL below): steadier, quicker to the ball and off the mark, and a surer first serve the higher it
   // is - the same for every man, a unit for every five points of level from the middle of the tour (84)
   { const u = clamp((courtLevelOf(id) - 84) / 5, -2.4, 3);   /* (not below a level of 72 in a match: a man with no major is still a tour player) */
     b.cons = clamp(b.cons + 0.07 * u, 0.1, 0.98); b.speed *= 1 + 0.015 * u; b.accel *= 1 + 0.02 * u; b.react *= 1 - 0.03 * u;
-    b.fhKmh *= 1 + 0.025 * u; b.bhKmh *= 1 + 0.025 * u; b.s1Kmh *= 1 + 0.015 * u; b.firstIn = clamp(b.firstIn + 0.02 * u, 0.45, 0.8); }
+    b.firstIn = clamp(b.firstIn + 0.02 * u, 0.45, 0.8); }   /* (not his pace: that is his own, measured - he said "stroke speed by player should match real distributions") */
   // (and none of it beyond what a man can be: no one steadier than 0.95 - at the old ceiling, 0.98, Sinner at the Finals all but never
   // missed, the bot won 37% of the points from him - nor quicker than the quickest, nor slower to react than the slowest)
   b.speed = clamp(b.speed, 5.4, 7.0); b.accel = clamp(b.accel, 4.9, 8.2); b.react = clamp(b.react, 0.19, 0.28);

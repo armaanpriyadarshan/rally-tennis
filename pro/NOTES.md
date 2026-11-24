@@ -1778,3 +1778,10 @@ still in the air, both in a stroke's finish, for two or three frames.
   moving along the line to choose his spot he walks there as he walks on before the match and to the net after it - turned the way
   he is going, the racket hanging, the arms swinging - at a brisk walk, up to 2 m/s (at 3 the walk was hurried into a speed-walk, at
   4 he slid there in his stance). (A side-stepping version, square to the net, was tried and taken out the same hour.)
+- **Every man's pace his own** (he said "stroke speed by player should match real distributions. like nadal cant serve 220 km/h lol",
+  "it should be like this for every player"): his level no longer adds pace (it still makes him steadier, quicker and surer of his
+  first serve); a serve is never faster than his fastest (Nadal 217, Federer 230, Roddick 249.4 - data.js, measured or, for the older
+  men, the era table's estimate), a Perfect one 3% harder (it was 6%, over the cap); a person's groundstroke runs from a little under
+  his average pace to a fifth over it as he times it (it was to 27% over), and no forehand or backhand goes faster than about half as
+  fast again as his average. The bot as Nadal against Djokovic: first serves median 182-189 km/h, at most his 217 (they had been 203
+  and 225); forehands 118-131, backhands 118-130 (127 and 114 his averages; they had been 138 and 141); Djokovic's 114-125.

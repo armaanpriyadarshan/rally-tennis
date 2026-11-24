@@ -804,7 +804,9 @@ export class Match {
       if (ax > COURT.halfW * 0.55) stx = sg * (ax + (COURT.halfW - 0.3 - ax) * pf);
       else if (ax < COURT.halfW * 0.35) stx = sg * (ax + (0.3 - ax) * pf);
       stz = Math.sign(stz) * (dz + (COURT.svc - 0.5 - dz) * pf); }
-    let speed = spec.kmh / 3.6 * lerp(0.80, 1, q) * (1 + 0.06 * pf);
+    // (never past the fastest he has served: a Perfect serve is 3% harder, and Nadal's went to 225 km/h - his fastest is 217 - with the
+    // median of his first serves at 203 against his 181; he said "nadal cant serve 220 km/h lol")
+    let speed = Math.min(spec.kmh / 3.6 * lerp(0.80, 1, q) * (1 + 0.03 * pf), (prof.s1Max || 230) / 3.6);
     const p0 = { x: b.x, y: clamp(b.y, contactH - 0.3, contactH + 0.15), z: p.z - p.sgn * 0.45 };
     const top = spec.top * lerp(0.8, 1, q), side = spec.side * p.hs;
     let sol = null;
@@ -1026,7 +1028,7 @@ export class Match {
       // especially on clay, not enough bounce or topspin feel": struck alike, everyone's went fast and low. And the top pace a little
       // lower: "the speed boost is lowk too much", 1.36 times his average at Perfect, now 1.27)
       const sH = kind === 'flat' ? 0 : clamp((wingRpm - 2900) / 700, 0, 1);
-      v = wingKmh / 3.6 * lerp(0.92, 1.27, Q) * (kind === 'flat' ? 1.06 : 1) * (loopy ? 0.82 : 1) * (1 - 0.18 * clamp((0.5 - h) / 0.5, 0, 1)) * (1 - 0.12 * sH);
+      v = wingKmh / 3.6 * lerp(0.88, 1.2, Q) * (kind === 'flat' ? 1.06 : 1) * (loopy ? 0.82 : 1) * (1 - 0.18 * clamp((0.5 - h) / 0.5, 0, 1)) * (1 - 0.12 * sH);
       top = kind === 'flat' ? wingRpm * lerp(0.45, 0.6, Q) : Math.min(4500, wingRpm * lerp(1.0, 1.22, Q) * (1 + 0.32 * sH) * (loopy ? 1.15 : 1));
       minClear = (loopy ? lerp(1.4, 1.0, Q) : lerp(1.0, 0.3, Q) + 0.9 * sH * lerp(1, 0.8, Q)) * (prof.arcS || 1);
       topMax = kind === 'flat' ? top * 1.25 : Math.max(top, Math.min(5000, top * 1.45)); }   /* (5000 rpm at most: as hard as Nadal ever spun one, he said) */   // (to keep a hard ball in, more spin before less pace)
@@ -1061,7 +1063,8 @@ export class Match {
     const pull = -clamp(tim, -0.11, 0.13) * TUNE.timPull * (relX >= 0 ? 1 : -1) * p.hs * p.sgn;
     let outEl = sol.el + rng.g() * TUNE.sigEl * k - clamp(tim, -0.1, 0.1) * TUNE.timEl;
     const outAz = sol.az + rng.g() * TUNE.sigAz * k + pull;
-    let outV = sol.speed * (1 + rng.g() * TUNE.sigV * k);
+    // (and no forehand or backhand quicker than he hits one: about half as fast again as his average, as the tour's fastest are)
+    let outV = Math.min(sol.speed * (1 + rng.g() * TUNE.sigV * k), wingKmh * 1.45 / 3.6);
     if (!st.auto && !strike && timAbs > 0.03) outV *= 1 - clamp((timAbs - 0.03) * 2.2, 0, 0.25);
     // Off-centre contact: the ball comes off dead and low. This is where most balls in
     // the net come from -- a clean swing that is a few centimetres out on the strings.
