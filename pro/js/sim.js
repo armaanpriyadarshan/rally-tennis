@@ -801,12 +801,12 @@ export class Match {
     const swin = this.timingWindow[p.i], pf = !st.auto ? 1 - clamp((Math.abs(tim) - swin * 0.5) / Math.max(0.005, swin * 0.5), 0, 1) : 0;
     let stx = it.tx, stz = it.tz;
     if (pf > 0) { const ax = Math.abs(stx), dz = Math.abs(stz), sg = Math.sign(stx) || 1;
-      if (ax > COURT.halfW * 0.55) stx = sg * (ax + (COURT.halfW - 0.3 - ax) * pf);
-      else if (ax < COURT.halfW * 0.35) stx = sg * (ax + (0.3 - ax) * pf);
+      if (ax > COURT.halfW * 0.55) stx = sg * (ax + (COURT.halfW - 0.2 - ax) * pf);
+      else if (ax < COURT.halfW * 0.35) stx = sg * (ax + (0.2 - ax) * pf);
       stz = Math.sign(stz) * (dz + (COURT.svc - 0.5 - dz) * pf); }
-    // (never past the fastest he has served: a Perfect serve is 3% harder, and Nadal's went to 225 km/h - his fastest is 217 - with the
-    // median of his first serves at 203 against his 181; he said "nadal cant serve 220 km/h lol")
-    let speed = Math.min(spec.kmh / 3.6 * lerp(0.80, 1, q) * (1 + 0.03 * pf), (prof.s1Max || 230) / 3.6);
+    // (never past the fastest he has served - Nadal's had gone to 225 km/h, his fastest 217; he said "nadal cant serve 220 km/h lol" -
+    // and a Perfect one 6% harder and on the line, 20 cm inside it: at 3% and 30 cm, "nadal like cannot ace anymore")
+    let speed = Math.min(spec.kmh / 3.6 * lerp(0.80, 1, q) * (1 + 0.06 * pf), (prof.s1Max || 230) / 3.6);
     const p0 = { x: b.x, y: clamp(b.y, contactH - 0.3, contactH + 0.15), z: p.z - p.sgn * 0.45 };
     const top = spec.top * lerp(0.8, 1, q), side = spec.side * p.hs;
     let sol = null;

@@ -1807,3 +1807,7 @@ still in the air, both in a stroke's finish, for two or three frames.
   crosscourt - shorter and nearer the side line, as far as he holds the arrow; from the middle of the baseline it stays the deep ball
   near the line. Measured (classicbot ANGLES, his held-arrow rally balls): from the baseline middle 1.9 m inside the baseline, 3.7 m
   out; from out wide 3.2 m in; from inside the court 4.2 m in, 3.6 m out.
+- **Aces again** (he said "nadal like cannot ace anymore"): with his level no longer adding pace and the Perfect serve only 3% harder,
+  30 cm inside the line, the bot as Nadal served 5 aces in about 150 service points (3%; his own rate is 5-6%, and a person's Perfect
+  serve ought to be a weapon). A Perfect serve is now 6% harder - never past his fastest - and 20 cm inside the T or the wide line: 13
+  aces in about 150 (9%), Perfect serves 195 km/h at the median, 21 cm from the line, at most 213.
