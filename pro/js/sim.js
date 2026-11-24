@@ -1055,7 +1055,7 @@ export class Match {
     const steady = lerp(1.28, 0.92, prof.cons) * this.diffScale[p.i] * (it.sigma || 1) * clean;
     // a clean swing takes the level's share off the routine part of the spread only: off an easy ball it goes where it
     // was sent, while what makes a ball hard (pace, width, running, a stretch) is still all there
-    const k = strike ? sig * this.diffScale[p.i] * (it.sigma || 1) * lerp(1.15, 0.9, prof.cons) * (0.12 + 1.3 * Math.pow(1 - Q, 1.2)) * (1 + 0.5 * clamp(diff / 1.5, 0, 1))
+    const k = strike ? sig * this.diffScale[p.i] * (this.strikeK ? this.strikeK[p.i] : 1) * (it.sigma || 1) * lerp(1.15, 0.9, prof.cons) * (0.12 + 1.3 * Math.pow(1 - Q, 1.2)) * (1 + 0.5 * clamp(diff / 1.5, 0, 1))
       : (st.auto ? sig * steady * (1 + diff) * this.press(p) : sig * (steady / clean) * (clean + diff)) * (1 - 0.4 * easyT) * (1 - 0.82 * pf * (1 - 0.5 * clamp(diff / 1.5, 0, 1)));   // (and nearer his aim; Perfect most of all, less so off a hard ball)
     // timing drags the ball: early pulls it across the body, late pushes it wide
     const pull = -clamp(tim, -0.11, 0.13) * TUNE.timPull * (relX >= 0 ? 1 : -1) * p.hs * p.sgn;

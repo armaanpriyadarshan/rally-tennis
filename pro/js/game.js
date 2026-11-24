@@ -87,7 +87,7 @@ export class Game {
     m.bounds = A.bounds;
     if (!cfg.demo && !cfg.online) m.diffScale[1] = D.err * Math.exp(-0.35 * oF);
     this.human = cfg.demo ? null : new Human(this);
-    if (this.human) { m.timingWindow[0] = D.window; m.diffScale[0] = D.aid; m.cleanK[0] = D.clean == null ? 1 : D.clean; m.mercy[0] = D.mercy == null ? 1 : D.mercy; m.aimSafe[0] = D.aimSafe; this.human.safe = D.safe; this.human.srvSafe = D.srvSafe; }
+    if (this.human) { m.strikeK = [D.strike || 1, 1]; m.timingWindow[0] = D.window; m.diffScale[0] = D.aid; m.cleanK[0] = D.clean == null ? 1 : D.clean; m.mercy[0] = D.mercy == null ? 1 : D.mercy; m.aimSafe[0] = D.aimSafe; this.human.safe = D.safe; this.human.srvSafe = D.srvSafe; }
     m.ctl = [this.human || new AI(), new AI()];
     this.net = null;
     if (cfg.online) this.goOnline(cfg.online);

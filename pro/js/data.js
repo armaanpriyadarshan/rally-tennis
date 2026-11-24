@@ -438,5 +438,5 @@ export function envFor(T, session, rnd) {
 export const DIFFICULTY = [
   { key: 'club',   name: 'Club',       err: 1.28, speed: 0.89, react: 1.25, pace: 0.88, window: 0.070, aid: 0.88, clean: 0.4, mercy: 1, safe: [1.1, 2.2], aimSafe: 1.0, srvSafe: 0.85, desc: 'Slower ball, slower opponent, more mistakes from the other side. Generous timing, and your aim is kept well inside the lines.' },
   { key: 'pro',    name: 'Challenger', err: 0.81, speed: 0.99, react: 1.04, pace: 0.98, window: 0.050, aid: 0.95, clean: 0.5, mercy: 0.65, safe: [0.8, 1.6], aimSafe: 0.75, srvSafe: 0.65, desc: 'A proper match. The opponent misses when pushed; you have some margin for error.' },
-  { key: 'tour',   name: 'Tour',       err: 0.53, speed: 1.03, react: 0.96, pace: 1.02, window: 0.035, aid: 1.12, clean: 0.6, mercy: 0.35, safe: [0.35, 0.9], aimSafe: 0.35, srvSafe: 0.35, desc: 'His real numbers: serve speed, spin, consistency, court coverage. You can aim at the lines, and miss them.' },
+  { key: 'tour',   name: 'Tour',       err: 0.53, speed: 1.03, react: 0.96, pace: 1.02, window: 0.035, aid: 1.12, strike: 2.6, clean: 0.6, mercy: 0.35, safe: [0.2, 0.7], aimSafe: 0, srvSafe: 0.35, desc: 'His real numbers: serve speed, spin, consistency, court coverage. You can aim at the lines, and miss them.' },
 ];

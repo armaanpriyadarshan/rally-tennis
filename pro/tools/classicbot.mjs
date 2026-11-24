@@ -55,6 +55,7 @@ const bot = { update(mm, i, dt) {
   } else keys.clear();
   H.update(mm, i, dt);
 } };
+m.strikeK = [a.strike != null ? +a.strike : (D.strike || 1), 1];
 m.ctl = [bot, new AI()];
 // srvbody=1: every serve aimed at the returner (where he stands), a little short of the service line
 if (a.srvbody) { const ss = m.serveSwing.bind(m); m.serveSwing = (i, o) => { if (i !== 0) return ss(i, o); const S = m.players[0], R = m.players[1], zl = Math.sign(R.z) * (6.40 - 1.0), tx = S.x + (R.x - S.x) * (zl - S.z) / (R.z - S.z); return ss(i, { ...o, tx, tz: zl }); }; }

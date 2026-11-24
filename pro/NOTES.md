@@ -1763,3 +1763,17 @@ still in the air, both in a stroke's finish, for two or three frames.
   with no arrow it goes down the middle, deep (a drop shot or a lob, down the middle); the arrows aim it as before, the ↓ short angle
   still goes crosscourt unless an arrow says otherwise. (What kind of shot - drive, loop - is still read from the ball; the level's
   margin inside the lines, Club and Challenger, stays.)
+- **The raised arm's elbow bends as an elbow does** (he said "the elbow holding the racket bends weirdly on the celebration"): the
+  arms-up fists turned each arm about itself mostly at the shoulder, with the elbow left where the arm's solve had put it, so the
+  elbow bent sideways to its hinge. Now the elbow is placed on the back-of-the-hand side of the arm, and the upper arm turned so the
+  model's own elbow hinge (its rest pose bends 21 degrees forward) is the way the forearm goes; the rest of the fist's turn three
+  fifths in the forearm, the rest at the wrist (8-10 degrees bent). The racket may lean back up to 30 degrees from the handle's line.
+- **His shots can miss** (he said, after beating Djokovic and Federer in straight sets as Nadal at Tour, "i feel like just holding the
+  arrow keys results in me always hitting perfectly"): at Tour his rally balls went out or into the net 1-2% of the time however he
+  timed them - his target pulled inside the lines by part of his miss, the held arrow going for a line 0.65 m inside the side line,
+  and little scatter. At Tour now: no pulling in, the held arrow goes to 0.5 m inside the line, and his groundstrokes scatter 2.6 times
+  as much (data.js DIFFICULTY strike; serves unchanged). The bot as Nadal against Djokovic: timed to Perfect, 5% of rally balls out
+  or in the net and 64% of points (it had been 1% and 75%); timed loosely, 12% and 45%.
+- **Side to side before the serve** (he said "on the preserve i meant the walk should be like the normal walking animation like side
+  to side. not whatever it is now"): moving along the line he no longer turns to walk there; he stays square to the net and steps side
+  to side as in a rally's movement, the racket in front, up to 3 m/s.
