@@ -1568,3 +1568,9 @@ still in the air, both in a stroke's finish, for two or three frames.
   called on the moment never did - 10 of 10 in a browser test pressing Space with ↓ as the ring closed were swung as drives. Now the
   switch is taken right up to contact, eased in over what time is left (at least 0.04 s): 10 of 10 shown as drops, filmed from the
   side (the short, low, open-faced finish, not the forehand's wrap).
+- **Skip an event** (he said "i feel like there should be a way not to enter in an event"): the season screen has Skip beside Sim
+  event (before he has entered that week's event). season.js `skipEvent`: the event is played without him - its field drawn from
+  everyone else as any other week, its matches simulated, the others' points banked - and he takes nothing; the calendar marks it
+  Skipped. (Sim event, as before, plays him in it.)
+- Two unreachable leftovers of the cleanup (a guarded return unwrapped, the old code after it left behind: season.js entrants,
+  figure.js runPose) removed.

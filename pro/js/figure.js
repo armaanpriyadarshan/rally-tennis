@@ -307,7 +307,6 @@ export class Figure {
     if (bhK > 0.001) { const b = bhK, d = [-0.22 + (-0.62 + 0.22) * b, 0.42 + (0.50 - 0.42) * b, 0.88 + (0.60 - 0.88) * b], dl = Math.hypot(d[0], d[1], d[2]);
       return { R: [0.22 - 0.24 * b, 0.98 + up, 0.30 + sw * kR * (1 - 0.5 * b) + 0.04 * b], L: [-0.14 + 0.02 * b, 1.10 - 0.04 * b, 0.30 - sw * kL * (1 - 0.6 * b) + 0.04 * b], dir: d.map(v => v / dl), nrm: [0.7, 0.1, 0.7], twist: 0, lean: 0.22, crouch: 0.15, stance: 0.22, lgrip: 0, head: 0, elbows: 0.15 }; }
     return { R: [0.22, 0.98 + up, 0.30 + sw * kR], L: [-0.14, 1.10, 0.30 - sw * kL], dir: [-0.22, 0.42, 0.88], nrm: [0.7, 0.1, 0.7], twist: 0, lean: 0.22, crouch: 0.15, stance: 0.22, lgrip: 0, head: 0, elbows: 0.15 };
-    return { R: [0.22, 1.06 + up, 0.40 + sw], L: [-0.14, 1.10, 0.30 - sw], dir: [-0.30, 0.78, 0.55], nrm: [0.7, 0.1, 0.7], twist: 0, lean: 0.22, crouch: 0.15, stance: 0.22, lgrip: 0, head: 0, elbows: 0.15 };
   }
 
   // Where the ball was met, as far as the arms are concerned: up to contact, the place on the court; after it, that place

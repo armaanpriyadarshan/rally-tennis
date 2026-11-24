@@ -315,17 +315,18 @@ class App {
     }
     this.S = S; this.sel.p0 = S.human;
     const T = S.event, rank = S.ranking(), me = S.human;
-    const cal = TOURNAMENTS.map((t, i) => { const r = S.results[i]; return this.evTile(t, i === S.ev && !S.done, r ? (r.human === 'W' ? 'Won' : r.human || '—') : ''); }).join('');
+    const cal = TOURNAMENTS.map((t, i) => { const r = S.results[i]; return this.evTile(t, i === S.ev && !S.done, r ? (r.skipped ? 'Skipped' : r.human === 'W' ? 'Won' : r.human || '—') : ''); }).join('');
     const rows = rank.map((id, i) => `<tr class="${id === me ? 'me' : ''}"><td>${i + 1}</td><td>${esc(pname(id))}</td><td>${S.pts[id]}</td></tr>`).join('');
     let now, foot;
     if (S.done) { now = `<div class="now"><span class="lab">Year end</span><b>No. ${S.rankOf(me)}</b><span class="lab">${S.pts[me]} points · ${S.results.filter(r => r.human === 'W').length} titles</span></div>`; foot = '<span class="sp"></span><button class="btn go" data-reset>New season</button>'; }
     else { const q = S.qualified(T);
       now = `<div class="now" style="--tier:${TIER[T.level][0]}"><span class="lab">Week ${S.ev + 1} / ${TOURNAMENTS.length} · ${TIER[T.level][1]} · ${esc(T.surface)}</span><b>${esc(T.name)}</b><span class="lab">${q ? esc(T.court || '') : 'Top eight only'}</span></div>`;
-      foot = `<button class="btn sm" data-abandon>Abandon</button><span class="sp"></span><button class="btn sm" data-simev>Sim event</button><button class="btn sm" data-simrest>Sim season</button>${q ? `<button class="btn go" data-enter>${S.draw ? 'Draw' : 'Enter'}</button>` : ''}`; }
+      foot = `<button class="btn sm" data-abandon>Abandon</button><span class="sp"></span>${S.draw ? '' : '<button class="btn sm" data-skip>Skip</button>'}<button class="btn sm" data-simev>Sim event</button><button class="btn sm" data-simrest>Sim season</button>${q ? `<button class="btn go" data-enter>${S.draw ? 'Draw' : 'Enter'}</button>` : ''}`; }
     this.screen(this.bar(esc(pname(me)), `<span class="lab">No. ${S.rankOf(me)} · ${S.pts[me]} pts</span>`) + `<div class="cols"><div>${now}<div class="cal">${cal}</div></div><div><table class="rk">${rows}</table></div></div><div class="foot">${foot}</div>`, '', true);
     this.on('[data-back]', () => this.home());
     this.on('[data-enter]', () => { S.open(); S.save(); this.sel.T = T; this.drawView(S); });
     this.on('[data-simev]', () => { S.simEvent(); this.season(); });
+    this.on('[data-skip]', () => { S.skipEvent(); this.season(); });   // (sit this one out: played without him)
     this.on('[data-simrest]', () => { let g = 0; while (!S.done && g++ < 40) S.simEvent(); this.season(); });
     this.on('[data-reset]', () => { Season.clear(); this.S = null; this.season(); });
     this.on('[data-abandon]', () => { Season.clear(); this.S = null; this.home(); });

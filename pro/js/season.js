@@ -128,12 +128,7 @@ export class Season {
     const rank = this.ranking();
     if (T.level === 'finals') return rank.slice(0, 8);
     if (T.draw >= rank.length) return rank;
-    return pickField(rank, T, this.r, this.human);
-    // smaller events: the top players pick and choose; the human always enters
-    const e = []; for (const id of rank) { if (id === this.human) { e.push(id); continue; } if (e.length < T.draw && this.r() < 0.74) e.push(id); }
-    for (const id of rank) if (e.length < T.draw && !e.includes(id)) e.push(id);
-    if (!e.includes(this.human)) e[e.length - 1] = this.human;
-    return rank.filter(id => e.includes(id)).slice(0, T.draw);
+    return pickField(rank, T, this.r, this.human);   // (data.js: everyone gets to play; the five at the big ones; the human always)
   }
   qualified(T) { return T.level !== 'finals' || this.ranking().slice(0, 8).includes(this.human); }
   open() { const T = this.event; if (!T) return null; if (!this.draw || this.draw.T.key !== T.key) this.draw = new Draw(T, this.entrants(T), this.human, (this.seed + this.ev * 977) | 0); return this.draw; }
@@ -145,6 +140,18 @@ export class Season {
     this.draw = null; this.ev++; this.save();
   }
   simEvent() { const d = this.open(); d.simAll(); this.close(); }
+  // sit an event out (he said "there should be a way not to enter in an event"): it is played without him - its field drawn from
+  // everyone else, its matches simulated - and he takes nothing from it
+  skipEvent() {
+    const T = this.event; if (!T || this.draw) return;
+    const rank = this.ranking().filter(id => id !== this.human);
+    const field = T.level === 'finals' ? rank.slice(0, 8) : T.draw >= rank.length ? rank : pickField(rank, T, this.r, null);
+    this.draw = new Draw(T, field, -1, (this.seed + this.ev * 977) | 0); this.draw.simAll();
+    const d = this.draw, P = d.points();
+    for (const id in P) this.pts[id] = (this.pts[id] || 0) + P[id];
+    this.results.push({ key: T.key, champion: d.champion, human: null, skipped: true, pts: 0 });
+    this.draw = null; this.ev++; this.save();
+  }
   save() { try { localStorage.setItem(KEY, JSON.stringify({ human: this.human, seed: this.seed, ev: this.ev, pts: this.pts, results: this.results, pool: this.pool, draw: this.draw ? this.draw.toJSON() : null })); } catch (e) { /* private mode */ } }
   static load() {
     try {
