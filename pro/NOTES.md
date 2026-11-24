@@ -1813,3 +1813,8 @@ still in the air, both in a stroke's finish, for two or three frames.
   aces in about 150 (9%), Perfect serves 195 km/h at the median, 21 cm from the line, at most 213.
 - The injury mark is a small white sticking plaster (an inline SVG, app.js PLASTER) rather than a cross on red (he said "the injury
   symbol should be all white and like a bandaid").
+- **Hitting as it was before the speed changes** (he said "i really liked how the hitting was before the serve and ground stroke speed
+  changes tbh"): the three changes since - each man's pace capped at his measured fastest and averages, the Perfect shot's winners, the
+  aces - are taken back (sim.js and data.js as they were at 91ca08b): the level adds pace again, a Perfect serve 6% harder and 30 cm
+  inside the line, groundstrokes 0.92-1.27 of his pace by how well timed. Kept: the Tour level's wider spread and no pulling in, the
+  angles opening up with where he stands, everything else.
