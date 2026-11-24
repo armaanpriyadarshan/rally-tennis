@@ -2663,6 +2663,23 @@ export class Figure {
         if (!prev) sl[i] = { ua: V(), fa: V(), nua: V(), nfa: V(), pt: null, npt: null }; sl[i].nua.copy(ua); sl[i].nfa.copy(fa); sl[i].npt = this.placedT;
       }
       const Ff = person.setLimb(S, 'arm', el, wrist[i], qChest, sh[i], _qa, _qb);
+      // Arms up: each arm turned about its own length until the inside of the fist faces in toward his head and a little forward,
+      // as a raised fist does; the arm's own solve, which never turns a limb about itself, left both palms facing forward and out
+      // (he said "the fists still look like theyre rotated weirdly"). Most of the turn at the shoulder, some at the elbow, the rest
+      // at the wrist (the model has no forearm twist bones: all of it at one joint wrings the skin there).
+      let upW = 0;
+      { const uk = this.celebArm && this.celebArm.kind === 'up' && !this.trophyHold && !(this.shake && this.shake.k > 0.001) && person.dir['palmN' + S] ? clamp(this.celebArm.k, 0, 1) : 0;
+        if (uk > 0.001) {
+          const fa = _cuF.copy(wrist[i]).sub(el).normalize(), A = (i === hit ? 80 : 30) * Math.PI / 180;   /* (the racket hand turned further in: its racket then leans back over his shoulder) */
+          const want = _cuW.set((i === 0 ? 1 : -1) * Math.sin(A), 0, -Math.cos(A)).applyQuaternion(this.frame.quaternion);
+          const off2 = (F) => { const pn = _cuP.copy(person.dir['palmN' + S]).applyQuaternion(F); pn.addScaledVector(fa, -pn.dot(fa)); const w2 = _cuQ.copy(want).addScaledVector(fa, -want.dot(fa));
+            if (pn.lengthSq() < 1e-6 || w2.lengthSq() < 1e-6) return 0; pn.normalize(); w2.normalize(); return Math.atan2(_cuR.copy(pn).cross(w2).dot(fa), pn.dot(w2)); };
+          const ang = off2(Ff) * uk, sU = 0.65, sF = 0.2;
+          _qa.premultiply(_cuQ1.setFromAxisAngle(_cuU.copy(el).sub(sh[i]).normalize(), ang * sU)); person.drive(S + '_UpperArm', _qa);
+          swing(_qa, person.dir['fore' + S], fa, _qb);
+          const rest = off2(_qb) * uk; _qb.premultiply(_cuQ1.setFromAxisAngle(fa, rest * sF / (1 - sU))); person.drive(S + '_Forearm', _qb);
+          upW = off2(_qb) * uk; _cuA[i].copy(fa);
+        } }
       // the hand turns at the wrist so the handle lies across the palm
       const Fh = this.Fhand[i];
       // (the handshake: the right hand out, its palm to his left and the fingers forward and a little down; and a right-hander's
@@ -2696,6 +2713,17 @@ export class Figure {
         fd.addScaledVector(ax, -fd.dot(ax)); want.addScaledVector(ax, -want.dot(ax));
         if (fd.lengthSq() > 1e-6 && want.lengthSq() > 1e-6) { fd.normalize(); want.normalize(); const ang = Math.atan2(_v8.copy(fd).cross(want).dot(ax), fd.dot(want)); _qc.premultiply(_q6.setFromAxisAngle(ax, ang)); }
         Fh.copy(Ff).slerp(_qc, Math.min(1, this.upOpen * 1.2));
+      }
+      else if (Math.abs(upW) > 1e-4 || (this.celebArm && this.celebArm.kind === 'up' && this.celebArm.k > 0.001 && !this.trophyHold)) {
+        // (arms up, the rest of the turn at the wrist, which is otherwise straight; the racket lies where the handle then lies in his
+        // fist, leaning back over his shoulder - bent at the wrist toward the pose's own racket at most twenty degrees: the pose's
+        // racket, held exactly, had the wrist bent seventy)
+        _qc.copy(Ff).premultiply(_q6.setFromAxisAngle(_cuA[i], upW));
+        if (i === hit) { const uk = clamp(this.celebArm.k, 0, 1), g = _cuG.copy(person.dir['grip' + S]).applyQuaternion(_qc).normalize(), want = _cuW.copy(this.rk.dir).normalize();
+          const a = Math.acos(clamp(g.dot(want), -1, 1)), mx = 20 * Math.PI / 180;
+          if (a > mx) { const ax = _cuR.copy(g).cross(want); if (ax.lengthSq() > 1e-9) want.copy(g).applyAxisAngle(ax.normalize(), mx); }
+          this.rk.dir.lerp(want, uk).normalize(); swing(_qc, person.dir['grip' + S], this.rk.dir, _cuQ2); Fh.copy(_cuQ2); }
+        else Fh.copy(_qc);
       }
       else if (i === hit) { swing(Ff, person.dir['grip' + S], this.rk.dir, _qc); Fh.copy(_qc); }            // the fist closes exactly along the handle
       else if (gripW > 0.001 && !(m.ball && m.ball.held === p.i)) {
@@ -3190,6 +3218,7 @@ const LEG_RUN_J = [J.lknee, J.rknee, J.lankle, J.rankle, J.ltoe, J.rtoe];
 const ARM_J = [[J.lsho, J.lelb, J.lwri], [J.rsho, J.relb, J.rwri]], LEG_J = [[J.lhip, J.lknee, J.lankle, J.ltoe], [J.rhip, J.rknee, J.rankle, J.rtoe]];
 const _qa = new THREE.Quaternion(), _qb = new THREE.Quaternion(), _qc = new THREE.Quaternion();
 const _q1 = new THREE.Quaternion(), _q2 = new THREE.Quaternion(), _q3 = new THREE.Quaternion(), _q4 = new THREE.Quaternion(), _q5 = new THREE.Quaternion(), _q6 = new THREE.Quaternion();
+const _cuF = V(), _cuW = V(), _cuP = V(), _cuQ = V(), _cuR = V(), _cuU = V(), _cuG = V(), _cuA = [V(), V()], _cuQ1 = new THREE.Quaternion(), _cuQ2 = new THREE.Quaternion();   // (arms up)
 const _m = new THREE.Matrix4(), _a = V(), _b = V(), _c = V(), _hu = V(), _hu2 = V(), _huq = new THREE.Quaternion();
 const _pa = V(), _pb = V(), _pc = V();
 const _sgR = V(), _sgU = V(), _sgF = V(), _sgA = V(), _sgB = V(), _sgA2 = V(), _sgB2 = V(), _sgC = V();

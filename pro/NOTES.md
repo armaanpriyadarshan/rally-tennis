@@ -1581,3 +1581,18 @@ still in the air, both in a stroke's finish, for two or three frames.
   it over the whole screen. render.js: the bloom's bright-pass now reads a NaN or infinite pixel as black, so one bad pixel can no
   longer take the frame with it (any picture without one is unchanged). After: 0 black frames in 2 × 240 s on clay (classic and best
   of three). tools/steps_blackframes.mjs logs, for a black frame, the moment of play, its picture and the same frame without bloom.
+- **Fists turned right** (he said "the fists still look like theyre rotated weirdly"): with both arms up, the arm's solve (which
+  never turns a limb about its own length) left both palms facing forward and out, and the racket hand bent 72° at the wrist to
+  hold the pose's racket. figure.js: in the arms-up celebration each arm is turned about itself until the inside of the fist faces
+  in toward his head (the free hand 30° forward of straight in, the racket hand 80°): 65% of the turn at the shoulder, 20% at the
+  elbow, the rest at the wrist (the model has no forearm twist bones, and all of it at one joint wrings the skin there). The
+  racket then lies where the handle lies in that fist, leaning back over his shoulder, bent toward the pose's racket by at most
+  20°. Measured: wrist bend 72° → 15° (racket hand), 10° → 4° (free hand), no jump going up or coming down; filmed from five
+  angles, right- and left-handed.
+- **The match-point ball goes on** (he said "the ball freezes on bounce for the match point"): the match is no longer stepped once
+  the end sequence begins, the moment the last point is decided - often at its bounce - and the ball hung there. game.js endFrame
+  steps it as a dead ball (bouncing on, off the wall, rolling to a stop): in three matches it carried on and came to rest by 3 s.
+- **The intro strap fits what it says** (he said "on the stadium cards, there isnt enough background for the text and text flows
+  off them"): its tab, the round and the court, had a fixed width, and "Quarter-final · Estadio Manolo Santana, Caja Mágica" ran
+  off both ends; long names could run past the panel. Strap and tab are now as wide as their text (the strap from its old width up
+  to 94% of the screen, the tab with padding).

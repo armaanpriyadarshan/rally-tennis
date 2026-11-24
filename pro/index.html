@@ -215,9 +215,11 @@
   #lt b { font-weight: 700; } #lt small { font-size: .62em; font-weight: 500; color: var(--dim); margin-left: .25em; } #lt .a small { color: #fff; opacity: .8; }
 
   /* the match strap: a header tab over two names */
-  #strap { position: absolute; left: 50%; bottom: calc(var(--p) * 85); width: calc(var(--p) * 812); margin-left: calc(var(--p) * -406); opacity: 0; transform: translateY(calc(var(--p) * 30)); transition: opacity .3s, transform .4s var(--ease); }
-  #strap.on { opacity: 1; transform: none; }
-  #strap .tab { margin: 0 calc(var(--p) * 100); height: calc(var(--p) * 45); border-radius: calc(var(--p) * 6) calc(var(--p) * 6) 0 0; background: #121dfd; display: flex; align-items: center; justify-content: center; gap: .5em; font: 400 calc(var(--p) * 24)/1 var(--f); white-space: nowrap; }
+  /* (as wide as what it says, from the old fixed width up to most of the screen: a long court name ran off its tab, "Estadio Manolo
+     Santana, Caja Mágica" off both ends, and long names past the panel - he said "there isnt enough background for the text") */
+  #strap { position: absolute; left: 50%; bottom: calc(var(--p) * 85); width: max-content; min-width: calc(var(--p) * 812); max-width: 94vw; opacity: 0; transform: translate(-50%, calc(var(--p) * 30)); transition: opacity .3s, transform .4s var(--ease); }
+  #strap.on { opacity: 1; transform: translate(-50%, 0); }
+  #strap .tab { width: max-content; min-width: calc(100% - var(--p) * 200); max-width: 100%; box-sizing: border-box; margin: 0 auto; padding: 0 calc(var(--p) * 30); overflow: hidden; height: calc(var(--p) * 45); border-radius: calc(var(--p) * 6) calc(var(--p) * 6) 0 0; background: #121dfd; display: flex; align-items: center; justify-content: center; gap: .5em; font: 400 calc(var(--p) * 24)/1 var(--f); white-space: nowrap; }
   #strap .tab b { font-weight: 700; }
   #strap .body { background: var(--navy); display: grid; grid-template-columns: 1fr auto; align-items: stretch; }
   #strap .who div { height: calc(var(--p) * 78); display: flex; align-items: center; gap: .32em; padding: 0 calc(var(--p) * 40); font: 400 calc(var(--p) * 38)/1 var(--f); white-space: nowrap; }

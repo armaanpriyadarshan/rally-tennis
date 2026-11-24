@@ -118,6 +118,11 @@ export class Game {
   endSkip() { const S = this.endSeq; if (!S) return; if (S.stage === 'cel' && S.trophy) { if (!S.sting) { S.sting = true; if (this.ui && this.ui.sting) this.ui.sting(); } this.beginTrophy(); } else if (!S.done) { S.done = true; if (S.onDone) S.onDone(); } }
   endFrame(dt) {
     const S = this.endSeq, m = this.match; S.t += dt;
+    // the last ball goes on as any dead ball does, bouncing on and rolling to the wall: the match is no longer stepped once this has
+    // begun, at the moment the point is decided - often its bounce - and it hung there (he said "the ball freezes on bounce for the
+    // match point")
+    this.endAcc = (this.endAcc || 0) + Math.min(dt, 0.05); let ns = 0; while (this.endAcc >= STEP && ns++ < 40) { m.deadBall(STEP); this.endAcc -= STEP; }
+    if (m.events.length) this.drain();
     const I = this.input; if (I && (I.pressed.has('Space') || I.pressed.has('Enter'))) { I.takePressed(); I.takeEdges(); if (!S.skipT || this.time - S.skipT > 0.4) { S.skipT = this.time; this.endSkip(); } }
     if (S.stage === 'cel') {
       const wf = this.fig[S.who], lf = this.fig[1 - S.who];
