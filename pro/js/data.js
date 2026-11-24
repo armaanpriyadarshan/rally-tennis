@@ -270,11 +270,11 @@ const STYLE = {
 export const styleOf = name => STYLE[name] || null;
 // How good each man was at his best, one number (the middle of the tour 84, a unit every five points): from his career - majors, titles,
 // weeks at No. 1, win rate - with the five he named highest (he said "alcaraz, sinner, federer, djokovic, and nadal in general should
-// just be above the rest", and "the big five shouldnt have boosts this way... just bake it into whatever player attribute / adv
+// just be above the rest" - Federer, Nadal and Djokovic level with each other, "fed nadal djok should all be same ovr" - and "the big five shouldnt have boosts this way... just bake it into whatever player attribute / adv
 // system we have"). It goes into his attributes in a match (profileFor), his service games held and broken in simulated matches
 // (season.js) and his seeding, the same way for everyone. Careers count win rate over a whole career, early and late years with the
 // best, so a level is what his career says he was at his peak.
-const LEVEL = { Djokovic: 96, Federer: 96, Nadal: 95, Alcaraz: 93, Sinner: 93, Borg: 89, Sampras: 88, Laver: 88, McEnroe: 87, Lendl: 87, Connors: 86, Agassi: 86,
+const LEVEL = { Djokovic: 95, Federer: 95, Nadal: 95, Alcaraz: 93, Sinner: 93, Borg: 89, Sampras: 88, Laver: 88, McEnroe: 87, Lendl: 87, Connors: 86, Agassi: 86,
   Murray: 85, Becker: 85, Edberg: 85, Wilander: 84, Medvedev: 84, Hewitt: 83, Zverev: 83, Wawrinka: 82, 'del Potro': 82, Thiem: 82, Kuerten: 82, Roddick: 81,
   Tsitsipas: 81, Ivanisevic: 80, Kyrgios: 79, Monfils: 78 };
 export const levelOf = id => (PLAYERS[id] && LEVEL[PLAYERS[id].facts.name]) || 82;

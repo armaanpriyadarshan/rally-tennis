@@ -1742,3 +1742,5 @@ still in the air, both in a stroke's finish, for two or three frames.
   their arms get frozen weirdly"): walking to the net and the chairs, both arms were held straight down at the hang meant for
   standing between points, the hands swinging a fifth of a metre; once he walks, the walk's own arms take over (the elbows a little
   bent, swinging with the legs).
+- Ratings under the name and specs on the player cards (he said "rating cards should be below name and specs"); Federer, Nadal and
+  Djokovic all 95 overall ("fed nadal djok should all be same ovr", "they should all be 95 not 96"), Alcaraz and Sinner 93.
