@@ -75,11 +75,12 @@
   .pl .who { position: absolute; z-index: 1; left: calc(var(--u) * 2.2); top: calc(var(--u) * 2); font: 700 calc(var(--u) * 1.25)/1 var(--f); padding: calc(var(--u) * .8) calc(var(--u) * 1.1); background: var(--lime); color: #020700; }
   .pl.opp .who { background: var(--blue); color: #fff; }
   /* his ratings: the overall large in the corner, the six under his name */
-  .pl .ovr { position: absolute; z-index: 1; right: calc(var(--u) * 2.2); top: calc(var(--u) * 1.6); text-align: center; }
+  .pl .ovr { position: absolute; z-index: 1; right: calc(var(--u) * 2.2); top: calc(var(--u) * 1.6); text-align: right; }
   .pl .ovr b { display: block; font: 700 calc(var(--u) * 5)/.9 var(--f); color: var(--lime); }
   .pl .ovr .lab { font-size: calc(var(--u) * 1.15); }
-  .pl .rts { position: absolute; z-index: 1; left: calc(var(--u) * 2.2); right: calc(var(--u) * 2.2); bottom: calc(var(--u) * 2); display: grid; grid-template-columns: repeat(6, 1fr); gap: calc(var(--u) * .4); }
-  .pl .rts span { background: rgba(5,17,35,.72); border-radius: calc(var(--u) * .5); padding: calc(var(--u) * .7) 0 calc(var(--u) * .6); text-align: center; }
+  .pl .rts { position: absolute; z-index: 1; left: calc(var(--u) * 2.2); right: calc(var(--u) * 2.2); bottom: calc(var(--u) * 2); display: flex; justify-content: space-between; }   /* (the first in line with the YOU badge, the last with the overall's edge) */
+  .pl .rts span { text-align: center; }
+  .pl .rts span:first-child { text-align: left; } .pl .rts span:last-child { text-align: right; }
   .pl .rts b { display: block; font: 700 calc(var(--u) * 2.2)/1 var(--f); font-variant-numeric: tabular-nums; }
   .pl .rts i { display: block; margin-top: calc(var(--u) * .35); font: 600 calc(var(--u) * 1)/1 var(--f); font-style: normal; letter-spacing: .08em; color: var(--dim); }
   .pl .rts .hi b { color: var(--lime); } .pl .rts .lo b { color: #ff8a7a; }

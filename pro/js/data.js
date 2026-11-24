@@ -208,7 +208,7 @@ export function profileFor(id, surface, key, o = {}) {
   b.adv = adv;
   // His level (LEVEL below): steadier, quicker to the ball and off the mark, a little more pace and a surer first serve the higher it
   // is - the same for every man, a unit for every five points of level from the middle of the tour (84)
-  { const u = (courtLevelOf(id) - 84) / 5;
+  { const u = clamp((courtLevelOf(id) - 84) / 5, -2.4, 3);   /* (not below a level of 72 in a match: a man with no major is still a tour player) */
     b.cons = clamp(b.cons + 0.07 * u, 0.1, 0.98); b.speed *= 1 + 0.015 * u; b.accel *= 1 + 0.02 * u; b.react *= 1 - 0.03 * u;
     b.fhKmh *= 1 + 0.025 * u; b.bhKmh *= 1 + 0.025 * u; b.s1Kmh *= 1 + 0.015 * u; b.firstIn = clamp(b.firstIn + 0.02 * u, 0.45, 0.8); }
   // (and none of it beyond what a man can be: no one steadier than 0.95 - at the old ceiling, 0.98, Sinner at the Finals all but never
@@ -274,17 +274,18 @@ export const styleOf = name => STYLE[name] || null;
 // system we have"). It goes into his attributes in a match (profileFor), his service games held and broken in simulated matches
 // (season.js) and his seeding, the same way for everyone. Careers count win rate over a whole career, early and late years with the
 // best, so a level is what his career says he was at his peak.
-const LEVEL = { Djokovic: 95, Federer: 95, Nadal: 95, Alcaraz: 93, Sinner: 93, Borg: 89, Sampras: 88, Laver: 88, McEnroe: 87, Lendl: 87, Connors: 86, Agassi: 86,
-  Murray: 85, Becker: 85, Edberg: 85, Wilander: 84, Medvedev: 84, Hewitt: 83, Zverev: 83, Wawrinka: 82, 'del Potro': 82, Thiem: 82, Kuerten: 82, Roddick: 81,
-  Tsitsipas: 81, Ivanisevic: 80, Kyrgios: 79, Monfils: 78 };
-export const levelOf = id => (PLAYERS[id] && LEVEL[PLAYERS[id].facts.name]) || 82;
+const LEVEL = { Djokovic: 95, Federer: 95, Nadal: 95, Alcaraz: 93, Sinner: 93 };
+// (everyone else's from his career, by one rule: majors, whether he reached No. 1 (or the top three), titles and win rate - he asked
+// "why is medvedev rated so highly... same with tsitsipas": set by hand, Medvedev had stood level with Wilander's seven majors and
+// Tsitsipas with Roddick. By it Sampras, Borg and Laver are 88-89, Medvedev 79, Tsitsipas 74.)
+const careerLevel = P => { const f = P.facts; return Math.round(70 + 4.0 * Math.log(1 + (f.slams || 0)) + (f.high === 1 ? 1.5 : f.high <= 3 ? 0.5 : 0) + 1.3 * Math.log(1 + (f.titles || 0)) + 0.12 * (P.overall - 70)); };
+export const levelOf = id => { const P = PLAYERS[id]; return P ? LEVEL[P.facts.name] ?? careerLevel(P) : 80; };
 // How his game, built from his statistics, plays in a match against his level, measured and taken out (tools/classicbot.mjs: the bot as
-// Murray against each man at Miami, at the Tour level, 300 points each; the points the bot won against what the level says - two points
-// in a hundred for every point of level - corrected in two rounds, by the measured half a point of the bot's wins a point of level, at
-// most ten points of level either way: a big server is hard to break whatever his level, and that is his). Without it his numbers
-// alone made Hewitt and Borg among the easiest men to beat and Kyrgios and Medvedev among the hardest. Only in a match he plays: the
-// simulated matches go by his real holds and breaks. (Re-measure with /tmp/rally-work/tour/ladder.sh after changing how a man plays.)
-const CAL = { Sampras: -2.0, Agassi: -2.2, Federer: 10.0, Alcaraz: 10.0, Nadal: 7.6, Sinner: -6.5, Djokovic: 8.8, McEnroe: 10.0, Laver: 10.0, Wawrinka: 2.3, Lendl: -9.4, Connors: 10.0, Zverev: -10.0, Borg: 10.0, Monfils: -10.0, Tsitsipas: -0.3, Kyrgios: -10.0, Roddick: -10.0, Thiem: 4.6, Medvedev: -10.0, "del Potro": -10.0, Ivanisevic: -10.0, Hewitt: 10.0, Edberg: -5.2, Kuerten: -2.8, Becker: 1.5, Wilander: 2.7 };
+// Murray against each man at Miami, at the Tour level, 300 points each, with no correction; the points the bot won against what his
+// level says - 1.3 points in a hundred for every point of level - three quarters of the difference corrected, at about 1.2 points of
+// the bot's wins a level point, at most six either way: a big server is hard to break whatever his level, and that is his). Measured
+// again whenever the levels change (on 2026-11-24, when they came to be worked out from careers). /tmp/rally-work/tour/ladder.sh.
+const CAL = { Sampras: 1.5, Federer: 4.5, Sinner: -3.4, Agassi: -1, Nadal: 3.8, Alcaraz: 3.5, Djokovic: -1.8, McEnroe: 6, Wawrinka: -1, Laver: 6, Zverev: -6, Borg: 6, Connors: 6, Lendl: -1.8, Tsitsipas: -4.7, Thiem: 0.9, Roddick: -6, Kyrgios: -6, Monfils: -5.5, Medvedev: -6, "del Potro": -6, Ivanisevic: -6, Hewitt: 3.5, Edberg: 2.6, Kuerten: 2.3, Becker: 2, Wilander: 6 };
 export const courtLevelOf = id => levelOf(id) + ((PLAYERS[id] && CAL[PLAYERS[id].facts.name]) || 0);
 // His ratings for the menus, as a football game shows them (he said "attributes n stuff should be visible on a player in the menu like
 // fifa style"): overall is his level; the six from his real numbers, each against the other 27 men (a standard deviation is nine

@@ -1744,3 +1744,13 @@ still in the air, both in a stroke's finish, for two or three frames.
   bent, swinging with the legs).
 - Ratings under the name and specs on the player cards (he said "rating cards should be below name and specs"); Federer, Nadal and
   Djokovic all 95 overall ("fed nadal djok should all be same ovr", "they should all be 95 not 96"), Alcaraz and Sinner 93.
+- **Levels from careers** (he asked "why is medvedev rated so highly btw lol. same with tsitsipas"): set by hand, Medvedev had stood
+  level with Wilander's seven majors and Tsitsipas with Roddick. Everyone but the five (95, 95, 95, 93, 93) now has his level from
+  his career by one rule - majors, reaching No. 1 (or the top three), titles, win rate (data.js careerLevel): Sampras 89, Lendl,
+  Borg, Connors and Laver 88 ... Murray 83, Zverev, Kuerten and Hewitt 80, Medvedev 79, Thiem 76, Tsitsipas 73, Kyrgios and
+  Monfils 72. The in-match correction (CAL) measured again against these with no correction in place (the old one, made against the
+  old levels, took Medvedev to the floor: the bot won 80% of points from him), three quarters of each difference taken out at most six
+  points either way, and checked with the bot as Agassi at the US Open: Sampras, Federer, Alcaraz, Djokovic, Sinner and Nadal the
+  hardest (48-54%), Medvedev 62%, Kyrgios 73%, Tsitsipas 77%. In a match no man plays below a level of 72.
+- The ratings on a card run from under the YOU/OPPONENT badge to under the overall ("the start of the stat should be aligned with the
+  you/opponent and end should be aligned with the ovr").
