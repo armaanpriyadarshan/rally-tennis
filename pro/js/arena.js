@@ -365,15 +365,17 @@ export function buildArena(spec, opt = {}) {
         const hr = A.clockHour == null ? 14.2 : A.clockHour, ha = hr % 12 / 12 * Math.PI * 2, ma = (hr % 1) * Math.PI * 2;   // (the venue's time of day: game.js setClock)
         g.lineCap = 'round'; g.lineWidth = 9; g.beginPath(); g.moveTo(150, 192); g.lineTo(150 + Math.sin(ha) * 56, 192 - Math.cos(ha) * 56); g.stroke();
         g.lineWidth = 6; g.beginPath(); g.moveTo(150, 192); g.lineTo(150 + Math.sin(ma) * 84, 192 - Math.cos(ma) * 84); g.stroke();
-        // serve clock
-        g.fillStyle = 'rgba(255,255,255,0.86)'; g.font = '700 26px "Helvetica Neue", Helvetica, Arial, sans-serif'; g.textAlign = 'center'; g.fillText('OFFICIAL TIME', 384, 96);
+        // serve clock, and beneath it the last serve's speed (the shot clock and the speed of serve share one box at tour events)
+        g.fillStyle = 'rgba(255,255,255,0.86)'; g.font = '700 22px "Helvetica Neue", Helvetica, Arial, sans-serif'; g.textAlign = 'center'; g.fillText('OFFICIAL TIME', 150, 350); g.fillText('SHOT CLOCK', 384, 112);
+        if (speed != null) { g.fillStyle = '#ffffff'; g.font = '700 40px "Helvetica Neue", Helvetica, Arial, sans-serif'; g.fillText(String(speed), 362, 318); g.font = '700 20px "Helvetica Neue", Helvetica, Arial, sans-serif'; g.fillStyle = 'rgba(255,255,255,0.75)'; g.fillText('KM/H', 438, 318); }
         g.fillStyle = '#060807'; g.fillRect(296, 136, 176, 132);
         // (a changeover's 90 seconds and a set break's 120 as minutes and seconds, smaller to fit)
         const txt = v == null ? '--' : v >= 60 ? `${Math.floor(v / 60)}:${String(v % 60).padStart(2, '0')}` : String(v).padStart(2, '0');
         g.fillStyle = v != null && v <= 5 ? '#ff5a3c' : '#ffd23c'; g.font = `700 ${txt.length > 2 ? 70 : 104}px "Helvetica Neue", Helvetica, Arial, sans-serif`; g.textBaseline = 'middle'; g.fillText(txt, 384, 206); g.textBaseline = 'alphabetic';
         ct.needsUpdate = true;
       };
-      let shown, shownMin = -1; A.setServeClock = v => { if (v === shown) return; shown = v; draw(v); };
+      let shown, shownMin = -1, speed = null; A.setServeClock = v => { if (v === shown) return; shown = v; draw(v); };
+      A.setServeSpeed = k => { k = k == null ? null : Math.round(k); if (k === speed) return; speed = k; draw(shown); };
       A.setClock = h => { const mn = Math.floor(h * 60); if (mn === shownMin) return; shownMin = mn; A.clockHour = (mn / 60) % 24; draw(shown); };
       draw(null); shown = null;
       const cab = lit(std({ color: body, roughness: 0.45 })), face = new THREE.MeshBasicMaterial({ map: ct, color: new THREE.Color().setScalar(night ? 1.0 : 0.82) });
@@ -836,6 +838,15 @@ function buildFurniture(A, spec, lit, model) {
   };
   const taper = (r0, r1, len, m, x, y, z, parent, rx, ry, rz) => add(new THREE.CylinderGeometry(r1, r0, len, 12), m, x, y, z, parent, rx, ry, rz);
   const chairCol = spec.playerChair || spec.chair || '#1f3d2c', cushion = M(chairCol, 0.7), seatFrame = M('#2b2e33', 0.35, { metalness: 0.7 });
+  // the event's name, lettered on the chair's panels and the players' chairs, as the tournaments brand them (he said "i dont even know
+  // what some of them are")
+  const label = { ao: 'AUSTRALIAN OPEN', rg: 'ROLAND-GARROS', wim: 'WIMBLEDON', us: 'US OPEN', fin: 'ATP FINALS' }[spec.key] || spec.city || 'RALLY';
+  const textMats = new Map();
+  const words = (text, w, h, x, y, z, parent, ry, o = {}) => {
+    const k = [text, w, h, o.bg, o.fg].join('|'); let mt = textMats.get(k);
+    if (!mt) { const t = TX.textTexture(text, { w: 512, h: Math.max(32, Math.round(512 * h / w)), bg: o.bg || 'none', fg: o.fg || '#ffffff', weight: 700, spacing: o.spacing ?? 3 }); mt = lit(new THREE.MeshStandardMaterial({ map: t, transparent: !o.bg, roughness: 0.6, depthWrite: !!o.bg })); textMats.set(k, mt); }
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mt); m.position.set(x, y, z); m.rotation.y = ry || 0; (parent || g).add(m); return m;
+  };
 
   // ---- the umpire's chair: a tall framed stand, panelled below, seat and desk at about two metres ----
   const ch = new THREE.Group(); ch.position.set(ux, 0, 0); g.add(ch);
@@ -843,6 +854,7 @@ function buildFurniture(A, spec, lit, model) {
   for (const y of [0.32, 1.02, 1.58]) { for (const sx of [-1, 1]) tube(0.017, 0.78, frame, sx * 0.355, y, 0, ch, Math.PI / 2); tube(0.017, 0.70, frame, 0, y, 0.375, ch, 0, 0, Math.PI / 2); tube(0.017, 0.70, frame, 0, y, -0.375, ch, 0, 0, Math.PI / 2); }
   rbox(0.80, 1.18, 0.035, 0.012, pad, 0.0, 0.70, 0.39, ch); rbox(0.80, 1.18, 0.035, 0.012, pad, 0.0, 0.70, -0.39, ch);   // side panels in the event's colour
   rbox(0.035, 1.18, 0.74, 0.012, pad, 0.37, 0.70, 0, ch);                                                                 // front panel, toward the court
+  words(label, 0.66, 0.11, 0.392, 1.0, 0, ch, Math.PI / 2, { fg: spec.chairText || '#ffffff' }); words(label, 0.72, 0.12, 0, 1.0, 0.41, ch, 0, { fg: spec.chairText || '#ffffff' }); words(label, 0.72, 0.12, 0, 1.0, -0.41, ch, Math.PI, { fg: spec.chairText || '#ffffff' });
   // the steps up the back, with a rail
   for (let i = 0; i < 6; i++) rbox(0.22, 0.035, 0.46, 0.01, frame, -0.52 - i * 0.0, 0.24 + i * 0.29, 0, ch);
   for (const sz of [-1, 1]) { tube(0.02, 1.95, frame, -0.62, 1.0, sz * 0.25, ch, 0, 0, -0.06); tube(0.014, 1.0, steel, -0.66, 1.75, sz * 0.27, ch, 0, 0, 0.1); }
@@ -873,6 +885,7 @@ function buildFurniture(A, spec, lit, model) {
     for (const sx of [-1, 1]) for (const sz of [-1, 1]) tube(0.014, 0.45, seatFrame, sx * 0.20, 0.225, sz * 0.21, c);
     rbox(0.48, 0.075, 0.48, 0.03, cushion, 0.02, 0.47, 0, c);                                                            // seat
     rbox(0.07, 0.44, 0.48, 0.03, cushion, -0.23, 0.78, 0, c, 0, 0, 0.13);                                               // back
+    words(label, 0.40, 0.07, -0.19, 0.86, 0, c, Math.PI / 2, { fg: '#ffffff' }).rotation.set(0, Math.PI / 2, 0.13, 'YZX');   // (the event's name across it)
     for (const sz of [-1, 1]) { rbox(0.38, 0.035, 0.05, 0.015, seatFrame, 0.0, 0.66, sz * 0.25, c); tube(0.012, 0.19, seatFrame, 0.16, 0.565, sz * 0.25, c); tube(0.012, 0.36, seatFrame, -0.22, 0.75, sz * 0.25, c, 0, 0, 0.13); }
     return c;
   };
@@ -892,17 +905,49 @@ function buildFurniture(A, spec, lit, model) {
     bagShape(0.78, 0.30, 0.30, kit[s > 0 ? 0 : 1], 0.03, 0.66, 0, c2, 0, 0);                                          // racket bag on the second chair
     bagShape(0.72, 0.28, 0.28, kit[s > 0 ? 2 : 3], 0.38, 0.14, -0.05 * s, b, 0.25 * s, 0);                              // a second bag on the ground
     bottle(b, 0.30, -0.62 * s, '#dfeaf2'); bottle(b, 0.38, -0.66 * s, '#f2a63a'); bottle(b, 0.30, -0.70 * s, '#dfeaf2');
-    // drinks cooler: white body, dark glass door, a top in the event's colour
+    // a drinks fridge, as every bench has: a glass door lit from inside, three shelves of bottles - water and the orange electrolyte
+    // drink - behind it, the word across the top (it was a white box with a dark panel, and he could not tell what it was)
     const fr = new THREE.Group(); fr.position.set(-0.05, 0, s * 1.15); b.add(fr);
-    rbox(0.54, 0.84, 0.58, 0.04, M('#eceef0', 0.35), 0, 0.42, 0, fr); rbox(0.02, 0.62, 0.44, 0.01, M('#0d1116', 0.1, { metalness: 0.6 }), 0.275, 0.46, 0, fr); rbox(0.56, 0.08, 0.60, 0.03, pad, 0, 0.87, 0, fr);
-    tube(0.012, 0.36, steel, 0.30, 0.46, 0.18, fr);                                                                     // door handle
+    rbox(0.56, 0.96, 0.58, 0.03, M('#f2f3f5', 0.35), 0, 0.48, 0, fr);
+    add(new THREE.PlaneGeometry(0.44, 0.64), new THREE.MeshBasicMaterial({ color: new THREE.Color('#eaf2f8').multiplyScalar(A.night ? 1.05 : 0.9) }), 0.2815, 0.45, 0, fr, 0, Math.PI / 2, 0);   // the lit inside
+    const shelf = M('#c9d2da', 0.3, { metalness: 0.4 }), water = M('#cfe3f2', 0.15, { transparent: true, opacity: 0.85 }), drink = M('#f29a2e', 0.25), cap = M('#1d5fa8', 0.5);
+    for (let r = 0; r < 3; r++) { const y = 0.19 + r * 0.205; box(0.03, 0.008, 0.44, shelf, 0.29, y - 0.005, 0, fr);
+      for (let k = 0; k < 6; k++) { const z = -0.18 + k * 0.072; tube(0.024, 0.15, (k + r) % 3 === 1 ? drink : water, 0.288, y + 0.075, z, fr); tube(0.011, 0.02, cap, 0.288, y + 0.16, z, fr); } }
+    const rim = M('#1d2126', 0.3, { metalness: 0.6 });
+    box(0.03, 0.04, 0.50, rim, 0.29, 0.79, 0, fr); box(0.03, 0.04, 0.50, rim, 0.29, 0.11, 0, fr); box(0.03, 0.72, 0.035, rim, 0.29, 0.45, 0.235, fr); box(0.03, 0.72, 0.035, rim, 0.29, 0.45, -0.235, fr);
+    add(new THREE.PlaneGeometry(0.44, 0.64), lit(new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.05, metalness: 0.2, transparent: true, opacity: 0.16, depthWrite: false })), 0.307, 0.45, 0, fr, 0, Math.PI / 2, 0);   // the glass
+    words(spec.drink || 'WATER', 0.46, 0.09, 0.2815, 0.885, 0, fr, Math.PI / 2, { bg: spec.drinkCol || '#1d5fa8', fg: '#ffffff', spacing: 6 });
+    tube(0.012, 0.40, steel, 0.31, 0.45, 0.20, fr);                                                                     // door handle
   }
-  // ---- towel stands at the back corners, by the ball kids ----
+  // ---- towels at the back corners, by the ball kids: two bins in each corner, one for each player, labelled - eight on a court, as
+  // the ATP's rules have it; at Wimbledon the players still fetch their own from a rack ----
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
-    const t = new THREE.Group(); t.position.set(sx * (A.hx - 3.4), 0, sz * (A.hz - 0.32)); g.add(t);
-    for (const k of [-1, 1]) tube(0.012, 0.92, seatFrame, k * 0.17, 0.46, 0, t);
-    tube(0.012, 0.36, seatFrame, 0, 0.90, 0, t, 0, 0, Math.PI / 2); rbox(0.40, 0.035, 0.30, 0.01, seatFrame, 0, 0.02, 0, t);
-    rbox(0.30, 0.42, 0.025, 0.01, M('#f6f6f2', 0.97), 0, 0.70, 0.02, t);                                                 // the towel hanging over the bar
+    const t = new THREE.Group(); t.position.set(sx * (A.hx - 3.4), 0, sz * (A.hz - 0.36)); t.rotation.y = sz > 0 ? Math.PI : 0; g.add(t);
+    if (spec.key === 'wim') {
+      for (const k of [-1, 1]) tube(0.012, 0.92, seatFrame, k * 0.17, 0.46, 0, t);
+      tube(0.012, 0.36, seatFrame, 0, 0.90, 0, t, 0, 0, Math.PI / 2); rbox(0.40, 0.035, 0.30, 0.01, seatFrame, 0, 0.02, 0, t);
+      rbox(0.30, 0.42, 0.025, 0.01, M('#f6f6f2', 0.97), 0, 0.70, 0.02, t);                                               // the towel hanging over the bar
+      continue;
+    }
+    const tw = M('#f6f6f2', 0.97);
+    for (const k of [-1, 1]) {
+      rbox(0.44, 0.50, 0.34, 0.025, pad, k * 0.25, 0.25, 0, t); rbox(0.46, 0.04, 0.36, 0.015, M('#d9dde2', 0.4, { metalness: 0.3 }), k * 0.25, 0.505, 0, t);   // the bin and its rim
+      rbox(0.36, 0.07, 0.26, 0.03, tw, k * 0.25, 0.55, -0.01, t); rbox(0.34, 0.20, 0.025, 0.012, tw, k * 0.25, 0.46, 0.18, t);                      // a towel folded on top, one over the front
+      words('TOWEL', 0.30, 0.065, k * 0.25, 0.27, 0.1715, t, 0, { fg: '#ffffff', spacing: 6 });
+    }
+  }
+  // ---- the low robotic cameras courtside, by the side walls level with the baselines, the lens on the far player ----
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+    if (sx < 0 && Math.abs(ux) + 1.2 > A.hx - 0.6) continue;
+    let x = sx * (A.hx - 0.55); const z = sz * (COURT.halfLen + 0.4); while (Math.abs(x) > COURT.halfWD + 1.5 && !insideCourt(A, x, z, 0.55)) x -= sx * 0.1;
+    if (!insideCourt(A, x, z, 0.4)) continue;
+    const c = new THREE.Group(); c.position.set(x, 0, z); c.rotation.y = Math.atan2(x, sz * 6 + z); g.add(c); (A.courtside || (A.courtside = [])).push({ x, z, r: 0.35 });
+    tube(0.12, 0.03, dark, 0, 0.015, 0, c); tube(0.045, 0.56, M('#2a2d32', 0.4, { metalness: 0.6 }), 0, 0.30, 0, c);                // base and column
+    rbox(0.16, 0.10, 0.16, 0.02, dark, 0, 0.62, 0, c);                                                                   // the pan-and-tilt head
+    rbox(0.17, 0.19, 0.40, 0.03, M('#1a1c20', 0.45), 0, 0.77, 0.02, c);                                                  // the camera
+    tube(0.06, 0.26, M('#0d0e10', 0.3, { metalness: 0.5 }), 0, 0.77, -0.30, c, Math.PI / 2);                              // lens
+    add(new THREE.CircleGeometry(0.05, 14), M('#1b2c48', 0.05, { metalness: 0.9 }), 0, 0.77, -0.432, c, 0, Math.PI, 0);    // its glass
+    add(new THREE.SphereGeometry(0.014, 8, 6), new THREE.MeshBasicMaterial({ color: '#ff2a1a' }), 0.07, 0.88, -0.14, c);   // the tally light
   }
   // ---- people: the umpire in the chair, ball kids at the back and by the net ----
   // They are alive (staff.js): heads after the ball, the umpire's calls, kids fetching dead balls between points.
@@ -929,6 +974,21 @@ function buildFurniture(A, spec, lit, model) {
       buildHair(k, k.look.hairSpec, { type: 'cap', c: capC });
       k.root.position.set(x, 0, z); k.root.rotation.y = ry; g.add(k.root); A.staff.push(k); A.kids.push({ k, person: k, x, z, ry, kneel });
     };
+    // line judges, at Roland Garros only (every other event has called its lines electronically since 2025, Wimbledon too): seated on
+    // the line each calls - the baselines and service lines from the side wall across from the chair, the side lines from the back
+    if (spec.key === 'rg' && ST && ST.umpire) {
+      const seats = [];
+      for (const sz of [-1, 1]) { seats.push([A.hx - 0.75, sz * COURT.halfLen, Math.PI / 2], [A.hx - 0.75, sz * 6.40, Math.PI / 2]); for (const sx of [-1, 1]) seats.push([sx * COURT.halfW, sz * (A.hz - 0.75), sz > 0 ? 0 : Math.PI]); }
+      for (const [x0, z0, ry] of seats) {
+        let x = x0, z = z0;
+        if (Math.abs(x0) > COURT.halfWD) while (Math.abs(x) > COURT.halfWD + 1.2 && !insideCourt(A, x, z, 0.5)) x -= Math.sign(x0) * 0.1;
+        if (Math.abs(z0) > COURT.halfLen + 1) while (Math.abs(z) > COURT.halfLen + 2 && !insideCourt(A, x, z, 0.5)) z -= Math.sign(z0) * 0.1;
+        const cg = new THREE.Group(); cg.position.set(x, 0, z); cg.rotation.y = ry; g.add(cg); chair(cg, 0).rotation.y = Math.PI / 2;
+        const lj = new Person(ST.umpire, { height: 1.76, uniform: { top: '#1d2a44', bottom: '#e9e4d6' } }); poseSeated(lj, 0, 0.04, 0, 0.52);
+        lj.root.position.set(x, 0.03, z); lj.root.rotation.y = ry; g.add(lj.root); A.staff.push(lj);
+        (A.courtside || (A.courtside = [])).push({ x, z, r: 0.45 });
+      }
+    }
     // the back four a couple of metres off the wall, in line with the alleys, clear of the rounded corners and of
     // what stands against the wall, facing up the court; the other two on one knee by the net posts
     const bxk = COURT.halfWD - 0.2;
@@ -937,7 +997,9 @@ function buildFurniture(A, spec, lit, model) {
     kid(COURT.halfWD + 2.3, 0.0, Math.PI / 2, true); kid(-(COURT.halfWD + 3.6), 0.9, -Math.PI / 2, true);
     // what they run round: the chair, the net posts, the players' benches and coolers, the towel stands
     const NP = COURT.halfWD + 0.914, obstacles = [{ x: ux - 0.08, z: 0, r: 0.62 }, { x: NP, z: 0, r: 0.12 }, { x: -NP, z: 0, r: 0.12 }];
-    for (const s of [-1, 1]) obstacles.push({ x: ux - 0.35, z: s * 3.4, r: 0.75 }, { x: ux - 0.4, z: s * 4.55, r: 0.45 }, { x: A.hx - 3.4, z: s * (A.hz - 0.32), r: 0.3 }, { x: -(A.hx - 3.4), z: s * (A.hz - 0.32), r: 0.3 });
+    for (const s of [-1, 1]) obstacles.push({ x: ux - 0.35, z: s * 3.4, r: 0.75 }, { x: ux - 0.4, z: s * 4.55, r: 0.45 }, { x: A.hx - 3.4, z: s * (A.hz - 0.36), r: 0.6 }, { x: -(A.hx - 3.4), z: s * (A.hz - 0.36), r: 0.6 });
+    // (the line judges' chairs at Roland Garros, and the courtside cameras)
+    for (const o of A.courtside || []) obstacles.push(o);
     // and what stands on the floor against the walls (the clock cabinets, the partners' blocks): a row of circles along each box
     for (const o of root.children) {
       const P = o.isMesh && o.geometry.type === 'BoxGeometry' && o.geometry.parameters; if (!P || o.position.y - P.height / 2 > 0.05 || P.height > 2.6 || P.width > 4 || !insideCourt(A, o.position.x, o.position.z, -0.5) || insideCourt(A, o.position.x, o.position.z, 2.5)) continue;

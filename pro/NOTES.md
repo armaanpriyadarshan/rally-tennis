@@ -1650,3 +1650,19 @@ still in the air, both in a stroke's finish, for two or three frames.
   measured for Monfils 14.1 s, Kyrgios 14.9, Federer 17.3, Djokovic 21.3, Murray 24.0, Nadal 24.9; the rest estimated), so Nadal
   serves with 3-4 s left, Monfils with 15. His own serve gets the full 25 s; let it run out and it is a time violation, the first
   a warning, after that the first serve lost (the computer always serves in time).
+- **What stands round the court, recognisable and as it is in 2025-26** (he said "make the stadium attributes like near the courts
+  more realistic and true to life" and "make the court assets better too ... i dont even know what some of them are"; facts from
+  the ATP's 2026 rulebook (facilities chapter), the ITF rules and the Grand Slam rulebook):
+  - the players' fridge, a white box with a dark panel, is a glass-door drinks fridge lit inside, three shelves of water and the
+    orange electrolyte drink, WATER across the top;
+  - the umpire's chair is lettered with the event (AUSTRALIAN OPEN, ROLAND-GARROS, WIMBLEDON, US OPEN, ATP FINALS, otherwise the
+    city) on its front and sides, and so are the players' chairs across the backrest;
+  - towels: two labelled bins in each back corner, one for each player - eight on a court, as the ATP requires (Wimbledon keeps its
+    racks, where players still fetch their own);
+  - low robotic cameras by the side walls level with the baselines (the rulebook's low cameras for close-ups), a red tally light;
+  - line judges at Roland Garros only - it kept them for 2025 and 2026; every ATP event and Wimbledon call lines electronically -
+    seated on the lines they call: the baselines and service lines from the side wall across from the chair, the side lines from
+    the back;
+  - the clock box is labelled as what it is - OFFICIAL TIME under the dial, SHOT CLOCK over the seconds - and shows the last
+    serve's speed beneath (the shot clock and the serve-speed display share one box at tour events).
+  The ball kids run round the new things (staff.js obstacles).

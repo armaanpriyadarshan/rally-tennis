@@ -822,8 +822,9 @@ export class Game {
     for (let i = 0; i < ev.length; i++) {
       const e = ev[i];
       switch (e.type) {
-        case 'ready': this.todSkip = (this.todSkip || 0) + (e.skipped || 0); break;
+        case 'ready': this.todSkip = (this.todSkip || 0) + (e.skipped || 0); if (e.serveNum === 1 && this.arena.setServeSpeed) this.arena.setServeSpeed(null); break;
         case 'hit': {
+          if (e.kind === 'serve' && this.arena.setServeSpeed) this.arena.setServeSpeed(e.speed * 3.6);
           if (e.who === 0 && this.camMode === 'fp') this.cam.kick = (e.kind === 'serve' ? 1.6 : 1) * (0.5 + e.power) * 0.5;
           if (e.who === 0 && this.human && e.timing != null) this.hud.timing = { t: this.time, v: e.timing, shank: e.shank };
           if (e.kind === 'serve') this.hud.serve = { t: this.time, kmh: e.speed * 3.6, who: e.who };
