@@ -1,6 +1,6 @@
 // Rally Pro — tournaments and the season. Draws, simulated matches built from each
 // player's real hold and break percentages, ranking points by round, and the save file.
-import { PLAYERS, TOURNAMENTS, ROUND_NAME, eventRate, levelOf, LEVEL_SIM, pickField, planSeason, injuryRisk, injurySpots, eventSeeding } from './data.js';
+import { PLAYERS, TOURNAMENTS, ROUND_NAME, eventRate, levelOf, LEVEL_SIM, pickField, planSeason, injuryRisk, injurySpots } from './data.js';
 
 export function rng(seed) { let s = (seed >>> 0) || 1; return () => { s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
@@ -258,10 +258,7 @@ export class Season {
   // who plays this week (the human too, unless he sits it out)
   entrants(T, withHuman = true) {
     this.prepare();
-    // (before anyone has a point, the order of the year's first event is the event's own - his record there - not the opening order,
-    // which among three men of the same level is the luck of their form: Federer had been top seed at Melbourne over Djokovic)
-    let rank = this.ranking().filter(id => withHuman || id !== this.human);
-    if (rank.every(id => !this.pts[id])) rank = eventSeeding(rank, T, this.r, 0.15);
+    const rank = this.ranking().filter(id => withHuman || id !== this.human);
     if (T.level === 'finals') return rank.filter(id => id === this.human || this.fit(id)).slice(0, 8);
     return pickField(rank, T, this.r, withHuman ? this.human : null, id => this.plays(id, T));
   }
