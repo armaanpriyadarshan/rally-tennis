@@ -1528,3 +1528,12 @@ still in the air, both in a stroke's finish, for two or three frames.
   between points the point holds 1.3 s longer for it to be seen. Measured, 400 points: about half of all winners (his and the
   computer's) are great. Before, a winner got a reaction 45-85% of the time by the man's style, often the calm one, and the cut
   came before it had played.
+- **After the handshake, off to their chairs** (he said "theres a glitch where after the game the opponent player doesnt walk but is
+  just frozen in whatever pose they were in"): through the app's own end of a match - won, lost, ended on an ace or a rally, through
+  the results - both men walked (tools probe, every 0.5 s: their places, speeds and how far their bones moved). What froze was after
+  the handshake: both stood at the net with no movement at all behind the results. Now 2.3 s after it each walks off to his chair by
+  the umpire's, on his own side (the stadium's turn read for which side that is), at 1.1 m/s. `__chairWalkOld`.
+- **The opponent a notch stronger** (he said "also make the opponent slightly better"): every level 15% fewer errors, 3% quicker
+  round the court, 4% quicker to react, 2% more pace (data.js DIFFICULTY). classicbot (which now gives the opponent the level's speed,
+  reaction and pace as the game does, not only its errors), Nadal v Djokovic, 400 points: Tour, pressing on the moment, 86% → 79% of
+  points; pressing 0.04 s late, 52% → 47%; Challenger 69% → 66% (late).

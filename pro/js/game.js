@@ -161,6 +161,10 @@ export class Game {
         this.walkTo(1 - S.who, -0.2 * m.players[1 - S.who].sgn, m.players[1 - S.who].sgn * 0.42, v * sm((S.t - 1.5) / 0.7), dt);
         for (const [i, t0] of [[S.who, 3.35], [1 - S.who, 2.1]]) { const f = this.fig[i]; if (!f.lefty && S.t >= t0) f.handover = { u: S.t - t0 }; }
         if (S.shakeT == null && ((at(0) < 0.06 && at(1) < 0.06) || S.t > 18)) S.shakeT = S.t + 0.25;   // (a breath once both are there)
+        // and then off to their chairs, by the umpire's, each on his own side (he said "the opponent player doesnt walk but is just
+        // frozen in whatever pose they were in": after the handshake both stood stock still at the net behind the results)
+        if (S.shakeT != null && S.t > S.shakeT + 2.3 && !globalThis.__chairWalkOld) { const ux = this.arena && this.arena.root && this.arena.root.rotation.y ? 1 : -1, k = sm((S.t - S.shakeT - 2.3) / 0.6);
+          for (const i of [0, 1]) { const p = m.players[i]; this.walkTo(i, ux * (6.2 + 0.3 * i), p.sgn * 2.2, 1.1 * k, dt); } }
         if (S.shakeT != null) { const u = S.t - S.shakeT, k = sm((u - 0.0) / 0.45) * (1 - sm((u - 1.8) / 0.35)), pump = 0.03 * Math.sin(Math.PI * 2 * 2.0 * Math.max(0, u - 0.5)) * sm((u - 0.5) / 0.15) * (1 - sm((u - 1.45) / 0.2));
           for (const f of this.fig) f.shake = { k: Math.max(0, k), pump }; }
       }
