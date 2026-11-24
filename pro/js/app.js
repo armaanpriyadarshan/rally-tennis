@@ -275,7 +275,8 @@ class App {
       <div class="hd"><b>${esc(T.name)}</b><span class="lab">${esc(T.court || '')} · ${esc(T.city || '')}${T.country ? ', ' + esc(T.country) : ''}</span></div>
       <div class="bd">
         <div class="lf">${this.courtSvg(T)}
-          <div class="tls">${tile('Surface', esc(T.surface))}${tile('Court pace', pace, T.cpi ? 'CPI ' + T.cpi : '')}${tile('Conditions', Math.round(T.temp) + '°', T.indoor ? 'Indoor' : (T.roof ? 'Roof · ' : '') + Math.round(T.windKmh) + ' km/h wind')}</div></div>
+          <div class="tls">${tile('Surface', esc(T.surface))}${tile('Format', 'Best of ' + T.bestOf)}${tile('Court pace', pace, T.cpi ? 'CPI ' + T.cpi : '')}
+            ${tile('Level', TIER[T.level][1])}${tile('Capacity', T.cap ? Number(T.cap).toLocaleString('en-GB') : '—')}${tile('Conditions', Math.round(T.temp) + '°', T.indoor ? 'Indoor' : (T.roof ? 'Roof · ' : '') + Math.round(T.windKmh) + ' km/h wind')}</div></div>
         <div class="conn">
           <div class="step"><span class="n">1</span><div><b>Host a match</b></div></div>
           <div class="row"><button class="btn go" data-host>Host</button><div class="codebox" data-code><b>·</b><b>·</b><b>·</b><b>·</b></div></div>
