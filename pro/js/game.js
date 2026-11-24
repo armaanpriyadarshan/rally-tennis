@@ -122,7 +122,7 @@ export class Game {
     if (S.stage === 'cel') {
       const wf = this.fig[S.who], lf = this.fig[1 - S.who];
       // both arms up with the racket in his hand, held, and brought down as he walks on (he said "the celebration should literally
-      // just be holding hands up with racket in hands"); `__celebFistOld` for Nadal's tracked fist pump
+      // just be holding hands up with racket in hands")
       const kc = sm((S.t - 0.15) / 0.5) * (1 - sm((S.t - 2.7) / 0.6));
       wf.celebArm = { kind: 'up', u: S.t, k: kc }; lf.celebArm = null;
       // ...not cut to: they walk all the way (he said "dont teleport the players to the shake they should walk for it"), each
@@ -145,7 +145,7 @@ export class Game {
       }
       // (the results, or the trophy, at 4.6 s, not after the handshake: he said "you shouldnt have to wait all the way till the
       // handshake" - walked from the baselines it came at about 13 s. The walk and the handshake go on behind the results.
-      // `__shakeWaitOld` to wait for it)
+      //)
       const tEnd = 4.6;
       if (S.trophy) {
         if (S.t >= tEnd - 0.2 && !S.sting) { S.sting = true; if (this.ui && this.ui.sting) this.ui.sting(); }

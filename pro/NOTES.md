@@ -1555,3 +1555,11 @@ still in the air, both in a stroke's finish, for two or three frames.
   ball itself rather than his plan's spot; if he cannot get there, or the ball went by long ago, the swing is given up instead of
   played at the air. On those balls: winners off them 17 → 23, air swings 13 → 1, not reached 1 → 6; the computer's air swings in
   600 points 34 → 12.
+- **Cleanup, second and third stages** (he asked for "a comprehensive code cleanup"): with the switches gone, what only they used went
+  too - 31 unused declarations, imports and methods found by a scan (tools in /tmp; spreads counted as uses), removed by their exact
+  source ranges, rescanned until none was left; the celebration paths the game can no longer reach (the tracked fist pump, the
+  whole-body footage, the keyed CELEB tracks) and the footage data behind them (js/celebmotion.js, tools/celeb_motion.py); the face
+  warp nothing imported (js/facewarp.js); comments still naming removed switches, or describing experiments whose code went with
+  them; a few no-op products of the folding (`* 1`, `Math.max(1, sm(…))`); tools/out (2 MB of intermediate clips nothing reads).
+  The game's JS is about 650 lines shorter. Verified after each stage: the seven seeded bot matches byte for byte, the browser
+  fingerprint hash for hash, and the app's match end and trophy without errors.

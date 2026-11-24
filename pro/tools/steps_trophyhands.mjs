@@ -1,3 +1,5 @@
+// The trophy ceremony filmed close: a quick match won, then shots of the hands on the trophy from in front, the side, and the game camera
+// at AT seconds into the ceremony, with how the palms span its grip. env: VEN AT OUT
 export default async function ({ ev, shot }) {
   console.log(await ev(`(async () => {
     const A = window.__app, D = await import('./js/data.js'); const T = D.TOURNAMENTS.find(t => t.key === ${JSON.stringify(process.env.VEN || 'ao')});

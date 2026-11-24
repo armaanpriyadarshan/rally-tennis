@@ -15,7 +15,7 @@ for (const k in LOCO) { const c = LOCO[k], sp = Math.hypot(c.v[0], c.v[1]), dur 
 // ball a metre or two away was a skip on straight legs, the feet slapped together under him. Here, in each frame of the two
 // shuffle clips the feet are kept at least a
 // third of a metre apart (each moved out from their middle), and the hips and everything above them sat lower, into the
-// athletic stance he moves in. (globalThis.__shuffleOld before load: the captured gallop.)
+// athletic stance he moves in.
 const SHUF = (globalThis.location && new URLSearchParams(globalThis.location.search).get('shuf')) || '';   // (tools: ?shuf=old|drop|nolow|nosep picks a variant)
 if (SHUF !== 'old') for (const k of ['shuffleR', 'shuffleL']) { const c = CL[k]; if (!c) continue;
   const legL = ['lknee', 'lankle', 'ltoe'], legR = ['rknee', 'rankle', 'rtoe'], low = new Set(['lknee', 'lankle', 'ltoe', 'rknee', 'rankle', 'rtoe']);

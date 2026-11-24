@@ -161,7 +161,7 @@ export class Human {
     // ---- hands: the first game's way ----
     if (classic) {
       const pressed = inp.takePressed(); inp.takeEdges();
-      // (W A S D move him, he asked for "wasd movement"; the arrows alone aim. `__wasdOld`: both did both)
+      // (W A S D move him, he asked for "wasd movement"; the arrows alone aim.)
       const dn = c => inp.down(c) && (!wasd || !/^Key[WASD]$/.test(c)), pr = c => pressed.has(c) && (!wasd || !/^Key[WASD]$/.test(c));
       let lat = (dn('ArrowRight') || dn('KeyD') ? 1 : 0) - (dn('ArrowLeft') || dn('KeyA') ? 1 : 0), fk = (dn('ArrowUp') || dn('KeyW') ? 1 : 0) - (dn('ArrowDown') || dn('KeyS') ? 1 : 0);
       const go = pressed.has('Space') || pressed.has('Enter');

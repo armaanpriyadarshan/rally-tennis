@@ -290,7 +290,7 @@ export class Match {
     // where the game's own legs are taking him (Auto footwork), the ball is met when they get him there
     // (but only if they will get him there: short of the spot when the swing has to go - an approach volley, the ball met at the
     // spot a metre or three in front of where he was - the swing went when the ball reached the spot and missed it, early, a
-    // quarter of the balls he took in the air in a rally; then it is timed to the ball reaching him where he is. `__tcSpotOld`)
+    // quarter of the balls he took in the air in a rally; then it is timed to the ball reaching him where he is.)
     let tcOK = it.tcAt != null && it.tcAt - this.t > -0.05 && it.tcAt - this.t < 0.9 && b.live && b.lastHit !== i;
     if (tcOK && it.spot && Math.hypot(it.spot.x - p.x, it.spot.z - p.z) > 0.45 + (p.prof.speed || 6) * 0.8 * Math.max(0, it.tcAt - this.t)) tcOK = false;
     if (tcOK) tau = Math.max(0, it.tcAt - this.t);
@@ -319,7 +319,7 @@ export class Match {
     // the racket, 0.08 s before contact - Perfect within 0.06 s of it, Good within 0.12. It was judged against the swing's start,
     // 0.15-0.24 s before contact: pressed as the ball came to him, he was a sixth of a second late, his shot came off weak, and a
     // touch later he missed it altogether - he said "the assist keeps setting up to miss shots". An early press is still held and
-    // swung on time; the swing is as before. `__pressTimeOld`.)
+    // swung on time; the swing is as before.)
     if (it.merciful && it.pressAt != null && st.tc != null) {
       // (when the ball is at the racket: as the swing is set, or - pressed after it had come through - when it went by, from its
       // speed toward him; the swing itself may be later or sooner, a held early press or a late one)
@@ -758,7 +758,7 @@ export class Match {
     const spec = serveSpec(prof, type, first, it.pace == null ? 1 : it.pace, rng);
     // A Perfect serve (inside half the window) is near-perfect too (he said "the perfect shots should be like almost perfect,
     // especially serves"): to the line it was aimed along - the T or wide - deep in the box, 6% harder, a fifth of the scatter
-    // (which otherwise keeps each man's first serves going in as often as his do). A person's only. `__perfectOld`.
+    // (which otherwise keeps each man's first serves going in as often as his do). A person's only.
     const swin = this.timingWindow[p.i], pf = !st.auto ? 1 - clamp((Math.abs(tim) - swin * 0.5) / Math.max(0.005, swin * 0.5), 0, 1) : 0;
     let stx = it.tx, stz = it.tz;
     if (pf > 0) { const ax = Math.abs(stx), dz = Math.abs(stz), sg = Math.sign(stx) || 1;
@@ -817,7 +817,7 @@ export class Match {
     const mer = st.merciful ? (this.mercy ? this.mercy[p.i] : 1) : 0;   // classic controls: a wider reach, most of all behind him (less of it on the harder levels)
     // (a late press with the first game's controls still meets a ball that has come through past him by up to two metres, at every
     // level: at Tour's 1.24 m, pressed as the ball reached him he swung at air one ball in six - "the assist keeps setting up to miss
-    // shots". Late, it comes off weak; it is not missed. `__lateReachOld`)
+    // shots". Late, it comes off weak; it is not missed.)
     const merB = st.merciful ? Math.max(mer, 0.8) : mer;
     if (lat > reachMax * (1 + 0.12 * mer) || relZ < -(REACH.back + 2.1 * merB) || relZ > REACH.front + 0.35 * mer || h < REACH.lo || h > hiMax + 0.2 * mer || b.z * p.sgn < -0.25) {
       this.emit('whiff', { who: p.i, lat, relZ, h });
@@ -865,7 +865,7 @@ export class Match {
     // timed, is one a tour player puts away: harder, flatter, lower over the net and nearer where he meant it. (Playing Nadal he said
     // "even the easy balls dont go fast or accurate ... or flat": off easy balls a person's drives went 128-135 km/h whoever he was,
     // landed a median 0.86 m from his aim, 8% missed; only a ball above 0.98 m counted as sitting up.) A person's only; the more
-    // easy and the cleaner the timing (inside half the window all of it, none at its edge), the more. `__easyOld`.
+    // easy and the cleaner the timing (inside half the window all of it, none at its edge), the more.
     const easyT = !st.auto && !volley && (kind === 'drive' || kind === 'flat')
       ? clamp((13.5 - vin) / 4, 0, 1) * (1 - clamp(stretch * 2, 0, 1)) * (1 - clamp((pSpeed - 1) / 2, 0, 1)) * clamp((h - 0.45) / 0.25, 0, 1) * (1 - clamp((h - 1.7) / 0.3, 0, 1)) * (1 - jam) * (1 - clamp((Math.abs(timRaw) - win * 0.5) / Math.max(0.005, win * 0.5), 0, 1))
       : 0;
@@ -875,13 +875,13 @@ export class Match {
     // perfect shots should be like almost perfect" and "im playing perfectly with nadal and still not hammering it close to the line
     // pulling the opponent out of the court". It went where a Good one went, 0.65 m inside the sideline at the widest he could aim and
     // 1.7 m inside the baseline at the deepest, with 60% of the scatter at Tour. Now: to the line he aims at, a full angle across court
-    // short and wide, harder and lower over the net, a fraction of the scatter. A person's only. `__perfectOld`.
+    // short and wide, harder and lower over the net, a fraction of the scatter. A person's only.
     // (With the first game's controls a press made early is held and the swing goes on the moment, so it always measured Perfect:
     // 98% of the test bot's shots. Perfect is a press made on the moment - within 0.09 s before it, fading out by 0.18 s; one made
     // earlier plays as before, Good.)
     const lead = st.pressE != null ? 0 : (it.pressLead || 0), pfLead = 1 - clamp((lead - 0.09) / 0.09, 0, 1);
     // (volleys and overheads too: he said "the assist keeps mistiming net shots and volleys" - timed within 0.06 s, no volley was ever
-    // Perfect, so every one read Good, Early or Late and played as an ordinary volley. `__volPfOld`)
+    // Perfect, so every one read Good, Early or Late and played as an ordinary volley.)
     const pf = !st.auto && (kind === 'drive' || kind === 'flat' || kind === 'loop' || kind === 'slice' || kind === 'volley' || kind === 'smash' || kind === 'drop') ? (st.pressE != null ? 1 - clamp(((st.pressE < 0 ? -st.pressE - PF_EARLY : st.pressE - PF_LATE)) / 0.02, 0, 1) : (1 - clamp((Math.abs(timRaw) - win * 0.5) / Math.max(0.005, win * 0.5), 0, 1)) * pfLead) : 0;
     if (pf > 0 && kind !== 'slice') power = Math.min(1, power + 0.12 * pf);
     st.perfect = pf;
@@ -904,7 +904,7 @@ export class Match {
     // racket comes through: the pace (from his own average up to 1.36 times it - 170 km/h off Nadal's 127), the spin that comes with
     // it and keeps a hard ball in, how low over the net, how near his aim, and how hard it is to send back. (Before, the pace was the
     // game's choice and was then cut until the ball cleared the net by its margin, so a perfect stroke went about as fast as any.)
-    // `__strikeOld`.
+    //
     const strike = !st.auto && !volley && (kind === 'drive' || kind === 'flat' || kind === 'loop');
     let Q = 0;
     const dropQ = !st.auto && kind === 'drop';   // (a person's drop shot is as good as his timing too)

@@ -396,7 +396,7 @@ export class Figure {
     if (kind === 'slice' || kind === 'drop') return wing === 'fh' ? FH_SLICE : BH_SLICE;
     const base = wing === 'fh' ? FOREHAND : one ? BACKHAND_1H : BACKHAND_2H;
     // where a player's own footage shows his racket somewhere else, his keys say so
-    const ov = RACKET_OVR[(this.look.name || '') + '/' + wing];   /* (__noOvr: tools only, a stroke seen without its override) */
+    const ov = RACKET_OVR[(this.look.name || '') + '/' + wing];
     if (!ov) return base;
     const id = this.look.name + '/' + wing; if (_ovCache.has(id)) return _ovCache.get(id);
     const keys = base.keys.map(k => ({ ...k }));
@@ -557,10 +557,8 @@ export class Figure {
       // back only in the last steps. Booked nine-tenths of a second ahead, the stroke's take-back came in at once and held him
       // facing the net with the racket out to the side for the whole run, shuffling sideways at a sprint to a ball far from him.
       if (st.kind !== 'serve' && st.kind !== 'smash') { const tcL = st.tc != null ? st.tc : st.tcPlan, left = tcL != null ? tcL - t : 0.9;
-        // (globalThis.__runAroundOn: running round the ball, away from the side he will hit on, the take-back waits for the last third
-        // of a second; off, because a take-back begun that late swung the racket arm through his body to catch up, McEnroe's lob)
         const lxR = p.vx * s;
-        const want = Math.max(1, sm((speed - 0.9) / 1.0)) * sm((left - ((0.55 - 0.05 * sm((speed - 3) / 2)))) / ((0.2 + 0.15 * sm((speed - 3) / 2))));   /* (2026-11-23: at a sprint let go of over 0.85-0.5 s, not 0.75-0.55: over a fifth of a second the take-back came in at six metres a second as a whip of the racket across him) */   /* (at any pace, not only a run: booked nine tenths of a second ahead, the racket went back the moment the other man hit it, and was carried there while he moved to the ball; he said 'take backs start too early ... instead of moving to the ball'. Now in from 0.75 s before contact, full by 0.55; __prepStand 0 keeps a standing player's early turn) */
+        const want = sm((left - ((0.55 - 0.05 * sm((speed - 3) / 2)))) / ((0.2 + 0.15 * sm((speed - 3) / 2))));   /* (2026-11-23: at a sprint let go of over 0.85-0.5 s, not 0.75-0.55: over a fifth of a second the take-back came in at six metres a second as a whip of the racket across him) */   /* (at any pace, not only a run: booked nine tenths of a second ahead, the racket went back the moment the other man hit it, and was carried there while he moved to the ball; he said 'take backs start too early ... instead of moving to the ball'. Now in from 0.75 s before contact, full by 0.55) */
         this.prepLate = this.inited && dt > 0 && this.prepLateSt === st ? this.prepLate + (want - this.prepLate) * (1 - Math.exp(-dt * (want < this.prepLate ? 9 : 14))) : want; this.prepLateSt = st;
         sw *= 1 - this.prepLate; }
     }
@@ -572,8 +570,6 @@ export class Figure {
     this.defSw = st && st === p.lastStroke && this.deferredSt ? sw : 0;
     const live = m.phase === 'live' || m.phase === 'toss' || m.phase === 'ready';
     const serverWait = m.phase === 'ready' && m.score.server === p.i;
-    // (globalThis.__rcvWalkOn, off: as he stops, the walk fading onto play's locks skated a flat foot 1.6-2.3 m/s for a few frames,
-    // four times the audit's flat-foot skating; the crouched approach it replaces glides more but skates less)
     // (the receiver walking to his place before the serve walks there as anyone does between points, upright, turned the way he goes,
     // and settles into his stance as he stops: counted as play, he went there crouched in the ready stance on play's footwork, gliding
     // on both feet and stepping to catch them up, the held foot slid along the court one to three metres a second)
@@ -1118,9 +1114,9 @@ export class Figure {
     // court because the cycle runs at the pace its feet cover the ground. (Run through the locks and catch-up steps kept for
     // play, the walker's planted foot was held down a beat long, the body went on, the hips sank to reach it and a step of the
     // game's own, short and low, took over: both feet off the court a hand's breadth apart, the knees bent, every few steps.)
-    { const want = (between && !serverWait || (serverWait && this.srvWalking) || rcvWalk) && !this.posed && !(st && sw > 0.05) ? clamp(this.loco.w.up, 0, 1) * sm((speed - 0.35) / 0.4) * (1 - sm((speed - 2.2) / 0.6)) * 1 * (sm((Math.cos(this.yaw - Math.atan2(p.vx * s, -p.vz * s)) + 0.5) / 0.3)) : 0;   /* (not stepping back facing the net: walked forwards under a body going backwards, laid out the way he went, the walk turned half round under him in a sixth of a second; that is play's backpedal) */   /* (and walking along the line to serve: left to play's footwork, it walked there on bent knees with catch-up steps) */   /* (only on the walk back, 'between': brought in as the point ended, while he was still pulling up out of a run, play's running feet were thrown across to the walk's in a few frames) */   /* (walking, not standing: stood still after a point, the feet are play's, planted where they are) */
+    { const want = (between && !serverWait || (serverWait && this.srvWalking) || rcvWalk) && !this.posed && !(st && sw > 0.05) ? clamp(this.loco.w.up, 0, 1) * sm((speed - 0.35) / 0.4) * (1 - sm((speed - 2.2) / 0.6)) * (sm((Math.cos(this.yaw - Math.atan2(p.vx * s, -p.vz * s)) + 0.5) / 0.3)) : 0;   /* (not stepping back facing the net: walked forwards under a body going backwards, laid out the way he went, the walk turned half round under him in a sixth of a second; that is play's backpedal) */   /* (and walking along the line to serve: left to play's footwork, it walked there on bent knees with catch-up steps) */   /* (only on the walk back, 'between': brought in as the point ended, while he was still pulling up out of a run, play's running feet were thrown across to the walk's in a few frames) */   /* (walking, not standing: stood still after a point, the feet are play's, planted where they are) */
       // (from the moment he sets off, turning or not: the walk's own plants (below) hold the standing foot while he turns over it.
-      // Taken up only once he faced the way he was going (globalThis.__strollAlignOn), the play's footwork turned him, its far foot
+      // Taken up only once he faced the way he was going, the play's footwork turned him, its far foot
       // stepping first across the near one, the shins through each other; taken up while turning without the plants, the planted
       // foot was swept round under him at two to four metres a second)
       this.strollK = !this.inited || dt <= 0 ? want : (this.strollK || 0) + (want - (this.strollK || 0)) * (1 - Math.exp(-dt * 8)); }
@@ -1539,7 +1535,7 @@ export class Figure {
     const carry = this.posed ? 0 : clamp(ease(this, 'carryE', strolling ? 1 : lerp(0.12 + 0.2 * free, 1, walkSv), 12, dt), 0, 1); /* (the racket arm swings less than the free one at a run) */
     // waiting to serve, the ball hand works in front of him at the waist (the keyed bounce), not where his tracked
     // address clip lets it hang at his side, where the ball is lost against his leg
-    this.addrHandW = damp(this.addrHandW || 0, serverWait && m.ball && m.ball.held === p.i ? 1 - 1 * (this.srvWalkK || 0) : 0, 10, dt); /* (walking, the ball hand hangs at his side with the ball in it) */
+    this.addrHandW = damp(this.addrHandW || 0, serverWait && m.ball && m.ball.held === p.i ? 1 - (this.srvWalkK || 0) : 0, 10, dt); /* (walking, the ball hand hangs at his side with the ball in it) */
     // and the racket arm holds the racket in front of him (head down while he bounces, then pointing at the box at the
     // address), not hanging at his side as the tracked serve starts; it gives way to the clip as the toss begins
     this.addrArmW = damp(this.addrArmW || 0, serverWait ? 1 - (this.srvWalkK || 0) : 0, serverWait ? 10 : 5, dt);
@@ -1996,8 +1992,6 @@ export class Figure {
           // the hand at the back of a runner's swing counted as inside him and was sent forward again)
           for (let i = 0; i < 2; i++) {
             mgI = i === off ? mg + (0.03 - mg) * clamp(this.runSwingK || 0, 0, 1) : mg; if (eAt(tgt[i]) >= 1) continue; const T0 = _inT.copy(tgt[i]); let lo = 0, hi = 0.6; for (let it = 0; it < 9; it++) { const mid = (lo + hi) / 2; if (eAt(_stQ.copy(T0).addScaledVector(fw, mid)) < 1) lo = mid; else hi = mid; }
-            // (globalThis.__tgtSideOn: a hand behind the middle of him goes out to its own side of the hip if that is the shorter way
-            // clear; tried for the runner's backswing, it flared the elbow out behind him, the hand on the hip)
             let ax2 = fw, hv = hi;
             tgt[i].addScaledVector(ax2, hv); if (this.dbgOn) (this.dbgTC || (this.dbgTC = [0, 0]))[i] = +hv.toFixed(3);
           } } } }
@@ -2327,7 +2321,7 @@ export class Figure {
             // (up to the top of the chest, narrower there as the neck is: kept below the shoulders, a two-hander's top arm crossing the
             // upper chest to the hands up by the far shoulder in the finish went through it, and no turn of the elbow could clear it)
             if (al2 < 0.05 * tLen || al2 > tLen * (ext ? 1.05 : 0.95)) continue;
-            const nk2 = al2 < 0.4 * tLen ? 0.72 + 0.28 * al2 / (0.4 * tLen) : al2 > 0.9 * tLen && ext ? 0.75 : 1, lmg = LIMB_R * 1, a2 = tA * nk2 + lmg, b2 = tB * nk2 + lmg, dx2 = r.dot(tRt), dz2 = r.dot(tFw);
+            const nk2 = al2 < 0.4 * tLen ? 0.72 + 0.28 * al2 / (0.4 * tLen) : al2 > 0.9 * tLen && ext ? 0.75 : 1, lmg = LIMB_R, a2 = tA * nk2 + lmg, b2 = tB * nk2 + lmg, dx2 = r.dot(tRt), dz2 = r.dot(tFw);
             if (Math.abs(dx2) < a2) { const zx = b2 * Math.sqrt(1 - (dx2 / a2) ** 2); if (dz2 < zx && dz2 > -zx) nd = Math.max(nd, (zx - dz2) / f); } } return nd; };
           const n0 = lineNeed(false), needL = xK > 0.001 ? n0 + (Math.max(n0, lineNeed(true)) - n0) * xK : n0;
           if (needL > fp[i]) fp[i] = Math.min(needL, 0.4 * H); } }
@@ -3078,7 +3072,7 @@ const ADDR_U = { Nadal: -1.15 };
 const RACKET_OVR = {
   // (the first key from the back-fence footage, youtube XJ7fWm1gPtY at 5.34 s: by 0.7 s before contact his racket is already up beside his head,
   // tip up; the side-on swing these keys were first solved on had it out flat to his side, and with that key the game held it out flat
-  // until half a second before contact. __nadOvrOld for that one.)
+  // until half a second before contact.)
   'Nadal/fh': [{ u: -0.70, dir: [0.45, 0.80, 0.40] }, { u: -0.54, dir: [0.30, 0.90, 0.31] }, { u: -0.40, dir: [-0.15, 0.95, -0.27] }],
   // (Djokovic had keys here too, for both wings, solved against his tracked arm while the tracker had the forehand's forearm
   // folded flat into the shoulder in the turn, and against the backhand clip he now plays least. Once the clip's arm was
@@ -3141,7 +3135,7 @@ const _rpV = new THREE.Vector3();
 const PARTIAL = {};
 // first clips that come out worse than the alternates tracked since (2026-11-14, share of two-hander frames with an arm
 // more than 4 cm inside the trunk: Djokovic's 70% against 24-45% for his others, Nadal's 75% in the finish against 0%)
-// (Nadal's forehand left it on 2026-11-22: re-tracked across the court from a camera behind him; __nadFhWeak puts it back)
+// (Nadal's forehand left it on 2026-11-22: re-tracked across the court from a camera behind him)
 const MAIN_WEAK = new Set(['Djokovic/bh', 'Nadal/bh', ...([])]);
 // How high (up, as a part of the arm's direction) and how far forward at least a forehand's free arm points through the
 // take-back, in the chest's frame. Djokovic's straightens out toward the ball at the height of his shoulder, mostly forward
@@ -3432,12 +3426,12 @@ const FH_SLICE = track([
 // laid on the far shoulder, the hands on the head brought down across the chest.) Racket hand R, free hand L, for a right-hander.
 // (the racket hand in a celebration hangs relaxed, the racket nearly upright down the leg, its head a little forward: it was held
 // out from the leg and half way to level, forty-five degrees forward and tipped out, the wrist cocked to hold it there, as
-// nobody holds a racket while pumping the other fist. `__hangOld` before load.)
+// nobody holds a racket while pumping the other fist.)
 const HANG = { R: [0.27, 0.91, 0.12], dir: [0.04, -0.90, 0.43], nrm: [1, 0, 0] };   /* (the hand where it was, out from the hip: drawn in to it, McEnroe's forearm went into his side) */
 const REACT_ANIM = {
   // (the fist pump as players do it: the fist up to the chin with the elbow tucked down by the ribs, then pulled hard down to
   // the hip, the trunk crunching forward into it, twice. It was a fist held out at the stomach, the forearm level, moving a
-  // hand's breadth up and down: a man holding a cup. `__fistOld` for it.)
+  // hand's breadth up and down: a man holding a cup.)
   fist: track([
     { u: 0.00, ...HANG, L: [-0.22, 1.20, 0.20], twist: 0.10, lean: 0.06, crouch: 0.04, stance: 0.27, lgrip: 0, head: 0.10 },
     { u: 0.18, ...HANG, L: [-0.16, 1.43, 0.26], twist: 0.06, lean: 0.02, crouch: 0.03, stance: 0.27, lgrip: 0, head: 0.18 },
@@ -3467,7 +3461,7 @@ const REACT_ANIM = {
   ]),
   // (the racket held up to the crowd: the arm up almost straight over his shoulder, the strings toward them, swayed once side
   // to side, the other arm hanging loose. It was the forearm folded up in front of his face, the racket out of sight above it,
-  // and the free hand on his hip with the elbow out. `__raiseOld` for it.)
+  // and the free hand on his hip with the elbow out.)
   raise: track([
     { u: 0.00, R: [0.24, 1.42, 0.30], L: [-0.25, 0.88, 0.07], dir: [0.12, 0.90, 0.42], nrm: [0, -0.4, 0.92], twist: 0.06, lean: 0.04, crouch: 0.02, stance: 0.26, lgrip: 0, head: 0.15 },
     { u: 0.30, R: [0.20, 2.16, 0.10], L: [-0.25, 0.87, 0.06], dir: [0.04, 0.99, 0.10], nrm: [0, -0.1, 1], twist: 0.04, lean: -0.02, crouch: 0.01, stance: 0.26, lgrip: 0, head: 0.30 },

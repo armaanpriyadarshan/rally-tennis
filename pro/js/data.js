@@ -203,7 +203,7 @@ export function profileFor(id, surface, key) {
   // The five he wants above everyone (he said "alcaraz, sinner, federer, djokovic, and nadal in general should just be above the
   // rest"): steadier, quicker to the ball and off the mark, and a little more pace, on top of their own numbers. Their numbers alone
   // put Federer and Alcaraz behind Medvedev, Zverev and Agassi (the bot at Tour won 48% and 51% of points from them, 42-43% from
-  // those three). `__eliteOld`; ELITE_K scales each man's edge so that all five come out hardest.
+  // those three). ELITE_K scales each man's edge so that all five come out hardest.
   const eK = ELITE_K[P.facts.name];
   if (eK) { b.cons = clamp(b.cons + 0.07 * eK, 0.1, 0.98); b.speed *= 1 + 0.03 * eK; b.accel *= 1 + 0.04 * eK; b.react *= 1 - 0.06 * eK;
     b.fhKmh *= 1 + 0.025 * eK; b.bhKmh *= 1 + 0.025 * eK; b.s1Kmh *= 1 + 0.015 * eK; b.firstIn = clamp(b.firstIn + 0.02 * eK, 0.45, 0.8); }
@@ -217,7 +217,7 @@ export const ELITE_SIM = 4;
 // event, and Wawrinka, Ivanisevic, Monfils and Kyrgios were in 2-4% of the fields, Thiem 6%, Kuerten 10%). `order`: everyone, best
 // first (strength at the event, or the season's ranking). The human always plays; at a Slam or a Masters 1000 the five do too (they
 // are compulsory for the top men, as on the tour), at a 500 each about half the time; the other places are drawn, the stronger more
-// likely, every man with a real chance. The Finals are the top eight. `__fieldOld`: the strongest twelve.
+// likely, every man with a real chance. The Finals are the top eight.
 export function pickField(order, T, rnd, me) {
   const n = T.draw;
   if (T.level === 'finals') { const f = order.slice(0, n); if (me != null && !f.includes(me)) f[n - 1] = me; return order.filter(id => f.includes(id)); }
