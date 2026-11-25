@@ -39,6 +39,11 @@ export const REACH = { ideal: 0.72, comfy: 1.15, max: 2.2, front: 1.25, back: 0.
 // Everything the calibration harness is allowed to turn. Angles in radians.
 // the Perfect press, against the moment just before the ball reaches the racket (s): how early, how late (see resolveStroke)
 const PF_EARLY = 0.07, PF_LATE = 0.10;
+// The computer's groundstroke quality (see the shot, below): his Q from q0 (consistency 0) to q1 (1), spread qSd; a rally ball's pace
+// held back to `hold` of it; how far toward the lines he goes, by the state of the rally (to lx inside the side line, lz inside the
+// baseline: a person's best-struck ball goes to 0.3 and 0.75); the spread and the
+// off-centre hits scaled from k0 / m0 (Q 0) to k1 / m1 (Q 1).
+export const CPU_HIT = { q0: 0.76, q1: 0.86, qSd: 0.1, hold: 0.55, line: { attack: 1, pass: 1, neutral: 0.5, return: 0.35, defend: 0, net: 0 }, lx: 0.6, lz: 1.1, k0: 1.3, k1: 0.55, m0: 1.4, m1: 0.6 };
 export const TUNE = {
   sigEl: 0.0085, sigAz: 0.0200, sigV: 0.031,      // launch scatter of a neutral rally ball
   mis0: 0.018, misD: 0.070,                       // chance of a mistimed hit: base, and per unit of difficulty
@@ -957,6 +962,16 @@ export class Match {
       const dq = 1 - clamp(weak * 0.75 + jam * 0.3 + (h < 0.45 ? (0.45 - h) * 1.2 : 0), 0, 0.75);
       Q = clamp(tq * dq + 0.12 * easyT, 0, 1); }
     st.q = Q;
+    // The computer's groundstroke is struck as a person's is, as well as he meets it (he said "the computer should have better
+    // hitting": its rally ball went at its average pace whatever the ball, aimed two to three metres inside the baseline with the whole
+    // random spread on it, and landed a median 3.5 m in, only a third of them deep - a ball to attack - and it hit a winner on 3-11% of
+    // points). His Q is how cleanly he strikes it: by his consistency, give or take a tenth, less what the other man's ball did to his
+    // timing and what this one does to him (stretched, jammed, dug out low, as a person's), more off a ball that sits up for him.
+    let cpuS = st.auto && !volley && (kind === 'drive' || kind === 'flat' || kind === 'loop');
+    if (cpuS) { const tq = clamp(lerp(CPU_HIT.q0, CPU_HIT.q1, prof.cons) + rng.g() * CPU_HIT.qSd - clamp(Math.abs(aTim) / 0.07, 0, 1) * 0.3, 0.15, 1), dq = 1 - clamp(weak * 0.75 + jam * 0.3 + (h < 0.45 ? (0.45 - h) * 1.2 : 0), 0, 0.75);
+      Q = clamp(tq * dq + 0.15 * sitsUp, 0, 1); st.q = Q; }
+    // (and how much of it goes into the pace is his plan for the shot: a rally ball held back, a ball to finish the point not)
+    const Qp = cpuS ? Q * lerp(CPU_HIT.hold, 1, clamp((power - 0.4) / 0.55, 0, 1)) : Q;
     let v, top, side = 0, minClear, sig = 1, mode = 'speed', el = 0;
     let tx = it.tx == null ? 0 : it.tx, tz = it.tz == null ? -p.sgn * 9 : it.tz;
     // on the easier levels the target is kept far enough inside the lines for this particular ball
@@ -965,16 +980,17 @@ export class Match {
       const mx = Math.max(0.2, COURT.halfW - R.x * a), mz = Math.max(COURT.svc - 0.5, COURT.halfLen - R.z * a);
       tx = clamp(tx, -mx, mx); if (Math.abs(tz) > mz) tz = Math.sign(tz) * mz;
     }
-    const lineK = strike ? clamp((Q - 0.55) / 0.4, 0, 1) : pf;   // (the better struck, the nearer the line he aims at)
+    const lineK = strike ? clamp((Q - 0.55) / 0.4, 0, 1) : cpuS ? clamp((Q - 0.55) / 0.4, 0, 1) * (CPU_HIT.line[it.state] ?? 0.5) : pf;   // (the better struck, the nearer the line he aims at; the computer as far as his plan goes for it)
     if (lineK > 0) { const pf = lineK;
-      const ax = Math.abs(tx), dz = Math.abs(tz), lineX = COURT.halfW - 0.3, lineZ = COURT.halfLen - 0.75;
+      const ax = Math.abs(tx), dz = Math.abs(tz), lineX = COURT.halfW - (cpuS && !it.kill ? CPU_HIT.lx : 0.3), lineZ = COURT.halfLen - (cpuS && !it.kill ? CPU_HIT.lz : 0.75);   /* (the computer keeps a tour player's margin, but not putting a ball away) */
       if (ax > 1.0) tx = Math.sign(tx) * (ax + (lineX - ax) * pf * clamp((ax - 1.0) / 1.5, 0, 1));          // an angle aimed goes to the line
-      const cross = ax > 2.8 && Math.sign(tx) === -Math.sign(b.x || 1e-6) && Math.abs(b.x) > 0.6;
+      const cross = ax > 2.8 && Math.sign(tx) === -Math.sign(b.x || 1e-6) && Math.abs(b.x) > 0.6 && !(cpuS && it.ang);   /* (the computer's short angle stays short) */
       if (cross && dz < 9.8) tz = Math.sign(tz) * lerp(dz, 10.2, 0.7 * pf);                 // across court as wide as it goes: to the deep corner by the sideline, out wide after it bounces (aimed short, at 8 m, it could not be hit hard: 95-115 km/h)
       else if (dz > 8.5) tz = Math.sign(tz) * (dz + (lineZ - dz) * pf);                                          // deep goes to the baseline
     }
     const forceBlock = !volley && (stretch > 0.75 || (weak > 0.8 && kind !== 'lob'));
     if (forceBlock && kind !== 'lob') kind = kind === 'slice' || wing === 'bh' ? 'slice' : 'block';
+    if (cpuS && kind !== 'drive' && kind !== 'flat' && kind !== 'loop') cpuS = false;   // (a ball he can only block back is not struck: played as a block or a slice)
     // Under pressure the ball does not go where it was meant to: it drops short and drifts
     // toward the middle. This is what hands the other player the next shot.
     if (kind !== 'lob' && kind !== 'drop' && kind !== 'smash' && weak > 0.05) {
@@ -1019,16 +1035,16 @@ export class Match {
     // low balls cannot be ripped: the strings can only lift so much
     if (kind === 'drive' || kind === 'flat') { const low = clamp((0.5 - h) / 0.5, 0, 1); v *= 1 - 0.22 * low; top *= 1 + 0.12 * low; }
     let topMax = top;
-    if (strike) { const loopy = kind === 'loop' || !!st.loop;
+    if (strike || cpuS) { const loopy = kind === 'loop' || !!st.loop;
       { const sH0 = kind === 'flat' ? 0 : clamp((wingRpm - 2900) / 700, 0, 1), dz0 = Math.abs(tz); if (sH0 > 0 && dz0 > 8.5) tz = Math.sign(tz) * (dz0 - 0.8 * sH0); }
       // (each man's own shape: a heavy topspin hitter - Nadal, the more so on clay, where he spins it most - gives up a little pace for
       // much more spin and a higher arc, so the ball dives and kicks up off the court; he said "nadals balls dont feel the same,
       // especially on clay, not enough bounce or topspin feel": struck alike, everyone's went fast and low. And the top pace a little
       // lower: "the speed boost is lowk too much", 1.36 times his average at Perfect, now 1.27)
       const sH = kind === 'flat' ? 0 : clamp((wingRpm - 2900) / 700, 0, 1);
-      v = wingKmh / 3.6 * lerp(0.92, 1.27, Q) * (kind === 'flat' ? 1.06 : 1) * (loopy ? 0.82 : 1) * (1 - 0.18 * clamp((0.5 - h) / 0.5, 0, 1)) * (1 - 0.12 * sH);
-      top = kind === 'flat' ? wingRpm * lerp(0.45, 0.6, Q) : Math.min(4500, wingRpm * lerp(1.0, 1.22, Q) * (1 + 0.32 * sH) * (loopy ? 1.15 : 1));
-      minClear = (loopy ? lerp(1.4, 1.0, Q) : lerp(1.0, 0.3, Q) + 0.9 * sH * lerp(1, 0.8, Q)) * (prof.arcS || 1);
+      v = wingKmh / 3.6 * lerp(0.92, 1.27, Qp) * (kind === 'flat' ? 1.06 : 1) * (loopy ? 0.82 : 1) * (1 - 0.18 * clamp((0.5 - h) / 0.5, 0, 1)) * (1 - 0.12 * sH);
+      top = kind === 'flat' ? wingRpm * lerp(0.45, 0.6, Qp) : Math.min(4500, wingRpm * lerp(1.0, 1.22, Qp) * (1 + 0.32 * sH) * (loopy ? 1.15 : 1));
+      minClear = (loopy ? lerp(1.4, 1.0, Qp) : lerp(1.0, 0.3, Qp) + 0.9 * sH * lerp(1, 0.8, Qp)) * (prof.arcS || 1);
       topMax = kind === 'flat' ? top * 1.25 : Math.max(top, Math.min(5000, top * 1.45)); }   /* (5000 rpm at most: as hard as Nadal ever spun one, he said) */   // (to keep a hard ball in, more spin before less pace)
     const p0 = { x: b.x, y: b.y, z: b.z };
     let sol = null;
@@ -1056,7 +1072,7 @@ export class Match {
     // a clean swing takes the level's share off the routine part of the spread only: off an easy ball it goes where it
     // was sent, while what makes a ball hard (pace, width, running, a stretch) is still all there
     const k = strike ? sig * this.diffScale[p.i] * (this.strikeK ? this.strikeK[p.i] : 1) * (it.sigma || 1) * lerp(1.15, 0.9, prof.cons) * (0.12 + 1.3 * Math.pow(1 - Q, 1.2)) * (1 + 0.5 * clamp(diff / 1.5, 0, 1))
-      : (st.auto ? sig * steady * (1 + diff) * this.press(p) : sig * (steady / clean) * (clean + diff)) * (1 - 0.4 * easyT) * (1 - 0.82 * pf * (1 - 0.5 * clamp(diff / 1.5, 0, 1)));   // (and nearer his aim; Perfect most of all, less so off a hard ball)
+      : (st.auto ? sig * steady * (1 + diff) * this.press(p) * (cpuS ? lerp(CPU_HIT.k0, CPU_HIT.k1, Q) : 1) : sig * (steady / clean) * (clean + diff)) * (1 - 0.4 * easyT) * (1 - 0.82 * pf * (1 - 0.5 * clamp(diff / 1.5, 0, 1)));   // (and nearer his aim; Perfect most of all, less so off a hard ball)
     // timing drags the ball: early pulls it across the body, late pushes it wide
     const pull = -clamp(tim, -0.11, 0.13) * TUNE.timPull * (relX >= 0 ? 1 : -1) * p.hs * p.sgn;
     let outEl = sol.el + rng.g() * TUNE.sigEl * k - clamp(tim, -0.1, 0.1) * TUNE.timEl;
@@ -1067,7 +1083,7 @@ export class Match {
     // the net come from -- a clean swing that is a few centimetres out on the strings.
     let mistimed = false;
     // (a person's mishits come from his timing: a ball he meets cleanly is seldom off the middle of the strings)
-    const misK = st.auto ? 1 : lerp(0.35, 1.25, clamp(timAbs / Math.max(0.01, win), 0, 1));
+    const misK = st.auto ? (cpuS ? lerp(CPU_HIT.m0, CPU_HIT.m1, Q) : 1) : lerp(0.35, 1.25, clamp(timAbs / Math.max(0.01, win), 0, 1));
     if (rng.u() < (TUNE.mis0 + TUNE.misD * diff) * steady * misK * (kind === 'slice' || kind === 'block' ? 0.6 : 1)) {
       mistimed = true; const u = rng.u();
       outV *= 1 - TUNE.misLoss * (0.35 + 0.65 * u); outEl -= TUNE.misDrop * u;
@@ -1098,7 +1114,7 @@ export class Match {
     if (D < 6.2) p.wentNet = true;
     this.contactInfo = { who: p.i, diff, wing, kind, weak, stretch, h, vin, timing: timRaw, power, shank, pf: st.perfect || 0 };
     this.incoming = this.makeIncoming();
-    b.threat = shotThreat(outV, sol.top, this.incoming.land, diff, kind); if (strike && b.threat > 0) b.threat = clamp(b.threat + 0.45 * Q * Q, 0, 1);   /* (a ball struck well is hard to send back: the other man's timing and footing suffer) */
+    b.threat = shotThreat(outV, sol.top, this.incoming.land, diff, kind); if ((strike || cpuS) && b.threat > 0) b.threat = clamp(b.threat + 0.45 * Q * Q, 0, 1);   /* (a ball struck well is hard to send back: the other man's timing and footing suffer) */
     const q = st.auto ? 1 : clamp(1 - timAbs / 0.10, 0, 1);
     this.emit('hit', { who: p.i, kind, wing, speed: outV, x: p0.x, y: p0.y, z: p0.z, q, timing: st.auto ? null : timRaw, window: win, power, diff, shank, volley, ret: wasServe, top: sol.top, vin, pf: st.auto ? null : (st.perfect || 0), press: st.auto ? null : (st.pressE ?? null) });
     if (this.online && p.i === 0) this.shotOut(p, kind, wing, outV, diff);

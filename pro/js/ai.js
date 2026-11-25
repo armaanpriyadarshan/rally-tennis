@@ -268,11 +268,30 @@ export class AI {
     const agg = pl.wing === 'fh' && prof.fhAgg != null ? prof.fhAgg : prof.agg;
     const T = (X, D, kind, power, ang) => ({ kind, power, tx: X * sgn, tz: D * sgn, ang: !!ang });
     let goNet = this.goNet;
+    const cpu = !this.eagerPre;   // (the computer; the player's own shots are chosen here too, by his game, without its reads)
+
+    // ---- a short ball, his to finish ----
+    // A ball that lands short and sits for him, at a height he can hit through, with time to set, is put away: flat and as hard as
+    // he hits, into the open court near the line (now and then behind the man as he runs for it), sharply angled when he is close in,
+    // and he follows it to the net. (He said "the bot rn mainly just gets points off my unforced errors instead of hitting winners or
+    // capitalizing on my poor shots": nine points in ten it won were his errors; off his short or slow balls its reply was a rally
+    // ball, a median 107-127 km/h - in close it took them as a net player's half-court drive at 0.6 of its pace - and a winner one
+    // time in fifty to one in ten.)
+    if (cpu && !pl.pre && !b.isServe && oD < -6.8 && cD < 10.4 && h > 0.62 && h < 1.75 && pl.slack > 0.06) {
+      pl.state = 'attack'; this.goNet = true; p.approach = true;
+      // (close in, sharply angled off; from about the service line as often as not short and wide across the court, so it bounces off
+      // the side of the court out of anyone's reach - sent deep into the corner from there, two in three came back)
+      const dir = r.u() < 0.82 ? open : -open, ang = cD < 7.2 || (Math.abs(cX) > 0.3 && r.u() < 0.45);
+      const X = ang ? -Math.sign(cX || -dir) * (HW - r.range(0.35, 0.75)) : dir * (HW - r.range(0.45, 0.95));
+      const t = T(X, ang ? -(cD < 7.2 ? r.range(4.6, 6.6) : r.range(5.4, 7.0)) : -(HL - r.range(1.0, 2.4)), h > 0.85 && !ang ? 'flat' : 'drive', 1, ang); t.kill = true; return t;
+    }
 
     // ---- at the net ----
     if (meAtNet) {
       pl.state = 'net';
       if (pl.pre && h > 1.95) return T(open * (HW - 1.5), -(HL - r.range(3.5, 5.5)), 'smash', 0.9);
+      // (a volley above the net with time on it is punched away, angled off into the open court; a low one is played deep)
+      if (cpu && pl.pre && h > 0.95 && pl.slack > 0.04) return T(open * (HW - r.range(0.55, 1.1)), -(HL - r.range(4.2, 7.2)), 'volley', 0.88);
       if (!this.noDrop && r.u() < 0.14 * prof.touch + (oD < -HL - 1 ? 0.12 : 0)) return T(open * (HW - 1.5), -r.range(1.6, 2.6), 'drop', 0.4);   // (not for a person: he plays one when he asks, ↓, "it shouldnt autodropshot")
       return T(open * (HW - r.range(1.1, 1.7)), -(HL - r.range(1.8, 4.0)), pl.pre ? 'volley' : 'drive', pl.pre ? 0.62 : 0.6);
     }
@@ -291,7 +310,7 @@ export class AI {
     }
     // the computer reads the court: a man pulled out wide or pushed deep is there to be beaten, and it goes for it
     // (the player's own shots come through here too, as his game chooses them, without these sharper reads)
-    const cpu = !this.eagerPre, oOut = Math.max(0, Math.abs(oX) - 1.3) + Math.max(0, -oD - (HL + 2.2)) * 0.6;
+    const oOut = Math.max(0, Math.abs(oX) - 1.3) + Math.max(0, -oD - (HL + 2.2)) * 0.6;
     let state = 'neutral';
     if (pl.slack < 0.03 || cD > 14.4 || h < 0.36) state = 'defend';
     else if (comfort > (cpu ? 0.32 : AIT.atkComfort) && (cD < AIT.atkDepth || (cpu && oOut > 0.7 && cD < 13.2) || (h > 0.8 && h < 1.7 && cD < 12.8 && r.u() < (h > 1.2 && cD < 12.2 ? 0.25 : 0) + (cpu ? 0.62 : AIT.atkRoll) + agg * 0.45 + Math.max(0, m.rally - 5) * 0.045))) state = 'attack';

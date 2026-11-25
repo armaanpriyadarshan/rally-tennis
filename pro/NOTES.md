@@ -1826,3 +1826,24 @@ still in the air, both in a stroke's finish, for two or three frames.
   whole body held in that frame's pose. The players' clock now runs on through the end sequence (game.js endFrame, m.tAfter, added in
   figure.js; m.t, the match's length on the stats card, is left as the last point ended it). Measured on ten finished matches: three
   had a man frozen (feet fixed under him, 0 cm of lift), none now (both men's feet lift 14 cm a step, all twenty).
+- The computer hits better and wins its own points (he said "the computer should have better hitting", then "the bot rn mainly just
+  gets points off my unforced errors instead of hitting winners or capitalizing on my poor shots"). Measured with the bot as Nadal at
+  Tour (tools/classicbot.mjs punish=1): nine points in ten the computer won were his errors; its rally ball went at its average pace,
+  aimed 2-3 m inside the baseline with its whole random spread, landing a median 3.5 m in; off his short or slow balls its reply was a
+  rally ball (107-127 km/h; run in close, a net player's half-court drive at 0.6 of its pace) and a winner 2-11% of the time.
+  - Its groundstrokes are struck as a person's are (sim.js CPU_HIT): a quality Q of its own - from its consistency (0.76-0.86) give or
+    take a tenth, less what the other man's ball did to its timing and what this one does to it, more off a ball that sits up - sets
+    the pace, the spin and how low it clears the net, through the same model as his; its plan holds a rally ball back (to 0.55 of Q)
+    and not a ball to finish the point; the better struck, the nearer the lines (as far as its plan goes for them, keeping 0.6 m off
+    the side line and 1.1 m off the baseline); the spread and the off-centre hits shrink with Q. A ball it can only block back stays a
+    block. His own shots are unchanged.
+  - A short ball that sits for it is put away (ai.js decide): flat, full pace, into the open court (now and then behind him), short
+    and wide across the court from about the service line or closer, as near the lines as his best-struck balls go, and it follows it
+    in; a high volley is punched away at an angle.
+  - Djokovic: rally balls landing deep 32% -> 52%, forehand 112 -> 136 km/h; his unforced errors 43% -> 22% of the points it won,
+    winners 11% -> 19%; off his poor balls a winner 4% -> 18%, and it won 64% -> 76% of the points that had one. Medvedev, Zverev,
+    Kyrgios: winning those points 52/50/44% -> 62/56/51%. The bot's points won at Tour: 41 -> 34 against Djokovic, 48 -> 43 Medvedev,
+    49 -> 46 Zverev, 54 -> 54 Kyrgios.
+  - CAL (data.js) measured again for the new play, three ladders averaged (classicbot has seed= now; one seed reruns identically).
+  - Still: the computer's serve is almost never an ace (1-3% of its service points, Kyrgios's real one about one in six) - his returner
+    reaches about 4.5 m across (0.2 s to react, 6.6 m/s, 2.2 m reach); aiming its first serves at the lines changed nothing.

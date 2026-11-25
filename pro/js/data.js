@@ -284,8 +284,11 @@ export const levelOf = id => { const P = PLAYERS[id]; return P ? LEVEL[P.facts.n
 // Murray against each man at Miami, at the Tour level, 300 points each, with no correction; the points the bot won against what his
 // level says - 1.3 points in a hundred for every point of level - three quarters of the difference corrected, at about 1.2 points of
 // the bot's wins a level point, at most six either way: a big server is hard to break whatever his level, and that is his). Measured
-// again whenever the levels change (on 2026-11-24, when they came to be worked out from careers). /tmp/rally-work/tour/ladder.sh.
-const CAL = { Sampras: 1.5, Federer: 4.5, Sinner: -3.4, Agassi: -1, Nadal: 3.8, Alcaraz: 3.5, Djokovic: -1.8, McEnroe: 6, Wawrinka: -1, Laver: 6, Zverev: -6, Borg: 6, Connors: 6, Lendl: -1.8, Tsitsipas: -4.7, Thiem: 0.9, Roddick: -6, Kyrgios: -6, Monfils: -5.5, Medvedev: -6, "del Potro": -6, Ivanisevic: -6, Hewitt: 3.5, Edberg: 2.6, Kuerten: 2.3, Becker: 2, Wilander: 6 };
+// again whenever the levels or the way the computer plays change (on 2026-11-24, when they came to be worked out from careers; on
+// 2026-11-25, when the computer's groundstrokes came to be struck as a person's are and it came to put short balls away, sim.js
+// CPU_HIT and ai.js decide: three ladders of 300 points
+// each, seed=5, 11 and 23, averaged; one alone is good to about two points of level either way). /tmp/rally-work/tour/ladder.sh.
+const CAL = { Sampras: 4.8, Federer: 3.5, Sinner: -0.9, Agassi: 0.5, Nadal: 3.8, Alcaraz: 2.8, Djokovic: 2, McEnroe: 6, Wawrinka: 1.3, Laver: 6, Zverev: -5, Borg: 0.7, Connors: 6, Lendl: -1.4, Tsitsipas: -4.7, Thiem: -2.2, Roddick: -5.2, Kyrgios: -6, Monfils: -6, Medvedev: -6, "del Potro": -6, Ivanisevic: 0.3, Hewitt: 0.4, Edberg: 3.7, Kuerten: -2.3, Becker: 5.1, Wilander: -1.5 };
 export const courtLevelOf = id => levelOf(id) + ((PLAYERS[id] && CAL[PLAYERS[id].facts.name]) || 0);
 // His ratings for the menus, as a football game shows them (he said "attributes n stuff should be visible on a player in the menu like
 // fifa style"): overall is his level; the six from his real numbers, each against the other 27 men (a standard deviation is nine
