@@ -1847,3 +1847,15 @@ still in the air, both in a stroke's finish, for two or three frames.
   - CAL (data.js) measured again for the new play, three ladders averaged (classicbot has seed= now; one seed reruns identically).
   - Still: the computer's serve is almost never an ace (1-3% of its service points, Kyrgios's real one about one in six) - his returner
     reaches about 4.5 m across (0.2 s to react, 6.6 m/s, 2.2 m reach); aiming its first serves at the lines changed nothing.
+- A fast ball wide of a man goes by (asked whether stretched misses should become winners and aces, cutting how far he can reach on
+  fast wide balls, both sides, he said "yeah do it"). The reach to the side is a full lunge, 2.2 m, against a ball he has time for, and
+  less against a fast one (sim.js reachFor): in a rally down to three quarters of it from 90 to 160 km/h off the racket, against a serve
+  by 13% from 150 to 210 (a quarter there too and aces came on a quarter of the points). The footwork's plan, the swing's reach check
+  and the contact all use it. His swing is not started at a ball the footwork's plan puts 0.8 m beyond his lunge that his speed and the
+  time left do not get him to either (human.js; at the lunge itself balls that came by within reach went unswung).
+  - The bot as Nadal against Djokovic, Medvedev, Zverev and Kyrgios, two seeds, 4000 points: of the points the computer won, winners
+    and aces 9% this morning -> 12% after the change above -> 22%; his unforced errors 41% -> 33% -> 29%; it won 51% -> 59% -> 62% of
+    the points with a poor ball of his; its aces 1% -> 7% of its service points (Zverev 10%, Kyrgios 7%, Djokovic 6%), his 10% -> 18%
+    (the bot strikes nearly every serve Perfect); the bot's points won 49% -> 44% -> 45%. His swings at air 20 -> 37 in 500 points -
+    lunges at a fast ball just out of reach.
+  - CAL measured again (three ladders).

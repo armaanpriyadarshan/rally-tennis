@@ -35,6 +35,15 @@ export const TIMING = { prep: 0.90, swing: 0.15, follow: 0.42, recover: 0.38, se
 
 // Reach, metres from the body centre.
 export const REACH = { ideal: 0.72, comfy: 1.15, max: 2.2, front: 1.25, back: 0.5, lo: 0.08, hi: 2.75, jump: 3.05 };
+// How far to the side of him he can still get the racket on a ball: a full lunge, 2.2 m from the middle of a 1.85 m man, against a ball
+// he has time for; against a fast one less - he cannot get set to stretch that far: in a rally down by REACH_FAST.rally from 90 km/h
+// off the racket to 160, a serve by REACH_FAST.serve from 150 to 210 (a returner is set and waiting for it; at the rally's share, aces
+// came on a quarter of the points). (Asked whether fast wide balls a player could only just get a racket on should go by, a winner or an ace, instead of coming back
+// as a stretched miss, he said "yeah do it": at the full reach whatever the pace, a returner covered about 4.5 m across and the
+// computer's serve was an ace on 1-3% of its points, and nine in ten of the points it won were his misses, most of them at full
+// stretch.) The same for both men, in the footwork's plan (ai.js), the swing's reach check below and the contact.
+export const REACH_FAST = { rally: 0.25, serve: 0.13 };
+export const reachFor = (prof, kmh, serve) => REACH.max * ((prof && prof.height || 1.85) / 1.85) * (1 - (serve ? REACH_FAST.serve * clamp(((kmh || 0) - 150) / 60, 0, 1) : REACH_FAST.rally * clamp(((kmh || 0) - 90) / 70, 0, 1)));
 
 // Everything the calibration harness is allowed to turn. Angles in radians.
 // the Perfect press, against the moment just before the ball reaches the racket (s): how early, how late (see resolveStroke)
@@ -532,7 +541,7 @@ export class Match {
             // a third were balls 1.25 m in front, a third out to the side, the rest a metre to thirteen behind him)
             const b = this.ball;
             if (st.auto && !this.online && b.live && b.lastHit !== p.i && b.bounces < 2) {
-              const relZ = (p.z - b.z) * p.sgn, lat = Math.abs(b.x - p.x), reachM = REACH.max * ((p.prof && p.prof.height || 1.85) / 1.85);
+              const relZ = (p.z - b.z) * p.sgn, lat = Math.abs(b.x - p.x), reachM = reachFor(p.prof, (b.lastSpeed || 0) * 3.6, b.isServe);
               const front = relZ > REACH.front - 0.05, wide = lat > reachM * 0.95 && relZ > -0.3;
               if ((front || wide) && (st.wait || 0) < 0.8) { st.tc = this.t + STEP; st.wait = (st.wait || 0) + STEP; st.waiting = true; continue; }
               if (front || wide || relZ < -(REACH.back + 0.6)) { st.done = true; st.tEnd = this.t; st.waiting = false; p.stroke = null; continue; }
@@ -857,7 +866,7 @@ export class Match {
     const relZ = (p.z - b.z) * p.sgn;                         // + in front of the body
     const lat = Math.abs(relX), h = b.y;
     const hiMax = b.bounces === 0 ? REACH.jump : REACH.hi;
-    const reachMax = REACH.max * (prof.height / 1.85);
+    const reachMax = reachFor(prof, (b.lastSpeed || 0) * 3.6, b.isServe);
     const mer = st.merciful ? (this.mercy ? this.mercy[p.i] : 1) : 0;   // classic controls: a wider reach, most of all behind him (less of it on the harder levels)
     // (a late press with the first game's controls still meets a ball that has come through past him by up to two metres, at every
     // level: at Tour's 1.24 m, pressed as the ball reached him he swung at air one ball in six - "the assist keeps setting up to miss

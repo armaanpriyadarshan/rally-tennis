@@ -286,9 +286,9 @@ export const levelOf = id => { const P = PLAYERS[id]; return P ? LEVEL[P.facts.n
 // the bot's wins a level point, at most six either way: a big server is hard to break whatever his level, and that is his). Measured
 // again whenever the levels or the way the computer plays change (on 2026-11-24, when they came to be worked out from careers; on
 // 2026-11-25, when the computer's groundstrokes came to be struck as a person's are and it came to put short balls away, sim.js
-// CPU_HIT and ai.js decide: three ladders of 300 points
+// CPU_HIT and ai.js decide, and again for the shorter reach against a fast ball, sim.js reachFor: three ladders of 300 points
 // each, seed=5, 11 and 23, averaged; one alone is good to about two points of level either way). /tmp/rally-work/tour/ladder.sh.
-const CAL = { Sampras: 4.8, Federer: 3.5, Sinner: -0.9, Agassi: 0.5, Nadal: 3.8, Alcaraz: 2.8, Djokovic: 2, McEnroe: 6, Wawrinka: 1.3, Laver: 6, Zverev: -5, Borg: 0.7, Connors: 6, Lendl: -1.4, Tsitsipas: -4.7, Thiem: -2.2, Roddick: -5.2, Kyrgios: -6, Monfils: -6, Medvedev: -6, "del Potro": -6, Ivanisevic: 0.3, Hewitt: 0.4, Edberg: 3.7, Kuerten: -2.3, Becker: 5.1, Wilander: -1.5 };
+const CAL = { Sampras: 4.7, Federer: 4.8, Sinner: -1.1, Agassi: -1.1, Nadal: 0.8, Alcaraz: 3.1, Djokovic: 1.6, McEnroe: 6, Wawrinka: 0.7, Laver: 6, Zverev: -5.4, Borg: 0.8, Connors: 4.5, Lendl: -0.5, Tsitsipas: -5.2, Thiem: -0.1, Roddick: -5.3, Kyrgios: -6, Monfils: -6, Medvedev: -6, "del Potro": -4.5, Ivanisevic: -0.5, Hewitt: 1.9, Edberg: 2.3, Kuerten: -1.2, Becker: 3.9, Wilander: 1.8 };
 export const courtLevelOf = id => levelOf(id) + ((PLAYERS[id] && CAL[PLAYERS[id].facts.name]) || 0);
 // His ratings for the menus, as a football game shows them (he said "attributes n stuff should be visible on a player in the menu like
 // fifa style"): overall is his level; the six from his real numbers, each against the other 27 men (a standard deviation is nine

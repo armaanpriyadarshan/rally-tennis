@@ -2,7 +2,7 @@
 // that reads a player's mouse and keys can be driven by a test bot outside the browser.
 import { AI } from './ai.js';
 import { COURT, lerp } from './physics.js';
-import { TIMING, REACH } from './sim.js';
+import { TIMING, REACH, reachFor } from './sim.js';
 
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 
@@ -25,13 +25,13 @@ export function reachOf(m, p) {
   // (a ball whose path never comes near his line, wide of him or already by him: judged by its nearest approach from here on)
   if (bt == null || best > 3.0) { let nd = 1e9, nt = null, nx = null; for (let q = 0; q + 3 < path.length; q += 4) { const tt = inc.t0 + path[q + 3]; if (tt < m.t) continue; const d = Math.hypot(path[q] - p.x, path[q + 2] - p.z); if (d < nd) { nd = d; nt = tt; nx = path[q]; } }
     if (nt == null) return { ok: false, gap: 1e9, left: 0, side: 'fh', relX: 0 };
-    const left = Math.max(0, nt - m.t), run = p.prof.speed * 1.0 * Math.max(0, left - 0.1), reach = REACH.max * 1.12 * (p.prof.height / 1.85) + 1.4, relX = (nx - p.x) * s * p.hs;
-    return { ok: nd - run <= reach, gap: nd, left, side: relX >= -0.05 ? 'fh' : 'bh', relX }; }
+    const left = Math.max(0, nt - m.t), run = p.prof.speed * 1.0 * Math.max(0, left - 0.1), rf = reachFor(p.prof, (m.ball.lastSpeed || 0) * 3.6, m.ball.isServe) * 1.12, reach = rf + 1.4, relX = (nx - p.x) * s * p.hs;
+    return { ok: nd - run <= reach, near: nd - run <= rf, gap: nd, left, side: relX >= -0.05 ? 'fh' : 'bh', relX }; }
   const left = Math.max(0, bt - m.t), relX = (bx - p.x) * s * p.hs, gap = Math.abs(bx - p.x), run = p.prof.speed * 1.0 * Math.max(0, left - 0.1);
   // (generous: his controls reach further than this, most of all behind him, and the game's legs take him there faster than a sum of
   // speed and time; only a ball clearly beyond him is refused - judged strictly, a third of the returns he made went unswung)
-  const reach = REACH.max * 1.12 * (p.prof.height / 1.85) + 1.4;
-  return { ok: gap - run <= reach, gap, left, side: relX >= -0.05 ? 'fh' : 'bh', relX };
+  const rf = reachFor(p.prof, (m.ball.lastSpeed || 0) * 3.6, m.ball.isServe) * 1.12, reach = rf + 1.4;
+  return { ok: gap - run <= reach, near: gap - run <= rf, gap, left, side: relX >= -0.05 ? 'fh' : 'bh', relX };
 }
 export class Human {
   constructor(game) {
@@ -137,7 +137,11 @@ export class Human {
     // ---- timing read-out: seconds until the ideal moment to let go ----
     this.tau = null;
     // (can he get to it at all: see reachOf)
-    this.rch = ph !== 'live' ? null : reachOf(m, p); this.outOfReach = !!(this.rch && !this.rch.ok);
+    // (and not a ball the footwork's own plan, made the moment it was struck as if he set off at once, puts well beyond his lunge: with the
+    // reach shorter against a fast ball, the generous measure above still had him swing at air at twice as many of them; judged at the
+    // lunge itself, balls that came by within his reach went unswung; so only where his speed and the time left, without the margin
+    // above, do not get him there either)
+    this.rch = ph !== 'live' ? null : reachOf(m, p); this.outOfReach = !!(this.rch && !this.rch.ok) || !!(ph === 'live' && plan && !plan.leave && plan.hit === false && plan.short > plan.lunge + 0.8 && !(this.rch && this.rch.near) && m.ball.lastHit !== i);
     // with the game's legs bringing him to the ball, the ball arrives when the plan says it will meet him
     // (only while his legs can still get him to that spot in the time left; otherwise the ball is met where he is)
     // (or wherever the game's own plan says the ball can be reached, at a stretch: judged only by four-fifths of his speed, a drop

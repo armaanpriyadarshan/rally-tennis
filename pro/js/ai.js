@@ -3,7 +3,7 @@
 // both players are standing. Nothing here is told the outcome: errors come from the
 // engine's execution model, so a stretched AI misses for the same reason a human does.
 import { COURT, clamp, lerp, netHeightAt, inCourt, inServiceBox, BALL } from './physics.js';
-import { TIMING, REACH, serveTarget, WALK_K } from './sim.js';
+import { TIMING, REACH, reachFor, serveTarget, WALK_K } from './sim.js';
 
 // Tactical dials. Margins are metres inside the lines; the first of each pair is a cautious
 // player, the second an all-out attacker.
@@ -182,7 +182,7 @@ export class AI {
     const v0 = Math.min(vmax, Math.hypot(p.vx, p.vz) * 0.5 + (p.burstOK ? 2.0 : 0));
     const tTop = (vmax - v0) / a, dTop = v0 * tTop + 0.5 * a * tTop * tTop;
     const cover = t => t <= 0 ? 0 : t < tTop ? v0 * t + 0.5 * a * t * t : dTop + (t - tTop) * vmax;
-    const lunge = REACH.max * (prof.height / 1.85) - REACH.ideal - 0.12;
+    const lunge = reachFor(prof, (b.lastSpeed || 0) * 3.6, b.isServe) - REACH.ideal - 0.12;
     const landT = land ? inc.t0 + land.t : -1;
     // a person's legs (the footwork the game does for him) take a ball out of the air whenever he is inside
     // the court and it comes at a height to volley, as the first game did; the computer volleys by its plan
@@ -247,7 +247,7 @@ export class AI {
       if (c < bestC) { bestC = c; best = { tc: ts, cp: { x: bx, y: by, z: bz }, wing, S: { x: sx, z: sz }, slack, short, pre, vy, dist }; }
     }
     if (!best) return { leave: true };
-    best.hit = best.short < lunge;
+    best.hit = best.short < lunge; best.lunge = lunge;
     return best;
   }
 
