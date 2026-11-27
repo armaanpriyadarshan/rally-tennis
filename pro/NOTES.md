@@ -1915,3 +1915,7 @@ still in the air, both in a stroke's finish, for two or three frames.
     computer's reads, the times it was wrong-footed and its pattern points won.
   - tools/classicbot.mjs: mind=1 prints each mind; the bot now has habits like a person (habit=0 for the old random aim), since a
     computer that guesses from habits had none to read.
+- Each player's own grunt was tried and dropped (he said "the grunts are all terrible too just drop them"): measured from Tennis TV
+  court-level highlights (rate, pitch, length; the older men's broadcasts were commentary and they were described instead) and
+  rebuilt from CC0/CC BY grunt recordings pitched and stretched to each man. The game keeps its one grunt (audio/grunt.mp3) as before.
+  The downloaded audio is deleted; the measurements are kept at ~/.cache/rally-research/grunt_measures.json.
