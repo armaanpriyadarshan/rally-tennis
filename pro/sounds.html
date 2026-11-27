@@ -1,0 +1,33 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Rally Pro — sounds</title>
+<style>
+  body { background: #0b1220; color: #e8eefc; font: 14px/1.4 system-ui, sans-serif; margin: 24px; }
+  h1 { font-size: 20px; margin: 0 0 4px; } h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: #9fb3d9; margin: 22px 0 8px; }
+  .row { display: flex; flex-wrap: wrap; gap: 6px; } button { background: #16223a; color: #e8eefc; border: 1px solid #2b3d63; border-radius: 6px; padding: 6px 10px; cursor: pointer; font: inherit; }
+  button:hover { background: #22345a; } button.all { background: #1d4ed8; border-color: #1d4ed8; } button.on { background: #e4ff3a; color: #0b1220; }
+  small { color: #7f93b8; }
+</style></head><body>
+<h1>Rally Pro — every sound</h1><small>Click anything. Recorded effects (CC0, sources in audio/pro/SOURCES.md). The crowd is unchanged.</small>
+<div id="ui"></div>
+<script type="module">
+const ac = new AudioContext(), master = ac.createGain(); master.gain.value = 0.9; master.connect(ac.destination);
+const load = async n => { const [idx, buf] = await Promise.all([fetch(`../audio/pro/${n}.json`).then(r => r.json()), fetch(`../audio/pro/${n}.ogg`).then(r => r.arrayBuffer()).then(a => ac.decodeAudioData(a))]); return { idx, buf }; };
+const S = await load('sfx'), C = null;
+const play = (P, name, k, gain = 1, rate = 1, when = 0) => { const [a, d] = P.idx[name][k], s = ac.createBufferSource(), g = ac.createGain(); s.buffer = P.buf; s.playbackRate.value = rate; g.gain.value = gain; s.connect(g); g.connect(master); s.start(ac.currentTime + when, a, d / rate); return d / rate; };
+const LABEL = { hit: 'Racket — drive', serve: 'Racket — serve', slice: 'Racket — slice / volley', bounce: 'Bounce — hard court', bounce_grass: 'Bounce — grass', bounce_clay: 'Bounce — clay', net: 'Net', squeak: 'Shoe squeak (hard court)',
+  ooh: 'Crowd — ooh / aah', gasp: 'Crowd — gasp', applause: 'Crowd — applause', cheer: 'Crowd — cheer / roar', bed: 'Crowd — stadium bed (loops under play)', murmur: 'Crowd — murmur between points' };
+const ui = document.getElementById('ui');
+const section = (P, name) => { const n = P.idx[name].length, h = document.createElement('h2'); h.textContent = `${LABEL[name] || name} · ${n}`; ui.appendChild(h);
+  const row = document.createElement('div'); row.className = 'row'; ui.appendChild(row);
+  const all = document.createElement('button'); all.className = 'all'; all.textContent = 'Play all'; row.appendChild(all);
+  all.onclick = () => { ac.resume(); let t = 0; for (let k = 0; k < n; k++) t += play(P, name, k, 1, 1, t) + (P === S ? 0.35 : 0.4); };
+  for (let k = 0; k < n; k++) { const b = document.createElement('button'); b.textContent = k + 1; b.onclick = () => { ac.resume(); play(P, name, k); }; row.appendChild(b); } };
+// a short rally on each surface: serve, its bounce, the return, its bounce, a drive, its bounce
+const rallyRow = () => { const h = document.createElement('h2'); h.textContent = 'In sequence — a short rally'; ui.appendChild(h); const row = document.createElement('div'); row.className = 'row'; ui.appendChild(row);
+  for (const [lab, bn] of [['Hard court', 'bounce'], ['Grass', 'bounce_grass'], ['Clay', 'bounce_clay']]) { const b = document.createElement('button'); b.textContent = lab; row.appendChild(b);
+    b.onclick = () => { ac.resume(); const r = k => Math.floor(Math.random() * S.idx[k].length); let t = 0; const seq = [['serve', 0.55], [bn, 0.45, 0.6], ['hit', 0.95], [bn, 0.55, 0.7], ['hit', 0.9], [bn, 0.6, 0.6], ['slice', 1.0], [bn, 0.5, 0.5], ['hit', 1.2], ['net', 1.4]];
+      for (const [k, gap, g] of seq) { play(S, k, r(k), g || 1, 0.97 + Math.random() * 0.06, t); t += gap; }
+      }; } };
+rallyRow();
+for (const k of Object.keys(S.idx)) section(S, k);
+</script></body></html>

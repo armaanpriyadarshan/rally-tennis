@@ -9,6 +9,7 @@ export class Audio {
     this.ctx = null; this.on = true; this.vol = 0.8; this.voiceOn = true;
     this.buf = {}; this.amb = null; this.hush = 1; this.cheer = 0;
     this.ft = []; this.queue = []; this.lead = {};
+    this.spr = null; this.sprLast = {};
   }
   // Browsers only start audio from a user gesture.
   unlock() {
@@ -21,7 +22,24 @@ export class Audio {
     // a short bright room for the hits, so they sit in a stadium rather than a studio
     this.rev = c.createConvolver(); this.rev.buffer = this.impulse(1.6, 2.4); const rg = c.createGain(); rg.gain.value = 0.22; this.rev.connect(rg); rg.connect(this.master);
     this.noise = this.noiseBuf(2);
+    this.loadSprite();
     for (const [k, f] of [['hit', 'hit.mp3'], ['grunt', 'grunt.mp3'], ['crowd', 'crowd.ogg']]) fetch(new URL('../../audio/' + f, import.meta.url)).then(r => r.ok ? r.arrayBuffer() : Promise.reject()).then(a => c.decodeAudioData(a)).then(b => { this.buf[k] = b; this.lead[k] = k === 'crowd' ? 0 : this.onset(b); if (k === 'crowd' && this.wantAmb) this.startAmbience(); }).catch(() => {});
+  }
+  // The recorded effects (he asked for real sounds, "players' actual sfx and other sfx"): one file of short recordings - racket
+  // hits, serves and slices, bounces on a hard court, grass and clay, the net - and an index of where each is. All CC0; sources in
+  // audio/pro/SOURCES.md. Until it has loaded, the synthesised sounds below stand in. (Shoe squeaks were tried and left out - "i dont
+  // like the shoe squeaks i dont want those" - and so was a recorded crowd: "honestly just dont change the crowd from the previous iter".)
+  loadSprite() {
+    const c = this.ctx, base = new URL('../../audio/pro/', import.meta.url);
+    Promise.all([fetch(new URL('sfx.json', base)).then(r => r.json()), fetch(new URL('sfx.ogg', base)).then(r => r.arrayBuffer()).then(a => c.decodeAudioData(a))])
+      .then(([idx, buf]) => { this.spr = { idx, buf }; }).catch(() => { /* the synthesised sounds stay */ });
+  }
+  // one of a sound's recordings (not the one played last), at a gain and a playback rate
+  sfx(name, dest, gain, rate) {
+    const S = this.spr, L = S && S.idx[name]; if (!L || !L.length) return false;
+    let k = Math.floor(Math.random() * L.length); if (L.length > 1 && k === this.sprLast[name]) k = (k + 1) % L.length; this.sprLast[name] = k;
+    const c = this.ctx, s = c.createBufferSource(), g = c.createGain(); s.buffer = S.buf; s.playbackRate.value = rate || 1; g.gain.value = gain;
+    s.connect(g); g.connect(dest); s.start(0, L[k][0], L[k][1] / (rate || 1)); return true;
   }
   // Recordings begin with silence (the hit's is over a quarter of a second): find where the
   // sound itself starts, so it can be played from there and land on the moment it belongs to.
@@ -59,6 +77,10 @@ export class Audio {
     if (!this.ctx) return; const t = this.ctx.currentTime, v = clamp(e.speed / 55, 0.15, 1.1), o = this.out(e.x, e.z, 1);
     const serve = e.kind === 'serve', slice = e.kind === 'slice' || e.kind === 'drop' || e.kind === 'volley' || e.kind === 'block';
     if (e.shank) { this.burst(o, t, 0.05, 2600, 3, 0.4 * v, 'bandpass'); this.tone(o, t, 0.08, 900, 500, 0.12); return; }
+    // the recorded strike: a serve, a slice (volleys and blocks too) or a drive, louder and a touch brighter the harder it is struck
+    if (this.spr && this.sfx(serve ? 'serve' : slice ? 'slice' : 'hit', o, (serve ? 0.95 : 0.85) * Math.pow(v, 1.15), (0.95 + 0.1 * Math.min(1, v)) * (e.kind === 'volley' ? 1.06 : 1) * (0.97 + Math.random() * 0.06))) {
+      if (serve || v > 0.72) this.tone(o, t, 0.11, 190, 90, 0.12 * v);   // (and the thump of a big one under it)
+    } else {
     // strings: a tight "pock" whose pitch and length follow how hard and how flat it was struck
     const body = serve ? 620 : slice ? 880 : 720 - (e.top || 0) * 0.02;
     this.tone(o, t, serve ? 0.075 : 0.055, body * 1.9, body * 0.72, (slice ? 0.7 : 0.42) * v, 'triangle');
@@ -66,12 +88,16 @@ export class Audio {
     this.burst(o, t, 0.02, 6500, 0.7, 0.22 * v, 'highpass');
     if (serve || v > 0.72) this.tone(o, t, 0.11, 190, 90, 0.2 * v);                   // the thump of a big one
     this.sample('hit', o, 0.28 * v, 0.9 + v * 0.3 + (slice ? 0.25 : 0));
+    }
     // effort: the harder and more stretched, the more voice
     const eff = (e.power || 0.5) * 0.6 + (e.diff || 0) * 0.2 + (serve ? 0.3 : 0);
     if (eff > 0.62 && Math.random() < 0.8) this.sample('grunt', this.out(e.x, e.z, 1), clamp(eff * 0.5, 0.15, 0.6), e.who === 0 ? 1.0 : 0.9 + Math.random() * 0.12);
   }
   bounce(e, surface) {
     if (!this.ctx || (e.dead && e.speed < 3)) return; const t = this.ctx.currentTime, v = clamp(e.vy / 9, 0.1, 1) * (e.dead ? 0.5 : 1), o = this.out(e.x, e.z, 1);
+    if (this.spr && this.sfx(surface === 'clay' ? 'bounce_clay' : surface === 'grass' ? 'bounce_grass' : 'bounce', o, 0.75 * Math.pow(v, 1.2), 0.95 + 0.08 * v + Math.random() * 0.04)) {
+      if (e.line && surface === 'clay') this.burst(o, t, 0.03, 4200, 2, 0.2 * v);   // (the chalk)
+      return; }
     if (surface === 'clay') { this.burst(o, t, 0.07, 900, 0.8, 0.85 * v, 'lowpass', 0.5); this.tone(o, t, 0.05, 210, 120, 0.5 * v); }
     else if (surface === 'grass') { this.tone(o, t, 0.06, 170, 90, 0.75 * v); this.burst(o, t, 0.04, 700, 0.8, 0.4 * v, 'lowpass'); }
     else { this.tone(o, t, 0.045, 420, 210, 0.8 * v, 'triangle'); this.burst(o, t, 0.03, 1800, 1.2, 0.7 * v); }
@@ -79,6 +105,7 @@ export class Audio {
   }
   net(e, cord) {
     if (!this.ctx) return; const t = this.ctx.currentTime, v = clamp(e.speed / 40, 0.2, 1), o = this.out(e.x, 0, 1);
+    if (this.spr && this.sfx('net', o, (cord ? 0.3 : 0.6) * v, cord ? 1.25 : 0.95 + Math.random() * 0.08)) { if (cord) this.tone(o, t, 0.05, 1500, 900, 0.15 * v, 'triangle'); return; }
     if (cord) { this.tone(o, t, 0.05, 1500, 900, 0.25 * v, 'triangle'); this.burst(o, t, 0.05, 3000, 2, 0.2 * v); }
     else { this.burst(o, t, 0.16, 500, 0.6, 1.5 * v, 'lowpass', 0.4); this.tone(o, t, 0.09, 130, 70, 0.8 * v); }
   }

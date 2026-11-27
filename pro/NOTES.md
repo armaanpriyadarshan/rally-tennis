@@ -1871,3 +1871,18 @@ still in the air, both in a stroke's finish, for two or three frames.
   shoulder. Checked in the pose lab from the side and in front. (Tried and not used: slow replays of Miami 2002 in Burns Tennis
   eWihCsMCCAk - the running forehand finishes over the right shoulder and the others lost the tracker at a zoom.) track.py has a
   --cutd option now for a replay's zoom.
+- Recorded sounds for the racket and the ball (he asked "can you get players' actual sfx and other sfx from youtube?"; broadcast audio
+  can't be shipped, so freely licensed recordings were used): `audio/pro/sfx.ogg` + `sfx.json`, 43 short recordings cut from ten CC0
+  Freesound recordings (sources in `audio/pro/SOURCES.md`) - nine drives, three serves, four slices (volleys and blocks too), ten
+  hard-court bounces, six on grass, eight on clay (the hard and grass bounces made duller, with grit), three net strikes. Chosen
+  without listening, by measurement: each recording cut at its transients, kept only where clean (30 dB and more above its noise,
+  nothing else within its length, not clipped), each looked at as a spectrogram (a racket hit's broadband strike and ring, a bounce's
+  short thud) and the doubtful ones dropped (a ball bounced on the strings, a noisy two-man rally, a serve with a second click);
+  aligned on the strike, high-passed, faded, levelled within each sound. js/audio.js plays one at random (never the same twice
+  running), louder and a touch brighter with pace, placed on the court as before; the synthesised sounds stand in until it loads and
+  the frame shank, the feet and the clay slide stay synthesised. Measured in a recorded match against the live site's: rally hits
+  +3 dB, bounces +2.6, serves +8, the net (turned down) about level. `pro/sounds.html` plays every one.
+  - Tried and taken out at his word: shoe squeaks ("i dont like the shoe squeaks i dont want those"), a recorded crowd - oohs, aahs,
+    gasps, a murmur, cheers and roars, applause swelling with the moment, a stadium bed ("the ooh/aah and gasp are all terrible",
+    "same with murmur between points", "same with cheer and roar", "the crowd is cheering into points bruh", "honestly just dont
+    change the crowd from the previous iter"). The crowd is as it was.
