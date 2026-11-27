@@ -1886,3 +1886,32 @@ still in the air, both in a stroke's finish, for two or three frames.
     gasps, a murmur, cheers and roars, applause swelling with the moment, a stadium bed ("the ooh/aah and gasp are all terrible",
     "same with murmur between points", "same with cheer and roar", "the crowd is cheering into points bruh", "honestly just dont
     change the crowd from the previous iter"). The crowd is as it was.
+- The computer plays like a person (he asked "is there anyway to make the computer feel more human?", then "can we do all of those?",
+  "fatigue into a rally would be good too" and "it should be clear in-game how these factors are working too"). js/mind.js: a Mind for
+  each player, owned by the Match so the test bots play with it too.
+  - Fatigue, both men: a rally's own (running, by the share of top speed squared; each shot, more after the sixth) that mostly goes
+    between points, and the match's (a share of every rally, each point, each set) that does not. Slower to the ball and off the
+    mark, later to react, wider, a little less pace. A rally of 15 shots or more ends at about 0.7 of a man's energy; a long match
+    wears it to about 0.85. Each man's stamina (STAMINA, an estimate from his record in long matches) scales it.
+  - Momentum, the computer: each point moves it, a big one more; a run of three lost rattles him for a few points (wider), a run won
+    loosens him. Nerves, the computer: break point against, serving for a set or the match, a late tiebreak tighten a man who is not
+    clutch (STYLE clutch) and steady one who is (this replaces press()).
+  - Scouting, the computer: the other man's shots and misses by wing, height and on the run (against a prior, so a few points say
+    little); it plays to his weaker wing, high balls if he misses those, moves him if he misses on the run.
+  - The read, the computer: where the other man sends the ball from each wing, from out on one side (crosscourt, down the line,
+    middle); as he shapes to hit it backs the likelier way and leans half a metre or so toward it - the better a reader its man
+    (READ, an estimate) the more. Guessed right it is there early; wrong, it is wrong-footed. Against a bot that goes crosscourt 55%
+    of the time from out wide it guesses right about half the time; against a man with stronger habits, more.
+  - Tactics, the computer: losing two points in three over a dozen, it changes its game (comes forward if it can volley, more margin,
+    more pressure), and goes back once it is winning again.
+  - Patterns, the computer: each point it may play one of its man's own (PATTERNS: serve +1, serve and volley, the inside-out forehand,
+    backhand crosscourt until a short ball, heavy to the backhand, the drop shot, approach and volley).
+  - Misjudgements, the computer: a late split step now and then (more tired or tight), a ball let go that lands a hand's breadth inside
+    the line, the odd shot gone for from nowhere when defending.
+  - On the picture (app.js insightsFrame, index.html #ins): each man's energy as a thin bar under his name (green, yellow, red); a tag by
+    the computer's name - Tight, Tired, On a roll; and a chip above the score: Read it / Wrong-footed as his ball lands, and between
+    points the most telling thing the computer has made of the match - a pattern that won ("Serve +1 · 3 of 4 won"), a change of
+    tactics, "Targeting your backhand · you have missed 7 of 12 there", "Misjudged", "Rattled". The stats panel has energy left, the
+    computer's reads, the times it was wrong-footed and its pattern points won.
+  - tools/classicbot.mjs: mind=1 prints each mind; the bot now has habits like a person (habit=0 for the old random aim), since a
+    computer that guesses from habits had none to read.

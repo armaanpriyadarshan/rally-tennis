@@ -4,6 +4,7 @@
 // engine's execution model, so a stretched AI misses for the same reason a human does.
 import { COURT, clamp, lerp, netHeightAt, inCourt, inServiceBox, BALL } from './physics.js';
 import { TIMING, REACH, reachFor, serveTarget, WALK_K } from './sim.js';
+import { TACTIC } from './mind.js';
 
 // Tactical dials. Margins are metres inside the lines; the first of each pair is a cautious
 // player, the second an all-out attacker.
@@ -77,7 +78,7 @@ export class AI {
     // was aimed at the middle of the box, and went past him half a metre wide - "the computer cant hit body shots")
     if (spot === 'body') { const R = m.players[1 - i], zl = tg.z, k = (zl - p.z) / ((R.z - p.z) || 1), bx = p.x + (R.x - p.x) * k + (r.u() - 0.5) * 0.3;
       const sideX = (deuce ? -1 : 1) * p.sgn, lo = Math.min(sideX * 0.35, sideX * (COURT.halfW - 0.35)), hi = Math.max(sideX * 0.35, sideX * (COURT.halfW - 0.35)); tg.x = clamp(bx, lo, hi); }
-    this.goNet = r.u() < prof.sv * (first ? 1 : (st && st.sv2k) || 0.35);
+    this.goNet = r.u() < prof.sv * (first ? 1 : (st && st.sv2k) || 0.35) || (!!p.mind && p.mind.patNow === 'sv' && (first || r.u() < 0.5));   /* (and in behind it when this point's pattern is serve and volley) */
     p.approach = this.goNet;
     return { tx: tg.x, tz: tg.z, type, spot, pace: 1 };
   }
@@ -89,11 +90,25 @@ export class AI {
     if (b.lastHit === i) {
       // my ball is on its way: get back to where the reply is likeliest
       this.plan = null;
-      if (this.seen !== m.incoming) { this.seen = m.incoming; this.recover = this.recoverSpot(m, i); }
+      if (this.seen !== m.incoming) { this.seen = m.incoming; this.recover = this.recoverSpot(m, i); this.guess = null; this.leanX = null; }
       // coming in behind a serve or an approach: close until he is about to hit, then split step and hold
       const inc0 = m.incoming, landed = inc0 && inc0.land ? m.t > inc0.t0 + inc0.land.t - 0.08 : false;
       if ((this.goNet || p.approach) && landed) { m.splitStep(i); return; }
-      if (this.recover) this.goTo(p, this.recover.x, this.recover.z, 0.15);
+      // The read: as the other man shapes to hit, the computer leans toward where he has been sending the ball from that wing -
+      // crosscourt, down the line - the more one-sided his habit, the likelier it guesses; the better a reader its man, the further
+      // it leans. Guessed right, it is there early; guessed wrong, it is going the wrong way when the ball comes, wrong-footed.
+      const md = p.mind, os = opp.stroke;
+      if (md && !this.eagerPre && !this.guess && os && !os.done && os.tc != null && os.kind !== 'serve' && m.t > os.tc - 0.34) {
+        const sh = md.dirOf(os.wing === 'bh' ? 'bh' : 'fh'), top = Math.max(sh[0], sh[1]), skew = top - 0.36, r = m.rng;
+        this.guess = { none: true };
+        // (it backs the likelier way - its habit's shares squared - and only when one way clearly leads; it leans half a metre or so)
+        if (top > 0.45 && r.u() < clamp(0.25 + 1.5 * skew, 0.1, 0.8) * md.read) {
+          const w0 = sh[0] * sh[0], w1 = sh[1] * sh[1], w2 = sh[2] * sh[2], u = r.u() * (w0 + w1 + w2), d = u < w0 ? 0 : u < w0 + w1 ? 1 : 2, ox = opp.x * opp.sgn, side = Math.sign(ox);
+          if (d !== 2 && Math.abs(ox) > 0.8) { const lx = (d === 0 ? -side : side) * 2.7, lean = md.read * (0.35 + 0.5 * clamp(skew * 2.5, 0, 1));
+            this.guess = { d, worldX: lx * opp.sgn, lean }; md.guess = { d, lx, lean, judged: false }; }
+        }
+      }
+      if (this.recover) { let tx = this.recover.x; if (this.guess && this.guess.worldX != null) tx += clamp(this.guess.worldX - tx, -this.guess.lean, this.guess.lean); this.leanX = tx; this.goTo(p, tx, this.recover.z, 0.15); }
       return;
     }
     const inc = m.incoming; if (!inc) return;
@@ -104,7 +119,7 @@ export class AI {
       const serve = b.isServe;
       const sp = b.lastSpeed || 30;
       // a faster ball is read later; returners guess a little on a big first serve
-      this.reactAt = m.t + p.prof.react * (serve ? lerp(0.92, 1.22, clamp((sp - 45) / 15, 0, 1)) : 1) * (0.85 + m.rng.u() * 0.3);
+      this.reactAt = m.t + p.prof.react * (p.mind ? p.mind.reactK() : 1) * (serve ? lerp(0.92, 1.22, clamp((sp - 45) / 15, 0, 1)) : 1) * (0.85 + m.rng.u() * 0.3);
       // A drop shot starts out looking like the drive it is not, and is read that much later: some at once (he half expected
       // it), some only as the ball floats over the net, the best hands hiding it longest. Read like any other ball, a drop
       // shot from the baseline came back 84% of the time; on the tour (Match Charting Project, 41,400 of them since 2015)
@@ -113,10 +128,12 @@ export class AI {
         const dt0 = 0.12, by = m.players[m.contactInfo.who].prof;
         this.reactAt += dt0 * (0.2 + 1.6 * m.rng.u()) * lerp(0.75, 1.25, clamp(by.touch ?? 0.5, 0, 1));
       }
+      // (and now and then he is late on it - slow off the split step: more often tired or tight)
+      if (!serve && p.mind && !this.eagerPre && m.rng.u() < 0.035 + 0.09 * (1 - p.mind.E) + 0.06 * p.mind.nerves) { this.reactAt += 0.09 + 0.07 * m.rng.u(); p.mind.stat.lateSplit++; }
       m.splitStep(i);
     }
     if (!this.plan) {
-      if (m.t < this.reactAt) { if (this.recover && !b.isServe) this.goTo(p, this.recover.x, this.recover.z, 0.2); return; }
+      if (m.t < this.reactAt) { if (this.recover && !b.isServe) this.goTo(p, this.leanX != null ? this.leanX : this.recover.x, this.recover.z, 0.2); return; }
       this.plan = this.makePlan(m, i, null);
       if (!this.plan.leave) m.burst(i, this.plan.S.x - p.x, this.plan.S.z - p.z);
     }
@@ -176,6 +193,10 @@ export class AI {
         const over = b.isServe ? 0.12 : Math.max(Math.abs(land.x) - COURT.halfW, land.z * sgn - COURT.halfLen, -land.z * sgn);
         if (over > 0.10 + (1 - prof.cons) * 0.12) callOut = true;
       }
+      // (and now and then the computer lets a ball go that lands a hand's breadth inside the line, sure it is out - the less steady
+      // its man and the more tired, the more often: a misjudgement, the point gone)
+      else if (!b.isServe && !this.eagerPre && p.mind) { const inside = Math.min(COURT.halfW - Math.abs(land.x), COURT.halfLen - land.z * sgn);
+        if (inside < 0.14 && m.rng.u() < (1 - prof.cons) * 0.2 + 0.06 * (1 - p.mind.E) + 0.03) { callOut = true; this.misjudged = inc; p.mind.stat.misjudged++; p.mind.say(m, 'misjudged', 'Misjudged', 'Let it go - it was in', 3); } }
     }
     const myD = p.z * sgn, vmax = prof.speed, a = prof.accel;
     // ground covered in t seconds from a split step: a head start, then acceleration to top speed
@@ -215,7 +236,7 @@ export class AI {
       let wing;
       if (keepWing) wing = keepWing;
       else if (pre && by > 1.95) wing = 'fh';
-      else wing = Math.abs(fhX - p.x) - prof.fhBias <= Math.abs(bhX - p.x) ? 'fh' : 'bh';
+      else wing = Math.abs(fhX - p.x) - prof.fhBias - (!this.eagerPre && p.mind && p.mind.patNow === 'io' ? 0.9 : 0) <= Math.abs(bhX - p.x) ? 'fh' : 'bh';   /* (running round the backhand for the inside-out forehand when that is this point's pattern) */
       const sx = pre && by > 1.95 ? bx - sgn * hs * 0.3 : wing === 'fh' ? fhX : bhX;
       const sz = bz + sgn * (pre ? 0.3 : 0.42);
       const dist = Math.hypot(sx - p.x, sz - p.z);
@@ -285,6 +306,21 @@ export class AI {
       const X = ang ? -Math.sign(cX || -dir) * (HW - r.range(0.35, 0.75)) : dir * (HW - r.range(0.45, 0.95));
       const t = T(X, ang ? -(cD < 7.2 ? r.range(4.6, 6.6) : r.range(5.4, 7.0)) : -(HL - r.range(1.0, 2.4)), h > 0.85 && !ang ? 'flat' : 'drive', 1, ang); t.kill = true; return t;
     }
+    // ---- the point as his man built it (mind.js picks the pattern at the start of each point) ----
+    const md = cpu ? p.mind : null, TC = TACTIC[md ? md.tactic : 'base'] || TACTIC.base, pat = md ? md.patNow : null, setOK = pl.slack > 0.02 && h > 0.4 && cD < 14;
+    // the side of the other man the computer has been finding him weaker on (mind.js scouting): X sign in its own frame, and how much
+    const wb = md ? md.weakBh() : 0, weakX = Math.abs(wb) > 0.25 ? (wb > 0 ? oppBh : -oppBh) : 0;
+    if (md && weakX && (!md.saidT || md.saidT < m.history.length - 14)) { const c = wb > 0 ? 'bh' : 'fh', [n, e] = md.sc[c]; if (n >= 6) { md.saidT = m.history.length; md.say(m, 'scout', wb > 0 ? 'Targeting your backhand' : 'Targeting your forehand', `you have missed ${e} of ${n} there`, 2); } }
+    if (pat && setOK && !pl.pre && !b.isServe && !oppAtNet && !meAtNet) {
+      // serve +1: the first ball after his serve into the open court, hard
+      if (pat === 'srv1' && m.score.server === i && m.rally === 2) { pl.state = 'attack'; return T(open * (HW - r.range(0.7, 1.2)), -(HL - r.range(1.2, 2.4)), r.u() < prof.flat * 1.4 ? 'flat' : 'drive', Math.min(1, 0.86 + 0.1 * agg)); }
+      // the inside-out forehand from the backhand corner, into his backhand
+      if (pat === 'io' && pl.wing === 'fh' && cX * p.hs < -0.15) { pl.state = 'attack'; return T(oppBh * (HW - r.range(0.9, 1.4)), -(HL - r.range(1.4, 2.5)), 'drive', Math.min(1, 0.84 + 0.12 * agg)); }
+      // the drop shot once he has been pushed back
+      if (pat === 'drop' && !this.noDrop && md.patStep >= 2 && oD < -(HL + 0.8) && cD < 12.6) { pl.state = 'attack'; return T(open * (HW - r.range(1.2, 1.8)), -r.range(1.5, 2.6), 'drop', 0.4); }
+      // in behind a deep approach to his backhand
+      if (pat === 'net' && cD < 11.3) { pl.state = 'attack'; this.goNet = true; p.approach = true; return T(oppBh * (HW - r.range(0.9, 1.5)), -(HL - r.range(1.0, 2.2)), pl.wing === 'bh' && (prof.slice || 0) > 0.05 && !this.noSlice ? 'slice' : 'drive', 0.8); }
+    }
 
     // ---- at the net ----
     if (meAtNet) {
@@ -327,6 +363,7 @@ export class AI {
       return T(dir * (HW - r.range(0.75, 1.2)), -(HL - r.range(2.6, 5.8)), 'drive', state === 'defend' ? 0.5 : 0.82);
     }
     if (state === 'defend') {
+      if (md && r.u() < 0.03 + 0.05 * md.nerves + 0.03 * agg) { md.stat.badChoice = (md.stat.badChoice || 0) + 1; return T(open * (HW - 0.5), -(HL - 1.0), 'flat', 1); }
       const X = r.u() < 0.65 ? cross * (HW - r.range(1.9, 2.6)) : r.range(-1, 1);
       if (pl.wing === 'bh' && r.u() < 0.35 + prof.slice * 1.6) return T(X, -(HL - r.range(2.2, 3.2)), 'slice', 0.45);
       return T(X, -(HL - r.range(2.0, 3.0)), 'loop', 0.4);
@@ -343,11 +380,12 @@ export class AI {
       // into the open court, almost always when he is out of position
       const dir = r.u() < (cpu ? 0.72 + Math.min(0.24, oOut * 0.2) : 0.72) ? open : -open;
       const short = cD < 8.8;
-      if (!goNet && cD < 10.2 && r.u() < prof.net * (cpu ? 3.2 : 2.0) + (cD < 7.5 ? 0.45 : 0) + (cpu && short ? 0.2 : 0)) goNet = true;
+      if (!goNet && cD < 10.2 && r.u() < prof.net * (cpu ? 3.2 : 2.0) * TC.net + (cD < 7.5 ? 0.45 : 0) + (cpu && short ? 0.2 : 0)) goNet = true;
       this.goNet = goNet; p.approach = goNet;
-      const mX = lerp(AIT.atkX0, AIT.atkX1, agg) * (cpu ? 0.82 : 1) + r.range(-0.1, 0.2), mD = short ? r.range(2.4, 4.6) : lerp(AIT.atkD0, AIT.atkD1, agg) + r.range(-0.2, 0.4);
+      const mX = (lerp(AIT.atkX0, AIT.atkX1, agg) * (cpu ? 0.82 : 1) + r.range(-0.1, 0.2)) * TC.margin, mD = short ? r.range(2.4, 4.6) : (lerp(AIT.atkD0, AIT.atkD1, agg) + r.range(-0.2, 0.4)) * TC.margin;
       const kind = goNet && pl.wing === 'bh' && !this.noSlice && r.u() < prof.slice * 2 ? 'slice' : r.u() < prof.flat * (cpu ? 1.4 : 1) ? 'flat' : 'drive';
-      return T(dir * (HW - mX), -(HL - mD), kind, Math.min(1, lerp(AIT.atkP0, AIT.atkP1, agg) + (cpu ? 0.06 : 0)));
+      const dirW = weakX && r.u() < 0.4 * Math.abs(wb) ? weakX : dir;
+      return T(dirW * (HW - mX), -(HL - mD), kind, Math.min(1, lerp(AIT.atkP0, AIT.atkP1, agg) + (cpu ? 0.06 : 0) + TC.push));
     }
     // ---- neutral: build the point ----
     const dirs = prof.style ? (pl.wing === 'fh' ? prof.style.fh : prof.style.bh) : [0.6, 0.2];
@@ -367,13 +405,26 @@ export class AI {
     else if (u < dirs[0]) X = cross * (HW - (lerp(AIT.neuX0, AIT.neuX1, agg) + r.range(-0.15, 0.4)));
     else if (u < 1 - dirs[1]) X = r.u() < 0.6 ? oppBh * r.range(0.3, 1.6) : r.range(-1.2, 1.2);
     else X = -cross * (HW - (lerp(AIT.neuX0, AIT.neuX1, agg) + r.range(0, 0.4)));
-    const D = -(HL - (lerp(AIT.neuD0, AIT.neuD1, agg) + r.range(-0.4, 0.7)));
+    let D = -(HL - (lerp(AIT.neuD0, AIT.neuD1, agg) + r.range(-0.4, 0.7)) * TC.margin);
+    if (TC.margin !== 1) X = Math.sign(X || 1) * Math.max(0.3, HW - (HW - Math.abs(X)) * TC.margin);
+    if (md) {
+      // the backhand crosscourt, until a ball lands short enough to go down the line
+      if (pat === 'bhx' && pl.wing === 'bh') { if (cD < 10.6 && pl.slack > 0.08) { pl.state = 'attack'; return T(-cross * (HW - r.range(0.9, 1.3)), -(HL - r.range(1.4, 2.4)), 'drive', 0.86); } X = cross * (HW - r.range(1.3, 1.9)); }
+      // heavy topspin crosscourt into his backhand, over and over
+      else if (pat === 'heavy' && pl.wing === 'fh') { X = oppBh * (HW - r.range(1.3, 1.9)); D = -(HL - r.range(1.6, 2.6)); return T(X, D, 'drive', 0.55); }
+      // where scouting has found him weak: his weaker wing; high balls if he misses those; moved about if he misses on the run
+      else if (weakX && r.u() < 0.55 * Math.abs(wb)) { X = weakX * (HW - r.range(1.2, 1.8) * TC.margin); md.stat.targeted = (md.stat.targeted || 0) + 1; }
+      if (md.weakHigh() > 0.3 && h < 1.4 && r.u() < 0.3 * md.weakHigh()) { md.stat.highBall = (md.stat.highBall || 0) + 1;
+        if (!md.saidH || md.saidH < m.history.length - 16) { md.saidH = m.history.length; md.say(m, 'scout', 'High to you', 'you miss more of the high ones', 1); }
+        return T(X, -(HL - r.range(1.6, 2.6)), 'loop', 0.62); }
+      if (md.weakRun() > 0.3 && r.u() < 0.35 * md.weakRun()) X = open * (HW - r.range(0.9, 1.3));
+    }
     // (not for a person in a rally or an approach: his backhand is a drive, struck as hard as he times it - sliced for him at the
     // game's choice it came off at 87 km/h, "Perfect"; defending at full stretch and returning a big serve it still may be)
     if (pl.wing === 'bh' && !this.noSlice && r.u() < prof.slice) return T(X * 0.9, D, 'slice', 0.55);
     // a ball sitting up at the shoulders: an aggressive player, set in time, takes it on and drives it; others loop it back
     if (h > 1.5) { if (h < 1.85 && pl.slack > 0.08 && r.u() < agg * 0.9) return T(X * 1.05, D, 'drive', lerp(0.72, 0.9, agg)); return T(X, D, 'loop', 0.6); }
-    return T(X, D, 'drive', lerp(AIT.neuP0, AIT.neuP1, agg) + r.range(-0.05, 0.08));
+    return T(X, D, 'drive', lerp(AIT.neuP0, AIT.neuP1, agg) + r.range(-0.05, 0.08) + TC.push);
   }
 
   recoverSpot(m, i) {

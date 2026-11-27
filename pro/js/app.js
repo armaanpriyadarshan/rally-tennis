@@ -449,7 +449,7 @@ class App {
   // The score bug: surname, sets already played, games, points; the server's mark. No more than that.
   bug(g) {
     const m = g.match, s = m.score, pt = m.pointText(), d = this.ctx && this.ctx.draw, ids = [g.cfg.p0, g.cfg.p1], live = !s.over;
-    const nm = i => { const f = PLAYERS[ids[i]].facts, sd = d && d.seedNo[ids[i]]; return `<div class="r">${s.server === i && live ? '<i class="dot"></i>' : ''}<span>${esc(f.name)}</span><em class="cc">${esc(f.country || '')}</em>${sd ? `<em class="seed">${sd}</em>` : ''}</div>`; };
+    const nm = i => { const f = PLAYERS[ids[i]].facts, sd = d && d.seedNo[ids[i]]; return `<div class="r"><b class="en"></b><i class="tag"></i>${s.server === i && live ? '<i class="dot"></i>' : ''}<span>${esc(f.name)}</span><em class="cc">${esc(f.country || '')}</em>${sd ? `<em class="seed">${sd}</em>` : ''}</div>`; };
     const col = (cls, cell) => `<div class="c ${cls}">${cell(0)}${cell(1)}</div>`;
     const sets = s.sets.map(x => col('st', i => `<div class="r ${x.g[i] > x.g[1 - i] ? 'w' : ''}">${x.g[i]}${x.tb && x.g[i] < x.g[1 - i] ? `<sup>${x.tb[i]}</sup>` : ''}</div>`)).join('');
     // between games the points cell is not there at all
@@ -575,6 +575,7 @@ class App {
     if ((this.fbT -= dt) <= 0) $('#fb').classList.remove('on');
     // the points cell comes back as the server steps up (the serve clock is the one on the court's back wall)
     if (!m.score.over && !this.ptsShown && (m.phase === 'ready' || m.phase === 'toss')) this.bug(g);
+    this.insightsFrame(g, dt);
     if (!h) return;
     // timing ring: closes on the inner circle at the moment to let go
     const out = $('#ringOut');
@@ -596,6 +597,31 @@ class App {
     if (m.score.over || g.over) tip = '';                     // the match is over: nothing left to press
     if (tip !== this.tipKey) { this.tipKey = tip; const t = $('#tip'); t.innerHTML = tip; t.classList.toggle('on', !!tip); }
   }
+  // What goes on in the players' heads, on the picture (he asked that "it should be clear in-game how these factors are working"):
+  // each man's energy as a thin bar under his name; a tag by the computer's name when it is tight on a big point, tired, or on a roll;
+  // and a chip above the score: the computer reading his ball (or wrong-footed by it) as it happens, and between points what it has
+  // made of the match - a pattern that worked, a change of tactics, the wing it is going after, a misjudgement, a bad run (js/mind.js).
+  insightsFrame(g, dt) {
+    const m = g.match; if (!m || !m.minds) return;
+    if ((this.insT -= dt) <= 0) $('#ins').classList.remove('on');
+    this.minT = (this.minT || 0) + dt;
+    if (this.minT > 0.25) { this.minT = 0; const rows = document.querySelectorAll('#bug .nm .r'), play = m.phase === 'ready' || m.phase === 'toss' || m.phase === 'live';
+      for (let i = 0; i < 2; i++) { const r = rows[i]; if (!r) continue; const md = m.minds[i], E = md.E, en = r.querySelector('.en'), tag = r.querySelector('.tag');
+        if (en) { en.style.setProperty('--e', Math.round(E * 100) + '%'); en.dataset.l = E < 0.45 ? 'lo' : E < 0.7 ? 'mid' : 'hi'; }
+        const cpu = m.isCpu(i), t = cpu && play && md.nerves > 0.35 ? 'Tight' : E < 0.45 ? 'Tired' : cpu && md.mom > 0.55 && md.run >= 3 ? 'On a roll' : '';
+        if (tag && tag.textContent !== t) { tag.textContent = t; tag.classList.toggle('on', !!t); } } }
+    const ci = m.isCpu(1) ? 1 : m.isCpu(0) ? 0 : -1; if (ci < 0) return;
+    const md = m.minds[ci], nm = esc(PLAYERS[ci ? g.cfg.p1 : g.cfg.p0].facts.name), gs = md.guess, now = m.t;
+    // a read, as the ball lands: not more than every four seconds, and only a real lean
+    if (gs && gs.judged && !gs.shown) { gs.shown = true;
+      if (now - (this.readT || -9) > 4 && gs.lean > 0.45) { this.readT = now; const dn = ['crosscourt', 'down the line'][gs.d];
+        if (gs.right) this.insight('Read it', `${nm} guessed ${dn}`, 1.5, 'read'); else if (gs.wrong) this.insight('Wrong-footed', `${nm} guessed ${dn}`, 1.7, 'wrong'); } }
+    // between points: the most telling thing it has said since the last one
+    if (m.phase === 'over' || m.phase === 'between') { const L = md.log, from = this.insSeen || 0; let best = null;
+      for (const e of L) if (e.t > from && e.kind !== 'nerves' && e.kind !== 'roll' && (!best || e.pri > best.pri)) best = e;
+      if (best) { this.insSeen = best.t; for (const e of L) if (e.t > this.insSeen) this.insSeen = e.t; this.insight(best.text, best.sub, 3.2, best.kind); } }
+  }
+  insight(title, sub, dur, kind) { const el = $('#ins'); el.querySelector('b').textContent = title; el.querySelector('span').textContent = sub || ''; el.dataset.k = kind || ''; el.classList.add('on'); this.insT = dur || 3; }
   // The statistics panel: one page, the better figure in lime.
   showStats(on, title) {
     const g = this.game, m = g.match, A = m.players[0].stats, B = m.players[1].stats, el = $('#stats');
@@ -604,6 +630,10 @@ class App {
     const pc = (a, b) => b ? Math.round(100 * a / b) : 0, s = m.score, w = s.over ? s.winner : -1;
     const rows = [['Aces', A.aces, B.aces], ['Double faults', A.df, B.df, true], ['1st serve in', pc(A.s1In, A.s1Tot), pc(B.s1In, B.s1Tot), 0, '%'], ['1st serve points won', pc(A.s1Won, A.s1In), pc(B.s1Won, B.s1In), 0, '%'],
       ['2nd serve points won', pc(A.s2Won, A.s2Tot), pc(B.s2Won, B.s2Tot), 0, '%'], ['Winners', A.winners, B.winners], ['Unforced errors', A.ue, B.ue, true], ['Break points won', `${A.bpWon}/${A.bpTot}`, `${B.bpWon}/${B.bpTot}`], ['Total points won', A.pts, B.pts]];
+    if (m.minds) { const md = m.minds.map(x => x), ci = m.isCpu(1) ? 1 : m.isCpu(0) ? 0 : -1, cs = (i, f) => i === ci ? f(md[i]) : '—';
+      const pw = x => { let a = 0, b = 0; for (const k in x.stat.patterns) { b += x.stat.patterns[k]; a += x.stat.patternsWon[k] || 0; } return `${a}/${b}`; };
+      rows.push(['Energy left', Math.round(md[0].E * 100), Math.round(md[1].E * 100), 0, '%']);
+      if (ci >= 0) rows.push(['Guessed right', cs(0, x => `${x.stat.readsRight}/${x.stat.reads}`), cs(1, x => `${x.stat.readsRight}/${x.stat.reads}`)], ['Wrong-footed', cs(0, x => x.stat.wrongFooted), cs(1, x => x.stat.wrongFooted), true], ['Pattern points won', cs(0, pw), cs(1, pw)]); }
     const line = s.sets.map(x => `${x.g[0]}-${x.g[1]}`).concat(s.over ? [] : [`${s.g[0]}-${s.g[1]}`]).join('  ');
     el.innerHTML = `<div class="hd">${title || '<b>Match</b> statistics'}<small>${clockText(m.t)}</small></div>
       <div class="who"><span class="${w === 0 ? 'w' : ''}">${full(g.cfg.p0)}</span><i>${line}</i><span class="${w === 1 ? 'w' : ''}">${full(g.cfg.p1)}</span></div>`

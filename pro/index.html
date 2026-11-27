@@ -225,6 +225,19 @@
   #bug .nm::after { left: calc(var(--p) * 29); right: calc(var(--p) * 22); }
   #bug .nm .dot { position: absolute; left: calc(var(--p) * 10.5); top: 50%; width: calc(var(--p) * 8); height: calc(var(--p) * 8); margin-top: calc(var(--p) * -4); border-radius: 50%; background: var(--dot); }
   #bug .nm em { display: none; font-style: normal; font-weight: 400; }
+  /* the players' heads (js/mind.js, app.js insightsFrame): energy under each name, a tag by it, a chip above the score */
+  #bug .nm .en { position: absolute; left: calc(var(--p) * 32); right: calc(var(--p) * 24); bottom: calc(var(--p) * 6); height: max(2px, calc(var(--p) * 3.5)); border-radius: 2px; --e: 100%; --c: #9be15d;
+    background: linear-gradient(90deg, var(--c) var(--e), rgba(255,255,255,.14) var(--e)); }
+  #bug .nm .en[data-l=mid] { --c: #f2c94c; } #bug .nm .en[data-l=lo] { --c: #ff6b57; }
+  #bug .nm .tag { display: none; font-style: normal; font-weight: 700; font-size: .5em; letter-spacing: .08em; text-transform: uppercase; padding: .25em .5em; border-radius: .3em; background: #e0f03a; color: #0b1a3a; margin-left: .2em; }
+  #bug .nm .tag.on { display: inline-block; }
+  #ins { position: absolute; left: 5.16vw; bottom: calc(var(--p) * 212); display: flex; flex-direction: column; gap: calc(var(--p) * 4); padding: calc(var(--p) * 12) calc(var(--p) * 22) calc(var(--p) * 12) calc(var(--p) * 18);
+    background: var(--navy); border-left: calc(var(--p) * 6) solid #e0f03a; color: #fff; opacity: 0; transform: translateY(calc(var(--p) * 10)); transition: opacity .25s, transform .25s var(--ease); pointer-events: none; }
+  #ins.on { opacity: 1; transform: none; }
+  #ins b { font: 700 calc(var(--p) * 26)/1 var(--f); text-transform: uppercase; letter-spacing: .03em; }
+  #ins span { font: 400 calc(var(--p) * 19)/1.2 var(--f); color: #c9d4ee; }
+  #ins[data-k=wrong] { border-left-color: #ff8a3d; } #ins[data-k=misjudged], #ins[data-k=wobble] { border-left-color: #ff6b57; }
+  #hud[data-ev=wim] #ins { bottom: auto; top: calc(var(--p) * 150); left: 9.6vw; }
   #bug .st { background: var(--navy); width: calc(var(--p) * 47); font-weight: 400; color: var(--dim); }
   #bug .st .w { color: #e0f03a; font-weight: 700; }
   #bug .st::after { left: calc(var(--p) * 5.5); right: calc(var(--p) * 5.5); }
@@ -426,6 +439,7 @@
 <div id="hud" class="hidden" data-ev="atp">
   <div id="bug" class="off"><div class="cells"></div><div class="tab"><span></span></div><div class="ext"></div><div class="hd"></div></div>
   <div id="lt"><div class="a"><span></span></div><div class="b"><span></span></div></div>
+  <div id="ins"><b></b><span></span></div>
   <div id="strap"><div class="tab"></div><div class="body"><div class="who"></div><div class="evn"></div></div></div>
   <div id="reticle"><svg viewBox="-110 -110 220 220"><circle id="ringIn" r="15" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="1.5"/><circle id="ringOut" r="60" fill="none" stroke="#fff" stroke-width="2.5" opacity="0"/></svg></div>
   <div id="fb"></div>

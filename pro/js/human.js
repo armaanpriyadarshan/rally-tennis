@@ -121,7 +121,7 @@ export class Human {
       const inc = m.incoming;
       if (inc && inc !== this.readInc && m.ball.lastHit !== i) {
         this.readInc = inc; const sp = m.ball.lastSpeed || 30, srv = m.ball.isServe;
-        this.readAt = m.t + p.prof.react * (srv ? 0.92 + 0.30 * clamp((sp - 45) / 15, 0, 1) : 1) * (0.85 + m.rng.u() * 0.3);
+        this.readAt = m.t + p.prof.react * (p.mind ? p.mind.reactK() : 1) * (srv ? 0.92 + 0.30 * clamp((sp - 45) / 15, 0, 1) : 1) * (0.85 + m.rng.u() * 0.3);
         m.splitStep(i);
       }
       if (plan && !plan.leave) {

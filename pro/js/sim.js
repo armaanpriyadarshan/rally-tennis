@@ -1,5 +1,6 @@
 // Rally Pro — the match engine: rules, scoring, players, contact and the error model.
 // Pure logic. Rendering and audio only ever read this state and drain `match.events`.
+import { Mind } from './mind.js';
 import { COURT, BALL, clamp, lerp, makeRng, makeEnv, stepWind, makeBall, flyStep, bounce, predict, solveShot, solveSpeed, fire, netHeightAt, inCourt, inServiceBox, missBy, onALine } from './physics.js';
 
 export const STEP = 1 / 240;
@@ -124,6 +125,9 @@ export class Match {
     this.env = makeEnv(o.env || {});
     this.fmt = FORMATS[o.format] || FORMATS.atp3;
     this.players = [mkPlayer(0, o.p0 || {}), mkPlayer(1, o.p1 || {})];
+    // what goes on in each man's head and legs over the match (mind.js): fatigue for both, and for the computer momentum, nerves,
+    // what it has seen of the other man, its tactic and the pattern of each point
+    this.minds = [new Mind(this, 0), new Mind(this, 1)]; this.players[0].mind = this.minds[0]; this.players[1].mind = this.minds[1];
     this.ball = Object.assign(makeBall(), { live: false, lastHit: -1, bounces: 0, isServe: false, netTouched: false, visible: false, held: -1, lastSpeed: 0 });
     this.t = 0;
     this.events = [];
@@ -168,7 +172,8 @@ export class Match {
   }
   // On the big points (a break point, a set or match point either way, a tiebreak) the computer's men play as they did on them (data.js
   // STYLE clutch): Zverev and Tsitsipas a seventh wilder, Kuerten that much steadier, most much as usual.
-  press(p) { const c = p.prof.style && p.prof.style.clutch; if (!c) return 1; const s = this.score; return s.tb || this.isBreakPoint() || Math.max(this.pointValue(0), this.pointValue(1)) >= 2 ? 1 - 0.14 * c : 1; }
+  isCpu(i) { const c = this.ctl && this.ctl[i]; return !!c && !c.isHuman && !this.online; }
+  press(p) { if (this.minds) return 1;   /* (the pressure of a big point is mind.js's nerves now, in errK) */ const c = p.prof.style && p.prof.style.clutch; if (!c) return 1; const s = this.score; return s.tb || this.isBreakPoint() || Math.max(this.pointValue(0), this.pointValue(1)) >= 2 ? 1 - 0.14 * c : 1; }
   isBreakPoint() {
     const s = this.score; if (s.tb) return false;
     const r = 1 - s.server, a = s.p[r], b = s.p[s.server];
@@ -214,7 +219,7 @@ export class Match {
     if (setWon) {
       s.sets.push({ g: [s.g[0], s.g[1]], tb: wasTb ? tbScore : null });
       s.setsWon[w]++; s.g = [0, 0];
-      this.emit('set', { winner: w, sets: s.sets.length });
+      this.emit('set', { winner: w, sets: s.sets.length }); for (const md of this.minds) md.noteSet(this);
       if (s.setsWon[w] > f.bestOf / 2) { s.over = true; s.winner = w; this.emit('match', { winner: w }); return; }
       if (total % 2 === 1) this.changeEnds(true);
       else this.emit('setBreak', {});
@@ -259,6 +264,7 @@ export class Match {
   }
   beginReady() {
     this.phase = 'ready'; this.phaseT = 0;
+    for (const md of this.minds) md.beginPoint(this, this.isCpu(md.i));
     const b = this.ball, sv = this.players[this.score.server];
     b.held = sv.i; b.visible = true; b.live = false; b.bounces = 0; b.isServe = false; b.netTouched = false; b.lastHit = -1;
     b.vx = b.vy = b.vz = 0; b.wx = b.wy = b.wz = 0;
@@ -486,6 +492,7 @@ export class Match {
     stepWind(this.env, dt);
     for (let i = 0; i < 2; i++) if (this.ctl[i]) this.ctl[i].update(this, i, dt);
     for (const p of this.players) this.movePlayer(p, dt);
+    for (const md of this.minds) md.tick(this, dt);
     const b = this.ball, s = this.score;
     switch (this.phase) {
       case 'between': {
@@ -574,7 +581,7 @@ export class Match {
   movePlayer(p, dt) {
     if (p.puppet) return;                                     // the player over the network is placed by his own side
     const pr = p.prof, st = p.stroke;
-    let top = pr.speed * (p.walk ? WALK_K : 1);
+    let top = pr.speed * (p.walk ? WALK_K : 1) * (p.mind ? p.mind.speedK() : 1);   /* (tired legs: mind.js) */
     // feet are planted through the hit
     if (st && st.tc != null && st.kind !== 'serve') {
       const u = this.t - st.tc;
@@ -593,7 +600,7 @@ export class Match {
     const tvx = mx * top, tvz = mz * top * back;
     const dvx = tvx - p.vx, dvz = tvz - p.vz, dv = Math.hypot(dvx, dvz);
     const braking = (tvx * p.vx + tvz * p.vz) < 0.5 * (p.vx * p.vx + p.vz * p.vz);
-    const a = pr.accel * (braking ? (pr.brake || 1.35) : 1) * (p.walk ? 0.5 : 1);
+    const a = pr.accel * (braking ? (pr.brake || 1.35) : 1) * (p.walk ? 0.5 : 1) * (p.mind ? p.mind.accelK() : 1);
     if (dv > 1e-6) { const k = Math.min(1, a * dt / dv); p.vx += dvx * k; p.vz += dvz * k; }
     // a server is carried into the court by his serve: he lands on the front foot about half a metre inside where he
     // stood, then comes back for the return (his tracked serve is kept centred on the hips, so this travel is the game's)
@@ -676,6 +683,7 @@ export class Match {
         } else { good = inCourt(x, z, landSide); miss = missBy(x, z, landSide, null); }
       }
       this.emit('bounce', { x, z, speed: sp, first: b.bounces === 1, good, miss, line, bit: info.bit, vy: info.vyIn, serve: b.isServe, who: b.lastHit });
+      if (b.bounces === 1 && !b.isServe && b.lastHit >= 0) this.minds[1 - b.lastHit].onOppBounce(this, { x, z });
       if (!this.judgeHere()) { if (b.bounces === 1 && this.incoming) this.incoming.bounced = true; this.arenaWalls(b); return; }   // the other side calls this one
       if (b.bounces === 1) {
         if (!good) {
@@ -770,6 +778,7 @@ export class Match {
     // celebrated (figure.js pickReaction; he said "for great winners there should be celebrations")
     rec.great = why === 'winner' && !!ci && ci.who === w && ((b.lastSpeed || 0) * 3.6 >= 160 || this.rally >= 10 || val >= 2 || bp || ((ci.pf || 0) >= 0.99 && (b.lastSpeed || 0) * 3.6 >= 150));
     this.history.push(rec); this.lastPoint = rec;
+    for (const md of this.minds) md.onPoint(this, rec, this.isCpu(md.i));
     W.mood = rec.great ? 1.2 : val >= 1 || this.rally >= 7 || why === 'winner' ? 1 : 0.4; W.moodT = this.t;
     L.mood = cls === 'unforced' || why === 'doubleFault' ? -1 : -0.4; L.moodT = this.t;
     this.awardPoint(w);
@@ -818,7 +827,7 @@ export class Match {
       if (ax > COURT.halfW * 0.55) stx = sg * (ax + (COURT.halfW - 0.3 - ax) * pf);
       else if (ax < COURT.halfW * 0.35) stx = sg * (ax + (0.3 - ax) * pf);
       stz = Math.sign(stz) * (dz + (COURT.svc - 0.5 - dz) * pf); }
-    let speed = spec.kmh / 3.6 * lerp(0.80, 1, q) * (1 + 0.06 * pf);
+    let speed = spec.kmh / 3.6 * lerp(0.80, 1, q) * (1 + 0.06 * pf) * this.minds[p.i].paceK();
     const p0 = { x: b.x, y: clamp(b.y, contactH - 0.3, contactH + 0.15), z: p.z - p.sgn * 0.45 };
     const top = spec.top * lerp(0.8, 1, q), side = spec.side * p.hs;
     let sol = null;
@@ -830,7 +839,7 @@ export class Match {
     }
     if (!sol || !sol.ok) sol = { el: -0.07, az: Math.atan2(stx - p0.x, stz - p0.z), speed, top, side };
     const cal = this.calib[p.i];
-    const kq = (first ? cal.k1 : cal.k2) * lerp(2.4, 1, q) * (st.auto ? this.press(p) : (it.sigma || 1)) * this.diffScale[p.i] * (spec.sig || 1) * (1 - 0.9 * pf);
+    const kq = (first ? cal.k1 : cal.k2) * lerp(2.4, 1, q) * (st.auto ? this.press(p) : (it.sigma || 1)) * this.diffScale[p.i] * (spec.sig || 1) * (1 - 0.9 * pf) * this.minds[p.i].errK(this.isCpu(p.i));
     const el = sol.el + rng.g() * SERVE_SIG.el * kq - (dy < -0.12 ? (-dy - 0.12) * 0.12 : 0);
     const az = sol.az + rng.g() * SERVE_SIG.az * kq;
     const v = sol.speed * (1 + rng.g() * SERVE_SIG.v * kq);
@@ -851,6 +860,7 @@ export class Match {
     const willIn = lz && inServiceBox(lz.x, lz.z, landSide, right) && (this.incoming.netY == null || this.incoming.netY - BALL.r > netHeightAt(0) - 0.02);
     if (first && willIn) { S.s1In++; S.s1Sum += v * 3.6; S.s1N++; } else if (!first && willIn) { S.s2Sum += v * 3.6; S.s2N++; }
     this.emit('hit', { who: p.i, kind: 'serve', pf, stype: type, speed: v,   /* (stype: an event's own `type` is 'hit') */ x: p0.x, y: p0.y, z: p0.z, q, serveNum: s.serveNum, power: 1, top, side });
+    this.minds[p.i].onOwnHit(this, { kind: 'serve' }); this.minds[1 - p.i].onOppHit(this, { kind: 'serve' });
     if (this.online && p.i === 0) this.shotOut(p, 'serve', 'fh', v, 0, type);
     if (this.shotLog) this.shotLog.push({ who: p.i, kind: 'serve', type, first, kmh: v * 3.6, h: p0.y, top, land: lz, clear: sol.clear, willIn, tgt: [stx, stz], pf });
   }
@@ -948,7 +958,7 @@ export class Match {
     if (relZ < 0.05) diff += Math.min(st.merciful ? 0.5 : 9, (0.05 - relZ) * 1.6);             // caught late, beside or behind the body
     st.onRun = pSpeed > 2.8;
     // ---- what the player is trying to do ----
-    const wingKmh = wing === 'fh' ? prof.fhKmh : prof.bhKmh, wingRpm = wing === 'fh' ? prof.fhRpm : prof.bhRpm;
+    const wingKmh = (wing === 'fh' ? prof.fhKmh : prof.bhKmh) * this.minds[p.i].paceK(), wingRpm = wing === 'fh' ? prof.fhRpm : prof.bhRpm;
     const weak = clamp(stretch * 1.1 + Math.pow(pSpeed / 7, 2) * 0.5 + rushed * 0.5 + jam * 0.4 + (relZ < 0 ? 0.3 : 0) + retPen * TUNE.retWeak, 0, 1);
     // ---- a person's groundstroke (he said "rework the entire shooting system - i hate it right now. i feel completely powerless even
     // with good aim and perfect strokes even though i should be smashing through players"). Its quality Q is how well he met it:
@@ -1082,11 +1092,12 @@ export class Match {
     // was sent, while what makes a ball hard (pace, width, running, a stretch) is still all there
     const k = strike ? sig * this.diffScale[p.i] * (this.strikeK ? this.strikeK[p.i] : 1) * (it.sigma || 1) * lerp(1.15, 0.9, prof.cons) * (0.12 + 1.3 * Math.pow(1 - Q, 1.2)) * (1 + 0.5 * clamp(diff / 1.5, 0, 1))
       : (st.auto ? sig * steady * (1 + diff) * this.press(p) * (cpuS ? lerp(CPU_HIT.k0, CPU_HIT.k1, Q) : 1) : sig * (steady / clean) * (clean + diff)) * (1 - 0.4 * easyT) * (1 - 0.82 * pf * (1 - 0.5 * clamp(diff / 1.5, 0, 1)));   // (and nearer his aim; Perfect most of all, less so off a hard ball)
+    const kE = k * this.minds[p.i].errK(this.isCpu(p.i));   // (and wider for a tired man, and for the computer shaken or tight or loose: mind.js)
     // timing drags the ball: early pulls it across the body, late pushes it wide
     const pull = -clamp(tim, -0.11, 0.13) * TUNE.timPull * (relX >= 0 ? 1 : -1) * p.hs * p.sgn;
-    let outEl = sol.el + rng.g() * TUNE.sigEl * k - clamp(tim, -0.1, 0.1) * TUNE.timEl;
-    const outAz = sol.az + rng.g() * TUNE.sigAz * k + pull;
-    let outV = sol.speed * (1 + rng.g() * TUNE.sigV * k);
+    let outEl = sol.el + rng.g() * TUNE.sigEl * kE - clamp(tim, -0.1, 0.1) * TUNE.timEl;
+    const outAz = sol.az + rng.g() * TUNE.sigAz * kE + pull;
+    let outV = sol.speed * (1 + rng.g() * TUNE.sigV * kE);
     if (!st.auto && !strike && timAbs > 0.03) outV *= 1 - clamp((timAbs - 0.03) * 2.2, 0, 0.25);
     // Off-centre contact: the ball comes off dead and low. This is where most balls in
     // the net come from -- a clean swing that is a few centimetres out on the strings.
@@ -1126,6 +1137,7 @@ export class Match {
     b.threat = shotThreat(outV, sol.top, this.incoming.land, diff, kind); if ((strike || cpuS) && b.threat > 0) b.threat = clamp(b.threat + 0.45 * Q * Q, 0, 1);   /* (a ball struck well is hard to send back: the other man's timing and footing suffer) */
     const q = st.auto ? 1 : clamp(1 - timAbs / 0.10, 0, 1);
     this.emit('hit', { who: p.i, kind, wing, speed: outV, x: p0.x, y: p0.y, z: p0.z, q, timing: st.auto ? null : timRaw, window: win, power, diff, shank, volley, ret: wasServe, top: sol.top, vin, pf: st.auto ? null : (st.perfect || 0), press: st.auto ? null : (st.pressE ?? null) });
+    this.minds[p.i].onOwnHit(this, { kind }); this.minds[1 - p.i].onOppHit(this, { kind, wing, h, pSpeed, x: p0.x, z: p0.z, sgn: p.sgn });
     if (this.online && p.i === 0) this.shotOut(p, kind, wing, outV, diff);
     if (this.shotLog) this.shotLog.push({ who: p.i, kind, wing, kmh: outV * 3.6, h, diff, D, top: sol.top, land: this.incoming.land, clear: this.incoming.netY == null ? null : this.incoming.netY - netHeightAt(0), tgt: [tx, tz], vin: vin * 3.6, lat: relX, relZ, ret: wasServe, volley, state: it.state, slack: it.slack, rally: this.rally, pt: this.history.length, weak, pSpeed, mistimed, perfect: !st.auto && Math.abs(timRaw) < win * 0.5, pf: st.perfect || 0, q: st.q || 0, easy: st.easy || 0, power });
   }
