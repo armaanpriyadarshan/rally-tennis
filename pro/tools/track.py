@@ -28,6 +28,7 @@ ap.add_argument('clip'); ap.add_argument('out'); ap.add_argument('--model', requ
 ap.add_argument('--hz', type=float, default=30); ap.add_argument('--t0', type=float, default=0); ap.add_argument('--t1', type=float, default=1e9)
 ap.add_argument('--debug', default=None); ap.add_argument('--minh', type=float, default=0.07); ap.add_argument('--maxh', type=float, default=0.55)
 ap.add_argument('--windows', default=None); ap.add_argument('--big', action='store_true')
+ap.add_argument('--cutd', type=float, default=22)   # how much the small grey picture must change at once to count as a cut (a slow replay's zoom changes it a lot)
 A = ap.parse_args()
 
 BaseOptions, vision = mp.tasks.BaseOptions, mp.tasks.vision
@@ -148,7 +149,7 @@ while True:
     small = cv2.cvtColor(cv2.resize(frame, (64, 36), interpolation=cv2.INTER_AREA), cv2.COLOR_BGR2GRAY).astype(np.float32)
     if prev_small is not None:
         d = float(np.mean(np.abs(small - prev_small)))
-        if d > 22: shot += 1; lock = None; miss = 0; next_try = t + (0.0 if WINS else 0.12); cuts.append(t); prev_bg = None
+        if d > A.cutd: shot += 1; lock = None; miss = 0; next_try = t + (0.0 if WINS else 0.12); cuts.append(t); prev_bg = None
     prev_small = small
     if lock is None:
         if t < next_try: continue

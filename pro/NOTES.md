@@ -1863,3 +1863,11 @@ still in the air, both in a stroke's finish, for two or three frames.
   each week's screen and the draw before every match (a season's or a tournament's) carry the same Five sets / Three sets / One set /
   Classic / Tiebreak and Club / Challenger / Tour chips as Play and Tournament. Before, a season's matches took whatever was last chosen
   on another screen.
+- Sampras's forehand is a new clip (he said "it looks like a terrible clip was chosen for sampras forehand"): the old one was a
+  seniors-event rally forehand from a slow replay whose speed was guessed (about 6x), and at its contact the racket pointed at the
+  court beside his right foot. The new one is the per-frame median of five forehands from prime-era practice footage on grass
+  (Top Tennis Training N98l4DMpNDk, 70-93 s, court-level camera across the net, 30 fps real time), tracked with track.py --big and
+  built with player_motion.py: unit turn with the racket up and back, contact out in front at the waist, finish over the left
+  shoulder. Checked in the pose lab from the side and in front. (Tried and not used: slow replays of Miami 2002 in Burns Tennis
+  eWihCsMCCAk - the running forehand finishes over the right shoulder and the others lost the tracker at a zoom.) track.py has a
+  --cutd option now for a replay's zoom.
