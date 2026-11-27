@@ -1859,3 +1859,7 @@ still in the air, both in a stroke's finish, for two or three frames.
     (the bot strikes nearly every serve Perfect); the bot's points won 49% -> 44% -> 45%. His swings at air 20 -> 37 in 500 points -
     lunges at a fast ball just out of reach.
   - CAL measured again (three ladders).
+- A season has match length and level too (he asked "in tour cant i set the difficulty and match length?"): the Season start screen,
+  each week's screen and the draw before every match (a season's or a tournament's) carry the same Five sets / Three sets / One set /
+  Classic / Tiebreak and Club / Challenger / Tour chips as Play and Tournament. Before, a season's matches took whatever was last chosen
+  on another screen.

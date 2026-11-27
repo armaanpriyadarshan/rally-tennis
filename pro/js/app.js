@@ -358,12 +358,15 @@ class App {
     let foot;
     if (past) foot = `<span class="lab">${me >= 0 && d.resultFor(me) ? (d.champion === me ? 'Title' : RND[d.resultFor(me)] || '') : ''}</span><span class="sp"></span><button class="btn go" data-pastback>Back</button>`;
     else if (d.champion != null) foot = `<span class="lab">${d.champion === me ? 'Title' : (RND[d.resultFor(me)] || '')}</span><span class="sp"></span><button class="btn go" data-done>Done</button>`;
-    else if (hm) foot = `<span class="lab">${RND[d.roundName] || d.roundName}${d.rr && d.round < 3 ? ' · day ' + (d.round + 1) : ''} · v ${esc(pname(hm.a === me ? hm.b : hm.a))}</span><span class="sp"></span><button class="btn sm" data-sim>Sim match</button><button class="btn sm" data-simall>Sim all</button><button class="btn go" data-play>Play</button>`;
+    else if (hm) foot = `<span class="lab">${RND[d.roundName] || d.roundName}${d.rr && d.round < 3 ? ' · day ' + (d.round + 1) : ''} · v ${esc(pname(hm.a === me ? hm.b : hm.a))}</span>${this.options()}<span class="sp"></span><button class="btn sm" data-sim>Sim match</button><button class="btn sm" data-simall>Sim all</button><button class="btn go" data-play>Play</button>`;
     else foot = `<span class="lab">${bye ? 'Bye' : d.alive(me) ? '' : 'Out · ' + (RND[d.resultFor(me)] || '')}</span><span class="sp"></span><button class="btn sm" data-simall>Sim all</button><button class="btn go" data-next>Next round</button>`;
     this.screen(this.bar(esc(T.name), `<span class="lab">${TIER[T.level][1]} · ${esc(T.surface)}</span>`) + `<div class="draw ${big ? 'big' : ''} ${d.rr ? 'rr' : ''}">${cols}${champ}</div><div class="foot">${foot}</div>`, '', true);
     this.on('[data-back]', () => season ? this.season() : this.tour());
     if (past) { this.on('[data-pastback]', () => this.season()); return; }
     const again = () => { if (season) season.save(); this.drawView(season); };
+    // (match length and level here too, right before a match, in a season as in a tournament: he asked "in tour cant i set the
+    // difficulty and match length?" - the season's screens had neither, and its matches took whatever was last chosen elsewhere)
+    if (hm) this.wire(() => this.drawView(season));
     this.on('[data-play]', () => { d.simRound(false); this.play({ kind: 'draw', draw: d, match: hm, season }, me, hm.a === me ? hm.b : hm.a, T, d.roundName); });
     this.on('[data-sim]', () => { d.report(hm, d.sim(hm)); d.simRound(false); again(); });
     this.on('[data-next]', () => { d.simRound(false); again(); });
@@ -375,7 +378,8 @@ class App {
     if (!S || (S.done && !this.S)) {
       this.screen(this.bar('Season') + `<div class="h2h" style="grid-template-columns:1fr 1.4fr">${this.card(this.sel.p0, 'You', 'me')}
         ${this.tourPanel(S && S.done ? S : null)}</div>
-        <div class="foot"><span class="sp"></span><button class="btn go" data-new>Start</button></div>`, '', true);
+        <div class="foot">${this.options()}<span class="sp"></span><button class="btn go" data-new>Start</button></div>`, '', true);
+      this.wire(() => this.season());
       this.on('[data-back]', () => this.home()); this.on('.pl.me', () => this.pick(0, () => { this.S = null; this.season(); }));
       this.on('[data-new]', () => { Season.clear(); this.S = new Season(this.sel.p0); this.S.save(); this.season(); });
       return;
@@ -393,10 +397,11 @@ class App {
     if (S.done) { now = `<div class="now"><span class="lab">Year end</span><b>No. ${S.rankOf(me)}</b><span class="lab">${S.pts[me]} points · ${S.results.filter(r => r.human === 'W').length} titles</span></div>`; foot = '<span class="sp"></span><button class="btn go" data-reset>New season</button>'; }
     else { const q = S.qualified(T);
       now = `<div class="now" style="--tier:${TIER[T.level][0]}"><span class="lab">Week ${S.ev + 1} / ${TOURNAMENTS.length} · ${TIER[T.level][1]} · ${esc(T.surface)}</span><b>${esc(T.name)}</b><span class="lab">${q ? esc(T.court || '') : 'Top eight only'}</span></div>`;
-      foot = `<button class="btn sm" data-abandon>Abandon</button><span class="sp"></span>${S.draw ? '' : '<button class="btn sm" data-skip>Skip</button>'}<button class="btn sm" data-simev>Sim event</button><button class="btn sm" data-simrest>Sim season</button>${q ? `<button class="btn go" data-enter>${S.draw ? 'Draw' : 'Enter'}</button>` : ''}`; }
+      foot = `<button class="btn sm" data-abandon>Abandon</button>${this.options()}<span class="sp"></span>${S.draw ? '' : '<button class="btn sm" data-skip>Skip</button>'}<button class="btn sm" data-simev>Sim event</button><button class="btn sm" data-simrest>Sim season</button>${q ? `<button class="btn go" data-enter>${S.draw ? 'Draw' : 'Enter'}</button>` : ''}`; }
     this.screen(this.bar(esc(pname(me)), `<span class="lab">No. ${S.rankOf(me)} · ${S.pts[me]} pts</span>`) + `<div class="cols"><div>${now}<div class="cal">${cal}</div></div><div><table class="rk">${rows}</table></div></div><div class="foot">${foot}</div>`, '', true);
     this.on('[data-back]', () => this.home());
     this.on('[data-enter]', () => { S.open(); S.save(); this.sel.T = T; this.drawView(S); });
+    if (!S.done) this.wire(() => this.season());
     this.on('[data-simev]', () => { S.simEvent(); this.season(); });
     this.on('[data-skip]', () => { S.skipEvent(); this.season(); });
     this.on('[data-past]', n => { const r = S.results[+n.dataset.past]; if (r && r.draw) this.drawView(S, Draw.from(r.draw)); });   // (sit this one out: played without him)
